@@ -23,7 +23,7 @@
 #ifndef LEDS_H
 #define LEDS_H
 
-#include "Veno.h"
+#include "Ecco.h"
 #include "daisysp.h"
 #include "daisy_seed.h"
 #include "oscillator_p.h"

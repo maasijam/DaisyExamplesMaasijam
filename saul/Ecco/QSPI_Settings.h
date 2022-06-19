@@ -23,7 +23,7 @@
 #ifndef QSPI_SETTINGS_H
 #define QSPI_SETTINGS_H
 
-#include "Veno.h"
+#include "Ecco.h"
 #include "daisysp.h"
 #include "daisy_seed.h"
 //#include "constants.h"
