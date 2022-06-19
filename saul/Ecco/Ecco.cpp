@@ -147,7 +147,6 @@ bool syncMode{false};
 bool shift{false};  //global variable for secondary shift functions
 bool mute{};
 bool s1State{false};
-bool s2State{false};
 bool s3State{false};
 bool s4State{false};
 
@@ -158,7 +157,7 @@ bool PostFilters{false};
 size_t reverseState = 0;
 size_t resState = 0;
 size_t revLenState = 0;
-size_t bitcrushState = 0;
+size_t s2State = 0;
 
 std::atomic<bool> save_flag{};
 
@@ -210,7 +209,7 @@ constexpr Settings defaultAltControls
     (minRevDelay + maxRevDelay) / 2.0f, //RevLength
     1.0f,   //tapRatio
     default_Res,     //Filter Resonance
-    0.0f,    //filter prepost
+    1.0f,    //filter prepost
     24000.0f,     //base tempo (in samples)
     0.0f,       //L_Rev
     0.0f    //R_Rev
@@ -589,29 +588,29 @@ else
     /* code */
 }
        /* 
-        if(bitcrushState == 1 || bitcrushState == 3)
+        if(s2State == 1 || s2State == 3)
         {
             delaySignal_L_SUM = decimator_l.Process(delaySignal_L_SUM) * 0.9f;
         }
-        if(bitcrushState == 2 || bitcrushState == 3)
+        if(s2State == 2 || s2State == 3)
         {
             delaySignal_R_SUM = decimator_r.Process(delaySignal_R_SUM) * 0.9f;
         }
 
-        if(bitcrushState == 1 || bitcrushState == 3)
+        if(s2State == 1 || s2State == 3)
         {
             delaySignal_L_SUM = srr_l.Process(delaySignal_L_SUM) * 0.9f;
         }
-        if(bitcrushState == 2 || bitcrushState == 3)
+        if(s2State == 2 || s2State == 3)
         {
             delaySignal_R_SUM = srr_r.Process(delaySignal_R_SUM) * 0.9f;
         }*/
 
-         if(bitcrushState == 1 || bitcrushState == 3)
+         if(s2State == 1 || s2State == 3)
         {
             delaySignal_L_SUM = treml.Process(delaySignal_L_SUM);
         }
-        if(bitcrushState == 2 || bitcrushState == 3)
+        if(s2State == 2 || s2State == 3)
         {
             delaySignal_R_SUM = tremr.Process(delaySignal_R_SUM);
         }
@@ -1194,14 +1193,6 @@ void Update_HPF()
             HPF_L_post.SetFreq(HPCutoff);
             HPF_R_post.SetFreq(HPCutoff);
         }
-
-       
-  
-        //float feedbackL_Target{scale(feedbackL_combo,0.0,maxFB,LINEAR)};  
-        //fonepole(feedbackL,feedbackL_Target,0.032f);
-
-        
-   
     
 }
 
@@ -1254,12 +1245,6 @@ void Update_LPF()
             LPF_L_post.SetFreq(LPCutoff);
             LPF_R_post.SetFreq(LPCutoff);
         }
-  
-        //float feedbackL_Target{scale(feedbackL_combo,0.0,maxFB,LINEAR)};  
-        //fonepole(feedbackL,feedbackL_Target,0.032f);
-
-       
-  
     
 }
 
@@ -1865,17 +1850,14 @@ void Update_Buttons()
     }
 
     if(S2.RisingEdge()){
-        bitcrushState += 1;
-        if(bitcrushState > 3) {
-           bitcrushState = 0;     
+        s2State += 1;
+        if(s2State > 3) {
+           s2State = 0;     
         } 
     }
 
-    //s1State = S1.getState();
-    //s2State = S2.getState();
     s3State = S3.getState();
     PostFilters = s3State;
-    //s4State = S4.getState();
     
     syncMode = S_SYNC.getState();
 
@@ -1891,23 +1873,7 @@ void Update_DelayBaseTempo()
 
 void Update_Leds()
 {
-    /*
-    if(s1State) {
-        hw.SetLed(LED_LFO1_WAVE_SQUARE,false);
-        hw.SetLed(LED_LFO1_WAVE_TRI,true);
-    } else {
-        hw.SetLed(LED_LFO1_WAVE_SQUARE,true);
-        hw.SetLed(LED_LFO1_WAVE_TRI,false);
-    }
 
-    if(s2State) {
-        hw.SetLed(LED_LFO1_RATE_SLOW,false);
-        hw.SetLed(LED_LFO1_RATE_FAST,true);
-    } else {
-        hw.SetLed(LED_LFO1_RATE_SLOW,true);
-        hw.SetLed(LED_LFO1_RATE_FAST,false);
-    }
-*/
     if(s3State) {
         hw.SetLed(LED_LFO2_WAVE_SQUARE,false);
         hw.SetLed(LED_LFO2_WAVE_TRI,true);
@@ -1915,15 +1881,7 @@ void Update_Leds()
         hw.SetLed(LED_LFO2_WAVE_SQUARE,true);
         hw.SetLed(LED_LFO2_WAVE_TRI,false);
     }
-/*
-    if(s4State) {
-        hw.SetLed(LED_LFO2_RATE_SLOW,false);
-        hw.SetLed(LED_LFO2_RATE_FAST,true);
-    } else {
-        hw.SetLed(LED_LFO2_RATE_SLOW,true);
-        hw.SetLed(LED_LFO2_RATE_FAST,false);
-    }
- */ 
+
     hw.SetLed(LED_SYNC_GREEN,(syncMode ? false : true));
 
     switch (reverseState)
@@ -1979,7 +1937,7 @@ void Update_Leds()
     }
 
 
-    switch (bitcrushState)
+    switch (s2State)
     {
     case 1:
         hw.SetLed(LED_LFO1_RATE_SLOW,false);
@@ -2010,9 +1968,7 @@ void Update_DelayTempoLEDs()
 {    
     delayL.updateTempoLED(syncMode);
     delayR.updateTempoLED(syncMode);
-    //DELAYL_DEBUG = delayL.GetDelayTime();
-    //DELAYR_DEBUG = delayR.GetDelayTime();
-    //CLOCK_DEBUG = BaseTempo.getDelayLength();
+
     hw.SetLed(delayL.GetLedIdx(),delayL.GetLedOn());
     hw.SetLed(delayR.GetLedIdx(),delayR.GetLedOn());
     
