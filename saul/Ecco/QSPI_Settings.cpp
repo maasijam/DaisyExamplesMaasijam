@@ -40,15 +40,11 @@ QSPIHandle::Result SaveSettings(const Settings &currentSetting)
 
     inbuff[0] = currentSetting.RevLength;
     inbuff[1] = currentSetting.tapRatio;
-    inbuff[2] = currentSetting.ModDepth;
-    inbuff[3] = currentSetting.ModFreq;
-    inbuff[4] = currentSetting.HP_Cutoff;
-    inbuff[5] = currentSetting.LP_Cutoff;
-    inbuff[6] = currentSetting.Resonance;
-    inbuff[7] = currentSetting.FilterPrePost;
-    inbuff[8] = currentSetting.tempo;
-    inbuff[9] = currentSetting.L_Rev;
-    inbuff[10] = currentSetting.R_Rev;
+    inbuff[2] = currentSetting.Resonance;
+    inbuff[3] = currentSetting.FilterPrePost;
+    inbuff[4] = currentSetting.tempo;
+    inbuff[5] = currentSetting.L_Rev;
+    inbuff[6] = currentSetting.R_Rev;
     
     //split into 8bit chunks:
     //skip first byte - out by one byte for some reason
@@ -106,15 +102,11 @@ Settings LoadSettings()
 
 SettingsInFlash.RevLength = readbuff[0];
 SettingsInFlash.tapRatio = readbuff[1];
-SettingsInFlash.ModDepth = readbuff[2];
-SettingsInFlash.ModFreq = readbuff[3];
-SettingsInFlash.HP_Cutoff = readbuff[4];
-SettingsInFlash.LP_Cutoff = readbuff[5];
-SettingsInFlash.Resonance = readbuff[6];
-SettingsInFlash.FilterPrePost = readbuff[7];
-SettingsInFlash.tempo = readbuff[8];
-SettingsInFlash.L_Rev = readbuff[9];
-SettingsInFlash.R_Rev = readbuff[10];
+SettingsInFlash.Resonance = readbuff[2];
+SettingsInFlash.FilterPrePost = readbuff[3];
+SettingsInFlash.tempo = readbuff[4];
+SettingsInFlash.L_Rev = readbuff[5];
+SettingsInFlash.R_Rev = readbuff[6];
 
 return SettingsInFlash;
 

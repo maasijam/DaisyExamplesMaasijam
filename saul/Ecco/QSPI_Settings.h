@@ -35,10 +35,6 @@ struct Settings
 {
     float RevLength;
     float tapRatio;
-    float ModDepth;
-    float ModFreq;
-    float HP_Cutoff;
-    float LP_Cutoff;
     float Resonance;
     float FilterPrePost;
     float tempo;

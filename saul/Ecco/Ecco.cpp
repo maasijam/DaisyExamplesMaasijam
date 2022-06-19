@@ -106,12 +106,8 @@ TempoLED tempoLED_BASE;
 ButtonSW LPF_sw,HPF_sw,S2,S3,S4,S_REV,S_SYNC,S1;
 
 // bitcrush effect
-Decimator decimator_l;
-Decimator decimator_r;
-
-SampleRateReducer srr_l;
-SampleRateReducer srr_r;
-
+Decimator decimator_l, decimator_r;
+SampleRateReducer srr_l, srr_r;
 Tremolo    treml, tremr;
 
 float delayTimeL_CV{};
@@ -143,12 +139,8 @@ float width_CV{};
 
 float filterXfade{};
 
-//TempoDivs div_L{};
-//TempoDivs div_R{};
-
 float ModDepth{0.0f};   //100.0 is a lot!
 
-//float modulation_CV{};
 float modulation_CV_Raw{};
 
 bool syncMode{false};
@@ -217,10 +209,6 @@ constexpr Settings defaultAltControls
 {
     (minRevDelay + maxRevDelay) / 2.0f, //RevLength
     1.0f,   //tapRatio
-    0.0f,   //ModDepth
-    (maxModRate + minModRate) / 2.0f,   //ModFreq
-    defaultHPCut,   //HP_Cutoff
-    defaultLPCut,   //LP_Cutoff
     default_Res,     //Filter Resonance
     0.0f,    //filter prepost
     24000.0f,     //base tempo (in samples)
@@ -280,10 +268,8 @@ float HardLimit(float input, float limit);
 float PotCVCombo(float Pot_Val, float CV_Val);
 bool checkPickupState(float value, float lastvalue, bool lastState, bool ShiftChange);
 pickupState checkPickupState_alt(float value, float lastValue, pickupState lastState, bool ShiftChange);
-//void UpdateLeds();
 void Update_Leds();
 
-//static void AudioCallback(float *in, float *out, size_t size)
 static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
 
@@ -296,82 +282,67 @@ Counter = (Counter + 1) % updateDiv;
             case 0:
                 Update_Buttons();
                 GetModCV();              
-                
             break;
-
             case 1:
                 Update_DelayTimeL_CV();
             break;
-
             case 2:
                 if(saveState != SAVING)
                 {
                     Update_DelayTimeL();
                 }
             break;
-
             case 3:
                 Update_DelayTimeR_CV();
             break;
-
             case 4:
                 if(saveState != SAVING) //don't check ADCs 
                 {
                     Update_DelayTimeR();
                 }
             break;
-
             case 5:
                 Update_feedbackL_CV();
             break;
-
             case 6:
                 if(saveState != SAVING) //don't check ADCs 
                 {
                     Update_feedbackL();
                 }
             break;
-
             case 7:
                 Update_feedbackR_CV();
             break;
-
             case 8:
                 if(saveState != SAVING) //don't check ADCs 
                 {
                     Update_feedbackR();
                 }
             break;
-
             case 9:
                 Update_drywet_CV();
             break;
-
             case 10:
                 if(saveState != SAVING) //don't check ADCs 
                 {
                     Update_drywet();
                 }
             break;
-
             case 11:
                 Update_width_CV();
             break;
-
             case 12:
                 if(saveState != SAVING) //don't check ADCs 
                 {
                     Update_width();
                 }
             break;
-
             case 13:
                 if(saveState != SAVING) //don't check ADCs 
                 {
                     Update_crossfeedback();
                 }
             break;
-
             case 14:
                 if(saveState != SAVING) //don't check ADCs 
                 {
@@ -381,7 +352,6 @@ Counter = (Counter + 1) % updateDiv;
             case 15:
                 Update_HPF_CV();
             break;
-
             case 16:
                 if(saveState != SAVING) //don't check ADCs 
                 {
@@ -391,21 +361,18 @@ Counter = (Counter + 1) % updateDiv;
             case 17:
                 Update_LPF_CV();
             break;
-
             case 18:
                 if(saveState != SAVING) //don't check ADCs 
                 {
                     Update_LPF();
                 }
             break;
-
             case 19:
                 if(saveState != SAVING) //don't check ADCs 
                 {
                     Update_modrate();
                 }
             break;
-
             case 20:
                 if(saveState != SAVING) //don't check ADCs 
                 {
@@ -418,7 +385,7 @@ Counter = (Counter + 1) % updateDiv;
             case 22:
                     Update_RevLen();
             break;
-                      
+                    
         }
 
     for(size_t i = 0; i < size; i ++)
@@ -724,16 +691,9 @@ int main(void)
     hw.seed.Configure();
     hw.Init();
 
-    //hw.GetSR()->Set(LED_CLOCK_BLUE,false);
-    //hw.GetSR()->Write();
-
-    //ShiftRegister595 **sr2 = &hw.GetSR();
-    
-
     LPF_sw.init(hw.seed.GetPin(PIN_SW_RIGHT_B),ButtonSW::Toggle,hw.AudioSampleRate() / static_cast<float> (updateDiv));    
     HPF_sw.init(hw.seed.GetPin(PIN_SW_RIGHT_A),ButtonSW::Toggle,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
     Tap_Button.init(LED_CLOCK_BLUE,hw.seed.GetPin(BTN_TAP),ButtonLED::Toggle_inverted,hw.AudioSampleRate() / static_cast<float> (updateDiv));
-    //Sync.init(hw.GetSwitch(BTN_SYNC), ButtonLED::Momentary,LED_SYNC_GREEN,hw.AudioSampleRate() / static_cast<float> (updateDiv));
 
     S1.init(hw.seed.GetPin(BTN_LFO1_WAVE),ButtonSW::Momentary,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
     S2.init(hw.seed.GetPin(BTN_LFO1_RATE),ButtonSW::Momentary,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
@@ -743,7 +703,6 @@ int main(void)
     S_REV.init(hw.seed.GetPin(BTN_REVERSE),ButtonSW::Momentary,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
     S_SYNC.init(hw.seed.GetPin(BTN_SYNC),ButtonSW::Momentary,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
 
-    //S_TAP.init(hw.seed.GetPin(BTN_TAP),ButtonSW::Toggle_inverted,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
 
     decimator_l.Init();
     decimator_l.SetBitcrushFactor(0.2f);
@@ -2099,55 +2058,6 @@ void ApplySettings(const Settings &setting)
     else
     {
         BaseTempo.setTapRatio(defaultAltControls.tapRatio);
-    }
-
-    if((setting.ModDepth >= minModDepth) && (setting.ModDepth <= maxModDepth))
-    {
-        ModDepth = setting.ModDepth;
-    }
-    else
-    {
-        ModDepth = defaultAltControls.ModDepth;
-    }
-
-    if((setting.ModFreq >= minModRate) && (setting.ModFreq <= maxModRate))
-    {
-        lfo.SetFreq(setting.ModFreq);
-    }
-    else
-    {
-        lfo.SetFreq(defaultAltControls.ModFreq);
-    }
-
-    if((setting.LP_Cutoff >= minLPCut) && (setting.LP_Cutoff <= maxLPCut))
-    {
-        LPF_L.SetFreq(setting.LP_Cutoff);
-        LPF_R.SetFreq(setting.LP_Cutoff);
-        LPF_L_post.SetFreq(setting.LP_Cutoff);
-        LPF_R_post.SetFreq(setting.LP_Cutoff);
-    }
-    else
-    {
-        LPF_L.SetFreq(defaultAltControls.LP_Cutoff);
-        LPF_R.SetFreq(defaultAltControls.LP_Cutoff);
-        LPF_L_post.SetFreq(defaultAltControls.LP_Cutoff);
-        LPF_R_post.SetFreq(defaultAltControls.LP_Cutoff);
-    }
-    
-    if((setting.HP_Cutoff >= minHPCut) && (setting.HP_Cutoff <= maxHPCut))
-    {
-        HPF_L.SetFreq(setting.HP_Cutoff);
-        HPF_R.SetFreq(setting.HP_Cutoff);
-        HPF_L_post.SetFreq(setting.HP_Cutoff);
-        HPF_R_post.SetFreq(setting.HP_Cutoff);
-    }
-    else
-    {
-        HPF_L.SetFreq(defaultAltControls.HP_Cutoff);
-        HPF_R.SetFreq(defaultAltControls.HP_Cutoff);
-        HPF_L_post.SetFreq(defaultAltControls.HP_Cutoff);
-        HPF_R_post.SetFreq(defaultAltControls.HP_Cutoff);
-
     }
 
     if((setting.Resonance >= minRes) && (setting.Resonance <= maxRes))
