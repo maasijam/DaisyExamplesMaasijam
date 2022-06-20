@@ -87,6 +87,17 @@ class DaisySaul
         LED_LAST
     };
 
+    enum Colors {
+      red,
+      green,
+      blue,
+      yellow,
+      purple,
+      aqua,
+      off,
+      white
+  };
+
 
     /** Constructor */
     DaisySaul() {}
@@ -161,9 +172,7 @@ class DaisySaul
     */
     Switch* GetSwitch(size_t idx);
 
-    ShiftRegister595 *GetSR();
-
-    
+  
 
     /**
      Get value for a particular control _\param k Which control to get
@@ -176,6 +185,8 @@ class DaisySaul
     bool Gate();
 
     void SetLed(uint8_t idx, bool state);
+    void SetRGBLed(uint8_t idx, uint8_t color);
+    
 
     /**
   General delay _\param del Delay time in ms.
@@ -198,6 +209,8 @@ class DaisySaul
   private:
     void InitControls();
     void SetHidUpdateRates();
+    void SetRGBColor(uint8_t ridx,uint8_t gidx,uint8_t bidx, uint8_t color);
+    
 };
 
 } // namespace daisy

@@ -33,6 +33,12 @@ using namespace daisy;
 #define PIN_HC595_CS 12
 #define PIN_HC595_CLK 11
 
+const int _rgbLedPins[4][3] = {
+    {DaisySaul::LED_8,DaisySaul::LED_9,DaisySaul::LED_10}, 
+    {DaisySaul::LED_11,DaisySaul::LED_12,DaisySaul::LED_13}, 
+    {DaisySaul::LED_14,DaisySaul::LED_15,DaisySaul::LED_16}, 
+    {DaisySaul::LED_17,DaisySaul::LED_18,DaisySaul::LED_19}
+};
 
 
 void DaisySaul::Init(bool boost)
@@ -108,6 +114,7 @@ void DaisySaul::Init(bool boost)
         }
     }  
 
+   
 
     dsy_gpio_pin allleds_cfg[3];
     allleds_cfg[0]    = seed.GetPin(PIN_HC595_CS);
@@ -202,11 +209,6 @@ Switch* DaisySaul::GetSwitch(size_t idx)
     return &s[idx < S_LAST ? idx : 0];
 }
 
-ShiftRegister595 *DaisySaul::GetSR()
-{
-    return &all_leds;
-}
-
 
 bool DaisySaul::Gate()
 {
@@ -260,4 +262,70 @@ void DaisySaul::SetLed(uint8_t idx, bool state)
 {
     all_leds.Set(idx,state);
     all_leds.Write();
+}
+
+void DaisySaul::SetRGBLed(uint8_t idx, uint8_t color)
+{
+    uint8_t  redIdx,greenIdx,blueIdx;
+    if(idx > 0 && idx < 5) {
+        redIdx = _rgbLedPins[idx-1][0];
+        greenIdx = _rgbLedPins[idx-1][1];
+        blueIdx = _rgbLedPins[idx-1][2];
+    }
+    SetRGBColor(redIdx,greenIdx,blueIdx,color);
+    
+}
+
+void DaisySaul::SetRGBColor(uint8_t ridx,uint8_t gidx,uint8_t bidx, uint8_t color)
+{
+    switch (color) {
+            case 0:
+                SetLed(ridx, false);
+                SetLed(gidx, true);
+                SetLed(bidx, true);
+                // red
+              break;
+             case 1:
+                SetLed(ridx, true);
+                SetLed(gidx, false);
+                SetLed(bidx, true);
+               // green
+              break;
+             case 2:
+                SetLed(ridx, true);
+                SetLed(gidx, true);
+                SetLed(bidx, false);
+              // blue
+              break;
+            case 3:
+                SetLed(ridx, false);
+                SetLed(gidx, false);
+                SetLed(bidx, true);
+               // yellow
+              break;
+            case 4:
+                SetLed(ridx, false);
+                SetLed(gidx, true);
+                SetLed(bidx, false);
+               // purple
+              break;
+            case 5:
+                SetLed(ridx, true);
+                SetLed(gidx, false);
+                SetLed(bidx, false);
+               // aqua
+              break;
+            case 6:
+                SetLed(ridx, true);
+                SetLed(gidx, true);
+                SetLed(bidx, true);
+              // off
+              break;
+            case 7:
+                SetLed(ridx, false);
+                SetLed(gidx, false);
+                SetLed(bidx, false);
+              // white
+              break;
+          }  
 }
