@@ -85,7 +85,7 @@ void CvScaler::Init() {
   }
 
 void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
-  int cv_map[6] = {8,10,3,9,5,0};
+  int cv_map[6] = {8,10,4,9,6,0};
   int pot_map[10] = {8,10,1,9,2,0,3,4,5,6};
   float value;
   // Process all CVs / pots.
@@ -128,29 +128,32 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
    ATTENUVERT(patch->damping, DAMPING, 0.0f, 1.0f);
    ATTENUVERT(patch->position, POSITION, 0.0f, 1.0f);
 
-  patch->structure = adc_lp_[ADC_CHANNEL_POT_STRUCTURE];
-  patch->brightness = adc_lp_[ADC_CHANNEL_POT_BRIGHTNESS];
-  patch->damping = adc_lp_[ADC_CHANNEL_POT_DAMPING];
-  patch->position = adc_lp_[ADC_CHANNEL_POT_POSITION];
+  //patch->structure = adc_lp_[ADC_CHANNEL_POT_STRUCTURE];
+  //patch->brightness = adc_lp_[ADC_CHANNEL_POT_BRIGHTNESS];
+  //patch->damping = adc_lp_[ADC_CHANNEL_POT_DAMPING];
+  //patch->position = adc_lp_[ADC_CHANNEL_POT_POSITION];
 
-  float fm = 0;
+  float fm = adc_lp_[ADC_CHANNEL_CV_FREQUENCY] * 48.0f;
   float error = fm - fm_cv_;
   if (fabs(error) >= 0.8f) {
     fm_cv_ = fm;
   } else {
     fm_cv_ += 0.02f * error;
   }
-  performance_state->fm = fm_cv_ * 0;
+  performance_state->fm = fm_cv_ * adc_lp_[ADC_CHANNEL_ATTENUVERTER_FREQUENCY];
   CONSTRAIN(performance_state->fm, -48.0f, 48.0f);
   
   float transpose = 60.0f * adc_lp_[ADC_CHANNEL_POT_FREQUENCY];
   float hysteresis = transpose - transpose_ > 0.0f ? -0.3f : +0.3f;
   transpose_ = static_cast<int32_t>(transpose + hysteresis + 0.5f);
   
-  // float note = calibration_data_->pitch_offset;
-  // note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * calibration_data_->pitch_scale;
+  float note = 66.67f;
+  //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * -84.26f;
+  note += adc_lp_[ADC_CHANNEL_CV_V_OCT] ;
+
+  //performance_state->note = adc_lp_[POT_FREQUENCY] * 48.0f;
   
-  performance_state->note = adc_lp_[ADC_CHANNEL_POT_FREQUENCY] * 48.0f;
+  performance_state->note = note;
   performance_state->tonic = 12.0f + transpose_;
     
   // Strumming / internal exciter triggering logic.    
@@ -162,7 +165,10 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   }
   
   // Hysteresis on chord.
-  float chord = adc_lp_[ADC_CHANNEL_POT_STRUCTURE];
+  float chord = 0.505f - \
+      adc_lp_[ADC_CHANNEL_CV_STRUCTURE];
+  chord *= adc_lp_[ADC_CHANNEL_ATTENUVERTER_STRUCTURE];
+  chord += adc_lp_[ADC_CHANNEL_POT_STRUCTURE];
   chord *= static_cast<float>(kNumChords - 1);
   hysteresis = chord - chord_ > 0.0f ? -0.1f : +0.1f;
   chord_ = static_cast<int32_t>(chord + hysteresis + 0.5f);
