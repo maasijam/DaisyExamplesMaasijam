@@ -821,9 +821,9 @@ int main(void)
     tempoLED_BASE.resetPhase();
 
     //load settings from flash
-    //Settings SavedSettings{LoadSettings()};
-    //ApplySettings(SavedSettings);
-    //AltControls = SavedSettings;
+    Settings SavedSettings{LoadSettings()};
+    ApplySettings(SavedSettings);
+    AltControls = SavedSettings;
 
 
 //hw.seed.StartLog(false);
@@ -859,10 +859,10 @@ int main(void)
                 {
                     saveState = SAVING; //stop reading ADCs temporarily
                     
-                    //Settings ToSave{AltControls};   //copy settings
-                    //if (SaveSettings(ToSave) == QSPIHandle::Result::OK)  //save settings
-                    //{
-                    //}
+                    Settings ToSave{AltControls};   //copy settings
+                    if (SaveSettings(ToSave) == QSPIHandle::Result::OK)  //save settings
+                    {
+                    }
                 }
 
                 else{} //still waiting
@@ -883,7 +883,7 @@ int main(void)
            {
            }
         }
-        //System::Delay(100);
+        
 
      }
 
@@ -1834,6 +1834,17 @@ void Update_Buttons()
         if(reverseState > 3) {
            reverseState = 0;     
         } 
+        if(reverseState == 1 || reverseState == 3) {
+            AltControls.L_Rev = 1.0f;
+        } else {
+            AltControls.L_Rev = 0.0f;
+        }
+        if(reverseState == 2 || reverseState == 3) {
+            AltControls.R_Rev = 1.0f;
+        } else {
+            AltControls.R_Rev = 0.0f;
+        }
+        save_flag = true;
     }
 
     if(S4.RisingEdge()){
@@ -1841,12 +1852,35 @@ void Update_Buttons()
         if(resState > 2) {
            resState = 0;     
         } 
+        switch (resState)
+        {
+        case 1:
+            AltControls.Resonance = 0.40f;
+            break;
+        case 2:
+            AltControls.Resonance = 0.80f;
+            break;
+        default:
+            AltControls.Resonance = 0.0f;
+            break;
+        }
+        save_flag = true;
     }
     if(S1.RisingEdge()){
         revLenState += 1;
         if(revLenState > 2) {
            revLenState = 0;     
         } 
+        switch (revLenState)
+        {
+        case 1:
+            AltControls.RevLength = 0.50f;
+            break;
+        case 2:
+            AltControls.RevLength = 1.0f;
+            break;
+        }
+        save_flag = true;
     }
 
     if(S2.RisingEdge()){
@@ -1856,9 +1890,11 @@ void Update_Buttons()
         } 
     }
 
-    s3State = S3.getState();
-    PostFilters = s3State;
-    
+    if(S3.RisingEdge()){
+       PostFilters = S3.getState();
+       AltControls.FilterPrePost = (PostFilters ? 1.0f : 0.0f);
+       save_flag = true;
+    }
     syncMode = S_SYNC.getState();
 
     
@@ -1874,7 +1910,7 @@ void Update_DelayBaseTempo()
 void Update_Leds()
 {
 
-    if(s3State) {
+    if(PostFilters) {
         hw.SetLed(LED_LFO2_WAVE_SQUARE,false);
         hw.SetLed(LED_LFO2_WAVE_TRI,true);
     } else {
@@ -1996,45 +2032,33 @@ void Update_BaseTempoLED()
 
 void ApplySettings(const Settings &setting)
 {
-    if((setting.RevLength >= minRevDelay) && (setting.RevLength <= maxRevDelay))
+    
+    if((setting.RevLength == 0.50f))
     {
-        delaysL_REV.SetDelayTime(setting.RevLength);
-        delaysR_REV.SetDelayTime(setting.RevLength); 
+        revLenState = 1;
     }
-    else
+    else if((setting.RevLength == 1.0f))
     {
-        delaysL_REV.SetDelayTime(defaultAltControls.RevLength);
-        delaysR_REV.SetDelayTime(defaultAltControls.RevLength); 
+        revLenState = 2;
+    } else {
+        revLenState = 0;
+    }
+   
+
+    
+    BaseTempo.setTapRatio(defaultAltControls.tapRatio);
+
+
+    if((setting.Resonance == 0.40f))
+    {
+        resState = 1;
+    } else if((setting.Resonance == 0.80f)) {
+        resState = 2;
+    } else {
+        resState = 0;
     }
 
-    if((setting.tapRatio >= 1.0f) && (setting.tapRatio <= 3.0f ))
-    {
-        BaseTempo.setTapRatio(setting.tapRatio);
-    }
-    else
-    {
-        BaseTempo.setTapRatio(defaultAltControls.tapRatio);
-    }
-
-    if((setting.Resonance >= minRes) && (setting.Resonance <= maxRes))
-    {
-        LPF_L.SetRes(setting.Resonance);
-        HPF_L.SetRes(setting.Resonance);
-        LPF_R.SetRes(setting.Resonance);
-        HPF_R.SetRes(setting.Resonance);
-        LPF_L_post.SetRes(setting.Resonance);
-        HPF_L_post.SetRes(setting.Resonance);
-        LPF_R_post.SetRes(setting.Resonance);
-        HPF_R_post.SetRes(setting.Resonance);
-    }
-
-    else
-    {
-        LPF_L_post.SetRes(defaultAltControls.Resonance);
-        HPF_L_post.SetRes(defaultAltControls.Resonance);
-        LPF_R_post.SetRes(defaultAltControls.Resonance);
-        HPF_R_post.SetRes(defaultAltControls.Resonance);
-    }
+    
 
     if(setting.FilterPrePost < 0.45f)
     {
@@ -2046,7 +2070,7 @@ void ApplySettings(const Settings &setting)
     }
     else
     {
-        PostFilters = false;    //default to pre filter
+        PostFilters = true;    //default to pre filter
     }
 
     //if between min and max tap length
@@ -2062,23 +2086,23 @@ void ApplySettings(const Settings &setting)
         BaseTempo.setTempo(defaultAltControls.tempo);
         tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
     }
+    
 
-    if((setting.L_Rev > 0.49f)) //if more than half
+    if((setting.L_Rev > 0.49f) && (setting.R_Rev > 0.49f)) //if more than half
     {
-        ////Rev_L_sw.turnON();
+        reverseState = 3;
+    }
+    else if((setting.L_Rev > 0.49f) && (setting.R_Rev < 0.35f))   //default OFF
+    {
+        reverseState = 1;
+    } 
+    else if((setting.L_Rev < 0.49f) && (setting.R_Rev > 0.35f)) //if more than half
+    {
+        reverseState = 2;
     }
     else    //default OFF
     {
-        ////Rev_L_sw.turnOFF();
-    }
-
-    if((setting.R_Rev > 0.49f)) //if more than half
-    {
-        ////Rev_R_sw.turnON();
-    }
-    else    //default OFF
-    {
-        ////Rev_R_sw.turnOFF();
+        reverseState = 0;
     }
 
 }
