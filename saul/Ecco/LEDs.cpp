@@ -57,6 +57,7 @@ void TempoLED::resetPhaseCounter()
 
 void TempoLED::update()
 {
+    
     float ledvalue{ (blink.Process() + 1.0f) / 2.0f };
 
     if(ledvalue > 0.6f) {
@@ -336,3 +337,4 @@ bool ButtonSW::FallingEdge()
 {
     return sw.FallingEdge();
 }
+

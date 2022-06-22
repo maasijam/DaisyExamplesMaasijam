@@ -38,8 +38,8 @@ QSPIHandle::Result SaveSettings(const Settings &currentSetting)
 {
     float inbuff[BUFF_SIZE];
 
-    inbuff[0] = currentSetting.RevLength;
-    inbuff[1] = currentSetting.tapRatio;
+    inbuff[0] = currentSetting.tapRatio;
+    inbuff[1] = currentSetting.RevLength;
     inbuff[2] = currentSetting.Resonance;
     inbuff[3] = currentSetting.FilterPrePost;
     inbuff[4] = currentSetting.tempo;
@@ -100,8 +100,8 @@ Settings LoadSettings()
         readbuff[i] = *(float*)(bytes);
     }
 
-SettingsInFlash.RevLength = readbuff[0];
-SettingsInFlash.tapRatio = readbuff[1];
+SettingsInFlash.tapRatio = readbuff[0];
+SettingsInFlash.RevLength = readbuff[1];
 SettingsInFlash.Resonance = readbuff[2];
 SettingsInFlash.FilterPrePost = readbuff[3];
 SettingsInFlash.tempo = readbuff[4];
@@ -111,3 +111,4 @@ SettingsInFlash.R_Rev = readbuff[6];
 return SettingsInFlash;
 
 }
+

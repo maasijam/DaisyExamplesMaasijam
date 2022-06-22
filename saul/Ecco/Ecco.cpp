@@ -21,7 +21,7 @@
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
 #include "Ecco.h"
-#include "QSPI_Settings.h"
+#include "FLASH_Settings.h"
 #include "daisysp.h"
 #include "delayline_multitap.h" //modified delayline
 #include "delayline_reverse.h"  //reverse delayline
@@ -149,7 +149,7 @@ bool mute{};
 bool s1State{false};
 bool s3State{false};
 bool s4State{false};
-
+bool saveSt{false};
 
 bool ClockInFlag{false};
 bool PostFilters{false};
@@ -159,7 +159,7 @@ size_t resState = 0;
 size_t revLenState = 0;
 size_t s2State = 0;
 
-std::atomic<bool> save_flag{};
+///std::atomic<bool> save_flag{};
 
 SaveState saveState{IDLE};
 
@@ -198,22 +198,15 @@ static CrossFade FilterMix_R;
 static CrossFade FilterMix_L_post;
 static CrossFade FilterMix_R_post;
 
+
+
 //Tap tempo
 Taptempo BaseTempo; 
 
-Settings AltControls;
+float tempo_;
+float tapRatio_;
 
-//default alt control values
-constexpr Settings defaultAltControls
-{
-    (minRevDelay + maxRevDelay) / 2.0f, //RevLength
-    1.0f,   //tapRatio
-    default_Res,     //Filter Resonance
-    1.0f,    //filter prepost
-    24000.0f,     //base tempo (in samples)
-    0.0f,       //L_Rev
-    0.0f    //R_Rev
-};
+
 
 void Update_DelayTimeL_CV();
 void Update_DelayTimeL();
@@ -269,6 +262,35 @@ bool checkPickupState(float value, float lastvalue, bool lastState, bool ShiftCh
 pickupState checkPickupState_alt(float value, float lastValue, pickupState lastState, bool ShiftChange);
 void Update_Leds();
 
+#define PRESET_MAX 1
+
+typedef struct
+{
+	// config
+    float tapRatio;
+   	uint8_t RevLength;
+	uint8_t Resonance;
+	bool FilterPrePost;
+	float tempo;
+	uint8_t reverse;
+    bool flashloaded;
+	
+} EccoSetting;
+
+void FlashLoad(uint8_t aSlot);
+void FlashSave(uint8_t aSlot);
+void SaveToLive(EccoSetting *);
+void LiveToSave(EccoSetting *);
+
+EccoSetting preset_setting[PRESET_MAX] = {
+{1.0f, 0, 0, true, 24000.0f, 0,true}
+};
+
+bool flashloaded_ = false;
+
+
+
+
 static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
 
@@ -279,7 +301,7 @@ Counter = (Counter + 1) % updateDiv;
         switch (Counter)
         {
             case 0:
-                Update_Buttons();
+                
                 GetModCV();              
             break;
             case 1:
@@ -690,6 +712,13 @@ int main(void)
     hw.seed.Configure();
     hw.Init();
 
+    //FlashLoad(0);
+    //if(!flashloaded_) {
+    //    hw.SetRGBLed(3,DaisySaul::yellow);
+        SaveToLive(&preset_setting[0]);
+    //}
+    
+
     LPF_sw.init(hw.seed.GetPin(PIN_SW_RIGHT_B),ButtonSW::Toggle,hw.AudioSampleRate() / static_cast<float> (updateDiv));    
     HPF_sw.init(hw.seed.GetPin(PIN_SW_RIGHT_A),ButtonSW::Toggle,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
     Tap_Button.init(LED_CLOCK_BLUE,hw.seed.GetPin(BTN_TAP),ButtonLED::Toggle_inverted,hw.AudioSampleRate() / static_cast<float> (updateDiv));
@@ -821,9 +850,9 @@ int main(void)
     tempoLED_BASE.resetPhase();
 
     //load settings from flash
-    Settings SavedSettings{LoadSettings()};
-    ApplySettings(SavedSettings);
-    AltControls = SavedSettings;
+    //Settings SavedSettings{LoadSettings()};
+    ///ApplySettings(SavedSettings);
+    ///AltControls = SavedSettings;
 
 
 //hw.seed.StartLog(false);
@@ -838,12 +867,12 @@ int main(void)
     
      for(;;)
      {  
-
+        Update_Buttons();
         Update_Leds();
         Update_DelayTempoLEDs();
-        static uint32_t saveTimer{};
+        //static uint32_t saveTimer{};
         //static bool SaveWaitFlag{};
-       
+       /*
         if(save_flag)   //if save_flag is set
         {
             save_flag = false;
@@ -883,7 +912,7 @@ int main(void)
            {
            }
         }
-        
+        */
 
      }
 
@@ -1661,8 +1690,8 @@ void UpdateClock()
             if(BaseTempo.clock(ClockCounter)) //if valid tap resistered
             {
                 tempoLED_BASE.setTempo(BaseTempo.getTapFreq()); //set new base freq
-                AltControls.tempo = BaseTempo.getTempo();
-                save_flag = true;
+                tempo_ = BaseTempo.getTempo();
+                ///save_flag = true;
             }
             ClockCounter = 0; //reset counter
 
@@ -1690,12 +1719,6 @@ void Update_Buttons()
     S_REV.update();
     S_SYNC.update();
 
-    //S_TAP.update();
-    ////ReverseGateL.Debounce();
-    ////ReverseGateR.Debounce();
-    //TapButton.Debounce();
-    ////Sync.Debounce();
-    //ClockIn.Debounce();
     //gate inputs
     /*
     if (ReverseGateL.RisingEdge())
@@ -1780,8 +1803,8 @@ void Update_Buttons()
         {
             tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
             //// Tom ToDo - sorg für absturz
-            AltControls.tempo = BaseTempo.getTempo();
-            save_flag = true;
+            tempo_ = BaseTempo.getTempo();
+            ///save_flag = true;
         }
         tempoLED_BASE.resetPhase();
         
@@ -1801,6 +1824,7 @@ void Update_Buttons()
         shift = false;
         buttonstate -= 1;
         mute = false;
+        saveSt = false;
     }
 
     if (Tap_Button.getState())
@@ -1808,6 +1832,7 @@ void Update_Buttons()
         if ( (System::GetNow() - shiftTime) > shiftWait)
         {
             //shift = true;   //turn on shift if button held for longer than shiftWait
+            saveSt = true;
         } 
     }
 
@@ -1820,11 +1845,11 @@ void Update_Buttons()
                 //Rev_R_sw.toggle();
                 //ResetAllLEDs();
                 //don't let reset or shift update
-                shift = false;
-                ApplySettings(defaultAltControls);
-                AltControls = defaultAltControls;
-                resetTime = System::GetNow();
-                save_flag = true;
+                //shift = false;
+                //ApplySettings(defaultAltControls);
+                //AltControls = defaultAltControls;
+                //resetTime = System::GetNow();
+                //save_flag = true;
             }
     } 
 
@@ -1834,17 +1859,8 @@ void Update_Buttons()
         if(reverseState > 3) {
            reverseState = 0;     
         } 
-        if(reverseState == 1 || reverseState == 3) {
-            AltControls.L_Rev = 1.0f;
-        } else {
-            AltControls.L_Rev = 0.0f;
-        }
-        if(reverseState == 2 || reverseState == 3) {
-            AltControls.R_Rev = 1.0f;
-        } else {
-            AltControls.R_Rev = 0.0f;
-        }
-        save_flag = true;
+        
+        ///save_flag = true;
     }
 
     if(S4.RisingEdge()){
@@ -1852,35 +1868,13 @@ void Update_Buttons()
         if(resState > 2) {
            resState = 0;     
         } 
-        switch (resState)
-        {
-        case 1:
-            AltControls.Resonance = 0.40f;
-            break;
-        case 2:
-            AltControls.Resonance = 0.80f;
-            break;
-        default:
-            AltControls.Resonance = 0.0f;
-            break;
-        }
-        save_flag = true;
     }
     if(S1.RisingEdge()){
         revLenState += 1;
         if(revLenState > 2) {
            revLenState = 0;     
         } 
-        switch (revLenState)
-        {
-        case 1:
-            AltControls.RevLength = 0.50f;
-            break;
-        case 2:
-            AltControls.RevLength = 1.0f;
-            break;
-        }
-        save_flag = true;
+
     }
 
     if(S2.RisingEdge()){
@@ -1892,8 +1886,7 @@ void Update_Buttons()
 
     if(S3.RisingEdge()){
        PostFilters = S3.getState();
-       AltControls.FilterPrePost = (PostFilters ? 1.0f : 0.0f);
-       save_flag = true;
+
     }
     syncMode = S_SYNC.getState();
 
@@ -1997,6 +1990,17 @@ void Update_Leds()
     hw.SetLed(LED_CLOCK_BLUE,!Tap_Button.getState());
     hw.SetLed(tempoLED_BASE.GetLedIdx(),tempoLED_BASE.GetLedOn());
 
+    if(saveSt) {
+            hw.SetRGBLed(1,DaisySaul::red);
+            hw.SetRGBLed(2,DaisySaul::red);
+            hw.SetRGBLed(3,DaisySaul::red);
+            hw.SetRGBLed(4,DaisySaul::red);
+    } else {
+        hw.SetRGBLed(1,DaisySaul::off);
+        hw.SetRGBLed(2,DaisySaul::off);
+        hw.SetRGBLed(3,DaisySaul::off);
+        hw.SetRGBLed(4,DaisySaul::off);
+    }
     
 }
 
@@ -2029,19 +2033,15 @@ void Update_BaseTempoLED()
     
 }
 
-
+/*
 void ApplySettings(const Settings &setting)
 {
     
-    if((setting.RevLength == 0.50f))
+    if((setting.RevLength))
     {
-        revLenState = 1;
-    }
-    else if((setting.RevLength == 1.0f))
-    {
-        revLenState = 2;
+        revLenState = setting.RevLength;
     } else {
-        revLenState = 0;
+        revLenState = defaultAltControls.RevLength;
     }
    
 
@@ -2049,28 +2049,22 @@ void ApplySettings(const Settings &setting)
     BaseTempo.setTapRatio(defaultAltControls.tapRatio);
 
 
-    if((setting.Resonance == 0.40f))
+    if((setting.Resonance))
     {
-        resState = 1;
-    } else if((setting.Resonance == 0.80f)) {
-        resState = 2;
+        resState = setting.Resonance;
     } else {
-        resState = 0;
+        resState = defaultAltControls.Resonance;
     }
 
     
 
-    if(setting.FilterPrePost < 0.45f)
+    if(setting.FilterPrePost)
     {
-        PostFilters = false;
-    }
-        else if(setting.FilterPrePost > 0.55f)
-    {
-        PostFilters = true;
+        PostFilters = setting.FilterPrePost;
     }
     else
     {
-        PostFilters = true;    //default to pre filter
+        PostFilters = defaultAltControls.FilterPrePost;    //default to pre filter
     }
 
     //if between min and max tap length
@@ -2088,25 +2082,17 @@ void ApplySettings(const Settings &setting)
     }
     
 
-    if((setting.L_Rev > 0.49f) && (setting.R_Rev > 0.49f)) //if more than half
+    if((setting.revLen)) //if more than half
     {
-        reverseState = 3;
-    }
-    else if((setting.L_Rev > 0.49f) && (setting.R_Rev < 0.35f))   //default OFF
-    {
-        reverseState = 1;
-    } 
-    else if((setting.L_Rev < 0.49f) && (setting.R_Rev > 0.35f)) //if more than half
-    {
-        reverseState = 2;
+        reverseState = setting.revLen;
     }
     else    //default OFF
     {
-        reverseState = 0;
+        reverseState = defaultAltControls.revLen;
     }
 
 }
-
+*/
 void TurnOnAllLEDs()
 {
     //tempoLED_BASE.LED_set(false);
@@ -2296,3 +2282,71 @@ double retVal{};
 
 return retVal;
 }
+
+
+// Flash handling - load and save
+// 8MB of flash
+// 4kB blocks
+// assume our settings < 4kB, so put one patch per block
+#define FLASH_BLOCK 4096
+
+uint8_t DSY_QSPI_BSS qspi_buffer[FLASH_BLOCK * 16];
+
+void FlashLoad(uint8_t aSlot)
+{
+	EccoSetting ecload;
+
+    size_t size = sizeof(EccoSetting);
+    
+	//memcpy(*dest, *src, sizet);
+	memcpy(&ecload, &qspi_buffer[aSlot * FLASH_BLOCK], size);
+
+	SaveToLive(&ecload);
+}
+
+
+
+void FlashSave(uint8_t aSlot)
+{
+	EccoSetting ecsave;
+
+	LiveToSave(&ecsave);
+
+	size_t start_address = (size_t)qspi_buffer;
+
+    size_t size = sizeof(EccoSetting);
+    
+	size_t slot_address = start_address + (aSlot * FLASH_BLOCK);
+
+    hw.seed.qspi.Erase(slot_address, slot_address + size);
+    hw.seed.qspi.Write(slot_address, size, (uint8_t*)&ecsave);
+
+}
+
+
+
+void SaveToLive(EccoSetting *ecs)
+{
+	tapRatio_ = ecs->tapRatio;
+    revLenState = ecs->RevLength;
+    resState = ecs->Resonance;
+    PostFilters = ecs->FilterPrePost;
+    tempo_ = ecs->tempo;
+    reverseState = ecs->reverse;
+    flashloaded_ = ecs->flashloaded;
+
+    BaseTempo.setTempo(tempo_);
+    tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
+}
+
+void LiveToSave(EccoSetting *ecs)
+{
+	ecs->tapRatio = tapRatio_;
+    ecs->RevLength = revLenState;
+    ecs->Resonance = resState;
+    ecs->FilterPrePost = PostFilters;
+    ecs->tempo = tempo_;
+    ecs->reverse = reverseState;
+    ecs->flashloaded = true;
+}
+

@@ -78,7 +78,7 @@ constexpr float NegFBOffset{0.4f};//0.4
 
 constexpr int PPQN{1};
 
-constexpr uint32_t shiftWait{50};
+constexpr uint32_t shiftWait{1000};
 constexpr uint32_t saveWait{2000};
 constexpr uint32_t resetWait{3000};
 

@@ -20,8 +20,8 @@
 // 
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
-#ifndef QSPI_SETTINGS_H
-#define QSPI_SETTINGS_H
+#ifndef FLASH_SETTINGS_H
+#define FLASH_SETTINGS_H
 
 #include "Ecco.h"
 #include "daisysp.h"
@@ -29,18 +29,17 @@
 //#include "constants.h"
 
 
-
-//holds alternative control settings, so they can be saved to flash
-struct Settings
+typedef struct
 {
+	// config
     float tapRatio;
-    float RevLength;
-    float Resonance;
-    float FilterPrePost;
-    float tempo;
-    float L_Rev;
-    float R_Rev;
-};
+   	uint8_t RevLength;
+	uint8_t Resonance;
+	bool FilterPrePost;
+	float tempo;
+	uint8_t revLen;
+	
+} Settings;
 
 //extern Settings AltControls;
 
