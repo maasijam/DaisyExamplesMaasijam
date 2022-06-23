@@ -21,7 +21,6 @@
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
 #include "Ecco.h"
-#include "FLASH_Settings.h"
 #include "daisysp.h"
 #include "delayline_multitap.h" //modified delayline
 #include "delayline_reverse.h"  //reverse delayline
@@ -253,7 +252,6 @@ void GetModCV();
 float SetTempoDiv(float input, TempoDivs *div);
 void UpdateClock();
 double GetTapRatio(TapRatios ratio);
-void ApplySettings(const Settings &setting);
 void TurnOnAllLEDs();
 void ResetAllLEDs();
 float HardLimit(float input, float limit);
@@ -263,6 +261,7 @@ pickupState checkPickupState_alt(float value, float lastValue, pickupState lastS
 void Update_Leds();
 
 #define PRESET_MAX 1
+bool flashloaded_ = false;
 
 typedef struct
 {
@@ -273,20 +272,21 @@ typedef struct
 	bool FilterPrePost;
 	float tempo;
 	uint8_t reverse;
+    uint8_t Fx;
     bool flashloaded;
 	
 } EccoSetting;
 
 void FlashLoad(uint8_t aSlot);
 void FlashSave(uint8_t aSlot);
-void SaveToLive(EccoSetting *);
-void LiveToSave(EccoSetting *);
+void FlashToSaul(EccoSetting *);
+void SaulToFlash(EccoSetting *);
 
-EccoSetting preset_setting[PRESET_MAX] = {
-{1.0f, 0, 0, true, 24000.0f, 0,true}
+EccoSetting default_preset[PRESET_MAX] = {
+{1.0f, 2, 2, false, 24000.0f, 3,2,true}
 };
 
-bool flashloaded_ = false;
+
 
 
 
@@ -712,11 +712,11 @@ int main(void)
     hw.seed.Configure();
     hw.Init();
 
-    //FlashLoad(0);
-    //if(!flashloaded_) {
+    FlashLoad(0);
+    if(!flashloaded_) {
     //    hw.SetRGBLed(3,DaisySaul::yellow);
-        SaveToLive(&preset_setting[0]);
-    //}
+        FlashToSaul(&default_preset[0]);
+    }
     
 
     LPF_sw.init(hw.seed.GetPin(PIN_SW_RIGHT_B),ButtonSW::Toggle,hw.AudioSampleRate() / static_cast<float> (updateDiv));    
@@ -872,6 +872,10 @@ int main(void)
         Update_DelayTempoLEDs();
         //static uint32_t saveTimer{};
         //static bool SaveWaitFlag{};
+        if(saveSt)
+        {
+            FlashSave(0);
+        }
        /*
         if(save_flag)   //if save_flag is set
         {
@@ -1802,7 +1806,6 @@ void Update_Buttons()
         if(BaseTempo.tap()) //if tempo changed
         {
             tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
-            //// Tom ToDo - sorg für absturz
             tempo_ = BaseTempo.getTempo();
             ///save_flag = true;
         }
@@ -2033,104 +2036,6 @@ void Update_BaseTempoLED()
     
 }
 
-/*
-void ApplySettings(const Settings &setting)
-{
-    
-    if((setting.RevLength))
-    {
-        revLenState = setting.RevLength;
-    } else {
-        revLenState = defaultAltControls.RevLength;
-    }
-   
-
-    
-    BaseTempo.setTapRatio(defaultAltControls.tapRatio);
-
-
-    if((setting.Resonance))
-    {
-        resState = setting.Resonance;
-    } else {
-        resState = defaultAltControls.Resonance;
-    }
-
-    
-
-    if(setting.FilterPrePost)
-    {
-        PostFilters = setting.FilterPrePost;
-    }
-    else
-    {
-        PostFilters = defaultAltControls.FilterPrePost;    //default to pre filter
-    }
-
-    //if between min and max tap length
-    if( (setting.tempo >= static_cast<float> (minTempo)) 
-        && (setting.tempo <= static_cast<float> (maxTempo)) )
-    {
-        BaseTempo.setTempo(setting.tempo);
-        tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
-    }
-
-    else
-    {
-        BaseTempo.setTempo(defaultAltControls.tempo);
-        tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
-    }
-    
-
-    if((setting.revLen)) //if more than half
-    {
-        reverseState = setting.revLen;
-    }
-    else    //default OFF
-    {
-        reverseState = defaultAltControls.revLen;
-    }
-
-}
-*/
-void TurnOnAllLEDs()
-{
-    //tempoLED_BASE.LED_set(false);
-    //delayL.tempoled.LED_set(false);
-    //delayR.tempoled.LED_set(false);
-    //Rev_L_sw.LED_set(false);
-    //Rev_R_sw.LED_set(false);
-    //LPF_sw.LED_set(false);
-    //HPF_sw.LED_set(false);
-}
-
-void ResetAllLEDs()
-{
-    //tempoLED_BASE.LED_set(true);
-    //delayL.tempoled.LED_set(true);
-    //delayR.tempoled.LED_set(true);
-    ////if(!Rev_L_sw.getState())
-    ////{
-        ////Rev_L_sw.LED_set(true);
-    ////}
-    ////else
-    ////{
-       ////Rev_L_sw.LED_set(false);
-    ////}
-
-    ////if(!Rev_R_sw.getState())
-    ////{
-        ////Rev_R_sw.LED_set(true);
-    ////}
-    ////else
-    ////{
-        ////Rev_R_sw.LED_set(false);
-    ////}
-    
-    //LPF_sw.LED_set(true);
-    //HPF_sw.LED_set(true);
-}
-
 float HardLimit(float input, float limit)
 {
     float returnval{};
@@ -2294,38 +2199,36 @@ uint8_t DSY_QSPI_BSS qspi_buffer[FLASH_BLOCK * 16];
 
 void FlashLoad(uint8_t aSlot)
 {
-	EccoSetting ecload;
-
+	EccoSetting saulLoad;
     size_t size = sizeof(EccoSetting);
-    
-	//memcpy(*dest, *src, sizet);
-	memcpy(&ecload, &qspi_buffer[aSlot * FLASH_BLOCK], size);
-
-	SaveToLive(&ecload);
+	memcpy(&saulLoad, &qspi_buffer[aSlot * FLASH_BLOCK], size);
+	FlashToSaul(&saulLoad);
 }
 
 
 
 void FlashSave(uint8_t aSlot)
 {
-	EccoSetting ecsave;
-
-	LiveToSave(&ecsave);
-
+	EccoSetting saulSave;
+	SaulToFlash(&saulSave);
 	size_t start_address = (size_t)qspi_buffer;
-
     size_t size = sizeof(EccoSetting);
-    
 	size_t slot_address = start_address + (aSlot * FLASH_BLOCK);
-
     hw.seed.qspi.Erase(slot_address, slot_address + size);
-    hw.seed.qspi.Write(slot_address, size, (uint8_t*)&ecsave);
+    hw.seed.qspi.Write(slot_address, size, (uint8_t*)&saulSave);
+}
 
+void FlashErase(uint8_t aSlot)
+{
+	size_t start_address = (size_t)qspi_buffer;
+    size_t size = sizeof(EccoSetting);
+	size_t slot_address = start_address + (aSlot * FLASH_BLOCK);
+    hw.seed.qspi.Erase(slot_address, slot_address + size);
 }
 
 
 
-void SaveToLive(EccoSetting *ecs)
+void FlashToSaul(EccoSetting *ecs)
 {
 	tapRatio_ = ecs->tapRatio;
     revLenState = ecs->RevLength;
@@ -2333,13 +2236,14 @@ void SaveToLive(EccoSetting *ecs)
     PostFilters = ecs->FilterPrePost;
     tempo_ = ecs->tempo;
     reverseState = ecs->reverse;
+    s2State = ecs->Fx;
     flashloaded_ = ecs->flashloaded;
 
     BaseTempo.setTempo(tempo_);
     tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
 }
 
-void LiveToSave(EccoSetting *ecs)
+void SaulToFlash(EccoSetting *ecs)
 {
 	ecs->tapRatio = tapRatio_;
     ecs->RevLength = revLenState;
@@ -2347,6 +2251,7 @@ void LiveToSave(EccoSetting *ecs)
     ecs->FilterPrePost = PostFilters;
     ecs->tempo = tempo_;
     ecs->reverse = reverseState;
+    ecs->Fx = s2State;
     ecs->flashloaded = true;
 }
 
