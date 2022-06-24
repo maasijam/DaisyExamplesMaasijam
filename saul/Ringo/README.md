@@ -1,2 +1,2 @@
-# Rings for SAUL
+# RINGO SAUL
 Mutable Instruments Rings ported to SAUL
