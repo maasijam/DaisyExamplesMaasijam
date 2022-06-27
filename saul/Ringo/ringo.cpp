@@ -30,6 +30,7 @@
 #include "../daisy_saul.h"
 
 
+
 using namespace daisy;
 using namespace torus;
 
@@ -160,6 +161,8 @@ int main(void)
 
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
+
+//hw.seed.StartLog(false);
     while(1)
     {
        hw.ProcessDigitalControls();

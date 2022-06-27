@@ -97,7 +97,7 @@ class CvScaler
         //     adc_lp_[ADC_CHANNEL_ATTENUVERTER_POSITION] < -1.00f;
     }
 
-    int channel_map_[5];
+   
 
   private:
     static ChannelSettings channel_settings_[CHAN_LAST];

@@ -1,6 +1,8 @@
 # Project Name
 TARGET = ringo
 
+LDFLAGS += -u _printf_float
+
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy
 STMLIB_DIR = ../../stmlib
