@@ -1,4 +1,4 @@
-// Copyright 2021 Adam Fulford
+// Copyright 2021 Adam Fulford, 2022 maasijam
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -158,10 +158,6 @@ size_t resState = 0;
 size_t revLenState = 0;
 size_t s2State = 0;
 
-///std::atomic<bool> save_flag{};
-
-SaveState saveState{IDLE};
-
 float DELAYL_DEBUG;
 float DELAYR_DEBUG;
 float PHASE_DEBUG;
@@ -197,14 +193,11 @@ static CrossFade FilterMix_R;
 static CrossFade FilterMix_L_post;
 static CrossFade FilterMix_R_post;
 
-
-
 //Tap tempo
 Taptempo BaseTempo; 
 
 float tempo_;
 float tapRatio_;
-
 
 
 void Update_DelayTimeL_CV();
@@ -273,17 +266,19 @@ typedef struct
 	float tempo;
 	uint8_t reverse;
     uint8_t Fx;
+    bool Sync;
     bool flashloaded;
 	
 } EccoSetting;
 
 void FlashLoad(uint8_t aSlot);
 void FlashSave(uint8_t aSlot);
+void FlashErase(uint8_t aSlot);
 void FlashToSaul(EccoSetting *);
 void SaulToFlash(EccoSetting *);
 
 EccoSetting default_preset[PRESET_MAX] = {
-{1.0f, 2, 2, false, 24000.0f, 3,2,true}
+{1.0f, 0, 0, true, 24000.0f, 0,0,false,true}
 };
 
 
@@ -300,113 +295,75 @@ Counter = (Counter + 1) % updateDiv;
 
         switch (Counter)
         {
-            case 0:
-                
+            case 0:              
                 GetModCV();              
             break;
             case 1:
                 Update_DelayTimeL_CV();
             break;
             case 2:
-                if(saveState != SAVING)
-                {
-                    Update_DelayTimeL();
-                }
+                Update_DelayTimeL();
             break;
             case 3:
                 Update_DelayTimeR_CV();
             break;
             case 4:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_DelayTimeR();
-                }
+                Update_DelayTimeR();
             break;
             case 5:
                 Update_feedbackL_CV();
             break;
             case 6:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_feedbackL();
-                }
+                Update_feedbackL();
             break;
             case 7:
                 Update_feedbackR_CV();
             break;
             case 8:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_feedbackR();
-                }
+                Update_feedbackR();
             break;
             case 9:
                 Update_drywet_CV();
             break;
             case 10:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_drywet();
-                }
+                Update_drywet();
             break;
             case 11:
                 Update_width_CV();
             break;
             case 12:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_width();
-                }
+                Update_width();
             break;
             case 13:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_crossfeedback();
-                }
+                Update_crossfeedback();
             break;
             case 14:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_filterXfade();
-                }
+                Update_filterXfade();
             break;
             case 15:
                 Update_HPF_CV();
             break;
             case 16:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_HPF();
-                }
+                Update_HPF();
             break;
             case 17:
                 Update_LPF_CV();
             break;
             case 18:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_LPF();
-                }
+                Update_LPF();
             break;
             case 19:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_modrate();
-                }
+                Update_modrate();
             break;
             case 20:
-                if(saveState != SAVING) //don't check ADCs 
-                {
-                    Update_moddepth();
-                }
+                Update_moddepth();
             break;
             case 21:
-                    Update_Res();
+                Update_Res();
             break;
             case 22:
-                    Update_RevLen();
-            break;
-                    
+                Update_RevLen();
+            break;        
         }
 
     for(size_t i = 0; i < size; i ++)
@@ -667,10 +624,6 @@ else
             out[0][i] = mixL;
             out[1][i] = mixR;
         }
-
-        //write to DAC for debug
-       // dsy_dac_write(DSY_DAC_CHN1, static_cast<int>( EnvL * 4095.0f));
-
     }
 
 }
@@ -688,9 +641,6 @@ void InitDelays(float samplerate)
 
     delayL.init(LED_TIME_LEFT,samplerate);
     delayR.init(LED_TIME_RIGHT,samplerate);
-
-    //delayL.SetDelayTime(500.0f);
-    //delayR.SetDelayTime(500.0f);
 
     //Init rev delays
     delMemsL_REV.Init();
@@ -711,13 +661,7 @@ int main(void)
     // initialize hardware.
     hw.seed.Configure();
     hw.Init();
-
-    FlashLoad(0);
-    if(!flashloaded_) {
-    //    hw.SetRGBLed(3,DaisySaul::yellow);
-        FlashToSaul(&default_preset[0]);
-    }
-    
+  
 
     LPF_sw.init(hw.seed.GetPin(PIN_SW_RIGHT_B),ButtonSW::Toggle,hw.AudioSampleRate() / static_cast<float> (updateDiv));    
     HPF_sw.init(hw.seed.GetPin(PIN_SW_RIGHT_A),ButtonSW::Toggle,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
@@ -833,9 +777,6 @@ int main(void)
     HPF_R_post.SetFreq(defaultHPCut);
     HPF_R_post.SetDrive(defaultDrive);
 
-    //DcBlock_LFB.Init(hw.AudioSampleRate());
-    //DcBlock_RFB.Init(hw.AudioSampleRate());
-
     //LFO for modulation of fwd delay time
     lfo.Init(hw.AudioSampleRate());
     lfo.SetWaveform(lfo.WAVE_TRI);
@@ -849,15 +790,16 @@ int main(void)
     tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
     tempoLED_BASE.resetPhase();
 
-    //load settings from flash
-    //Settings SavedSettings{LoadSettings()};
-    ///ApplySettings(SavedSettings);
-    ///AltControls = SavedSettings;
+    //FlashErase(0);
+    FlashLoad(0);
+    if(!flashloaded_) {
+    //    hw.SetRGBLed(3,DaisySaul::yellow);
+        FlashToSaul(&default_preset[0]);
+    }
 
 
 //hw.seed.StartLog(false);
-//hw.seed.PrintLine("debug test");
-//System::Delay(100);
+
     
     hw.StartAdc();
     hw.SetAudioBlockSize(1);     //set blocksize.
@@ -870,63 +812,21 @@ int main(void)
         Update_Buttons();
         Update_Leds();
         Update_DelayTempoLEDs();
-        //static uint32_t saveTimer{};
-        //static bool SaveWaitFlag{};
         if(saveSt)
         {
             FlashSave(0);
         }
-       /*
-        if(save_flag)   //if save_flag is set
-        {
-            save_flag = false;
-            saveState = WAITING;    //set flag - start waiting
-            saveTimer = System::GetNow();   //reset timer
-        }
-        
-        else    //save flag not set
-        {
-           if(saveState == WAITING)    //wait flag set (waiting)
-           {
-               if(System::GetNow() - saveTimer > 1000)  //1second wait to save
-                {
-                    saveState = SAVING; //stop reading ADCs temporarily
-                    
-                    Settings ToSave{AltControls};   //copy settings
-                    if (SaveSettings(ToSave) == QSPIHandle::Result::OK)  //save settings
-                    {
-                    }
-                }
 
-                else{} //still waiting
-
-           }
-
-           if(saveState == SAVING)
-           {
-            if(System::GetNow() - saveTimer > 1200) //additional 0.2 second wait
-            {
-                    saveState = IDLE;   //reset saveState
-            }
-            else{} //ADCs paused
-
-           }
-
-           else //IDLE - do nothing
-           {
-           }
-        }
-        */
-
+        //hw.seed.PrintLine("Tempo: %f", tempo_);
      }
 
 }
 
 void Update_DelayTimeL_CV()
 {
-    //delayTimeL_CV = hw.GetCvValue(DaisySaul::CV_8);
     delayTimeL_CV = hw.seed.adc.GetMuxFloat(2,3);
-    //delayTimeL_CV = 0.0f;
+    //delayTimeL_CV = hw.cv[8].Process();
+    //hw.seed.PrintLine("Delay CV Left: %f", delayTimeL_CV );
 }
 
 void Update_DelayTimeL()
@@ -937,9 +837,8 @@ void Update_DelayTimeL()
     static float delayTimeL_Last{};
 
     //update pot values
-    //float delayTimeL_Pot{hw.GetKnobValue(DaisySaul::KNOB_8)};
     float delayTimeL_Pot{hw.seed.adc.GetMuxFloat(2,0)};
-    
+    //hw.seed.PrintLine("Delay Pot Left: %f", delayTimeL_Pot );
 
     //counter used to limit how quickly delay time is changed, 
     //and to ensure L and R delay times don't change at the same time.
@@ -973,6 +872,7 @@ void Update_DelayTimeL()
         {
             delayTimeL = PotCVCombo(delayTimeL_Pot,delayTimeL_CV);  //combine pot value and CV
             delayTimeL_Last = delayTimeL_Pot; //update last value
+            //hw.seed.PrintLine("Delay CV Left: %f", delayTimeL );
         }
 
         else
@@ -993,9 +893,7 @@ void Update_DelayTimeL()
 
 void Update_DelayTimeR_CV()
 {
-    //delayTimeR_CV = hw.GetCvValue(DaisySaul::CV_10);
     delayTimeR_CV = hw.seed.adc.GetMuxFloat(2,5);
-    //delayTimeR_CV = 0.0f;
 }
 
 void Update_DelayTimeR()
@@ -1006,7 +904,6 @@ void Update_DelayTimeR()
     static float delayTimeR_Last{};
 
     //update pot values
-    //float delayTimeR_Pot{hw.GetKnobValue(DaisySaul::KNOB_10)};
     float delayTimeR_Pot{hw.seed.adc.GetMuxFloat(2,2)};
 
     //counter used to limit how quickly delay time is changed, 
@@ -1060,9 +957,7 @@ void Update_DelayTimeR()
 }
 void Update_feedbackL_CV()
 {
-    //feedbackL_CV = hw.GetCvValue(DaisySaul::CV_0);
     feedbackL_CV = hw.seed.adc.GetMuxFloat(1,0);
-    //feedbackL_CV = 0.0f;
 }
 void Update_feedbackL()
 {
@@ -1072,8 +967,6 @@ void Update_feedbackL()
     static float feedbackL_Last{};
 
     //get pot values:
-    //float feedbackL_Pot{hw.adc.GetFloat(2)};
-    //float feedbackL_Pot{hw.GetKnobValue(DaisySaul::KNOB_0)};
     float feedbackL_Pot{hw.seed.adc.GetMuxFloat(0,0)};
 
     if (!shift) //default controls
@@ -1120,9 +1013,7 @@ void Update_feedbackL()
 
 void Update_feedbackR_CV()
 {
-    //feedbackR_CV = hw.GetCvValue(DaisySaul::CV_3);
     feedbackR_CV = hw.seed.adc.GetMuxFloat(1,3);
-    //feedbackR_CV = 0.0f;
 }
 
 void Update_feedbackR()
@@ -1133,7 +1024,6 @@ void Update_feedbackR()
     static float feedbackR_Last{};
 
     //get pot values:
-    //float feedbackR_Pot{hw.GetKnobValue(DaisySaul::KNOB_3)};
     float feedbackR_Pot{hw.seed.adc.GetMuxFloat(0,3)};
 
     if (!shift) //default controls
@@ -1178,21 +1068,15 @@ void Update_feedbackR()
 
 void Update_HPF_CV()
 {
-    //feedbackL_CV = hw.GetCvValue(DaisySaul::CV_0);
     hpf_CV = hw.seed.adc.GetMuxFloat(1,6);
-    //hpf_CV = 0.0f;
-    
 }
 void Update_HPF()
 {
     static bool lastShift{};
-    //static bool hpf_pickup{};
     static bool HPCutoff_pickup{};
 
    
     //get pot values:
-    //float feedbackL_Pot{hw.adc.GetFloat(2)};
-    //float feedbackL_Pot{hw.GetKnobValue(DaisySaul::KNOB_0)};
     float hpf_Pot{hw.seed.adc.GetMuxFloat(0,6)};
 
        //static float hpf_new{};
@@ -1231,21 +1115,14 @@ void Update_HPF()
 
 void Update_LPF_CV()
 {
-    //feedbackL_CV = hw.GetCvValue(DaisySaul::CV_0);
     lpf_CV = hw.seed.adc.GetMuxFloat(1,7);
-    //lpf_CV = 0.0f;
 }
 void Update_LPF()
 {
     static bool lastShift{};
-    //static bool lpf_pickup{};
-    static bool LPCutoff_pickup{};
-
-    
+    static bool LPCutoff_pickup{}; 
 
     //get pot values:
-    //float feedbackL_Pot{hw.adc.GetFloat(2)};
-    //float feedbackL_Pot{hw.GetKnobValue(DaisySaul::KNOB_0)};
     float lpf_Pot{hw.seed.adc.GetMuxFloat(0,7)};
 
         static float LPCutoff_new{};
@@ -1332,9 +1209,7 @@ void Update_RevLen()
 
 void Update_drywet_CV()
 {
-    //drywet_CV = hw.GetCvValue(DaisySaul::CV_9);
     drywet_CV = hw.seed.adc.GetMuxFloat(2,4);
-    //drywet_CV = 0.0f;
 }
 
 void Update_drywet()
@@ -1344,11 +1219,8 @@ void Update_drywet()
     
 
     static float drywet_Last{}; //last drywet position (unscaled)
-    //static float Res_Last{}; //last res value (unscaled)
 
     //get pot values:
-    //float drywet_Pot{hw.adc.GetFloat(4)};
-    //float drywet_Pot{hw.GetKnobValue(DaisySaul::KNOB_9)}; //read current pot position
     float drywet_Pot{hw.seed.adc.GetMuxFloat(2,1)}; //read current pot position
 
     if (!shift) //default controls
@@ -1413,9 +1285,7 @@ void Update_drywet()
 
 void Update_width_CV()
 {
-    //width_CV= hw.GetCvValue(DaisySaul::CV_2);
     width_CV= hw.seed.adc.GetMuxFloat(1,2);
-    //width_CV = 0.0f;
 }
 
 void Update_width()
@@ -1427,9 +1297,7 @@ void Update_width()
     static float width_Last{};
 
     //get pot values:
-    //float width_Pot{hw.GetKnobValue(DaisySaul::KNOB_2)};
     float width_Pot{hw.seed.adc.GetMuxFloat(0,2)};
-    //hw.seed.PrintLine("widthpot = %d", width_Pot);
 
     if (!shift) //default controls
     {   
@@ -1478,13 +1346,11 @@ void Update_width()
 void Update_moddepth()
 {
     static bool lastShift{};
-    //static bool moddepth_pickup{};
     static bool ModDepth_pickup{};
 
     //static float moddepth_Last{};
 
     //get pot values:
-    //float width_Pot{hw.GetKnobValue(DaisySaul::KNOB_2)};
     float moddepth_Pot{hw.seed.adc.GetMuxFloat(0,5)};
 
 
@@ -1525,10 +1391,7 @@ void Update_crossfeedback()
     static float crossfeedback_Last{};
 
     //get pot values:
-    //float crossfeedback_Pot{hw.GetKnobValue(DaisySaul::KNOB_1)};
     float crossfeedback_Pot{hw.seed.adc.GetMuxFloat(0,1)};
-    //float crossfeedback_Pot{0.0f};
-    //hw.seed.PrintLine("cfdbk = %d", crossfeedback_Pot);
 
     if (!shift) //default controls
     {   
@@ -1572,17 +1435,12 @@ void Update_crossfeedback()
 void Update_modrate()
 {
     static bool lastShift{};
-    //static bool crossfeedback_pickup{};
     static bool modRate_pickup{};
 
-    //static float modrate_Last{};
 
     //get pot values:
-    //float crossfeedback_Pot{hw.GetKnobValue(DaisySaul::KNOB_1)};
     float modrate_Pot{hw.seed.adc.GetMuxFloat(0,4)};
 
-   
-   
         static float modRate_new{};
         //update pickup
         if (shift != lastShift)
@@ -1689,13 +1547,11 @@ void UpdateClock()
     //if clock in pulse received
     if (hw.Gate())     
     {   
-        
-        //tempoLED_BASE.resetPhase();
+
             if(BaseTempo.clock(ClockCounter)) //if valid tap resistered
             {
                 tempoLED_BASE.setTempo(BaseTempo.getTapFreq()); //set new base freq
                 tempo_ = BaseTempo.getTempo();
-                ///save_flag = true;
             }
             ClockCounter = 0; //reset counter
 
@@ -1708,8 +1564,6 @@ void Update_Buttons()
     static uint32_t resetTime{};
     static int buttonstate{};
 
-    ////Rev_L_sw.update();
-    ////Rev_R_sw.update();
     LPF_sw.update();
     HPF_sw.update();
     Tap_Button.update();
@@ -1723,91 +1577,12 @@ void Update_Buttons()
     S_REV.update();
     S_SYNC.update();
 
-    //gate inputs
-    /*
-    if (ReverseGateL.RisingEdge())
-    {
-        Rev_L_sw.toggle();
-        if(Rev_L_sw.getState())
-        {
-            AltControls.L_Rev = 1.0f;
-        }
-        else
-        {
-            AltControls.L_Rev = 0.0f;
-        }
-        save_flag = true;
-    }
-
-    if (ReverseGateR.RisingEdge())
-    {
-        Rev_R_sw.toggle();
-        if(Rev_R_sw.getState())
-        {
-            AltControls.R_Rev = 1.0f;
-        }
-        else
-        {
-            AltControls.R_Rev = 0.0f;
-        }
-        save_flag = true;
-    }
-*/
-    //buttons
-/*
-    if (Rev_L_sw.RisingEdge())
-    {
-        buttonstate += 1;
-        if (buttonstate == 3)
-        {
-            resetTime = System::GetNow();
-        }
-        if(Rev_L_sw.getState())
-        {
-            AltControls.L_Rev = 1.0f;
-        }
-        else
-        {
-            AltControls.L_Rev = 0.0f;
-        }
-        save_flag = true;
-    }
-
-    if (Rev_L_sw.FallingEdge())
-    {
-        buttonstate -= 1;
-    }
-
-    if (Rev_R_sw.RisingEdge())
-    {
-        buttonstate += 1;
-        if (buttonstate == 3)
-        {
-            resetTime = System::GetNow();
-        }
-        if(Rev_R_sw.getState())
-        {
-            AltControls.R_Rev = 1.0f;
-        }
-        else
-        {
-            AltControls.R_Rev = 0.0f;
-        }
-        save_flag = true;
-    }
-
-    if (Rev_R_sw.FallingEdge())
-    {
-        buttonstate -= 1;
-    }
-*/
     if (Tap_Button.RisingEdge())    
     {
         if(BaseTempo.tap()) //if tempo changed
         {
             tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
             tempo_ = BaseTempo.getTempo();
-            ///save_flag = true;
         }
         tempoLED_BASE.resetPhase();
         
@@ -1834,7 +1609,6 @@ void Update_Buttons()
     {
         if ( (System::GetNow() - shiftTime) > shiftWait)
         {
-            //shift = true;   //turn on shift if button held for longer than shiftWait
             saveSt = true;
         } 
     }
@@ -1844,15 +1618,7 @@ void Update_Buttons()
 
             if( ((System::GetNow() - resetTime) > resetWait) )
             {
-                //Rev_L_sw.toggle();
-                //Rev_R_sw.toggle();
-                //ResetAllLEDs();
-                //don't let reset or shift update
-                //shift = false;
-                //ApplySettings(defaultAltControls);
-                //AltControls = defaultAltControls;
-                //resetTime = System::GetNow();
-                //save_flag = true;
+                
             }
     } 
 
@@ -1862,8 +1628,6 @@ void Update_Buttons()
         if(reverseState > 3) {
            reverseState = 0;     
         } 
-        
-        ///save_flag = true;
     }
 
     if(S4.RisingEdge()){
@@ -1891,8 +1655,9 @@ void Update_Buttons()
        PostFilters = S3.getState();
 
     }
-    syncMode = S_SYNC.getState();
-
+    if(S_SYNC.RisingEdge()){
+        syncMode = !syncMode;
+    }
     
 }
 
@@ -1914,7 +1679,7 @@ void Update_Leds()
         hw.SetLed(LED_LFO2_WAVE_TRI,false);
     }
 
-    hw.SetLed(LED_SYNC_GREEN,(syncMode ? false : true));
+    hw.SetLed(LED_SYNC_GREEN,!syncMode);
 
     switch (reverseState)
     {
@@ -2053,7 +1818,6 @@ float PotCVCombo(float Pot_Val, float CV_Val)
 {
     float output{};
     output = Pot_Val + (2.0f * ((1.0f - CV_Val) - 0.5f));
-    //output = Pot_Val;
 
     if(output < 0.0f)
     {
@@ -2237,6 +2001,7 @@ void FlashToSaul(EccoSetting *ecs)
     tempo_ = ecs->tempo;
     reverseState = ecs->reverse;
     s2State = ecs->Fx;
+    syncMode = ecs->Sync;
     flashloaded_ = ecs->flashloaded;
 
     BaseTempo.setTempo(tempo_);
@@ -2252,6 +2017,7 @@ void SaulToFlash(EccoSetting *ecs)
     ecs->tempo = tempo_;
     ecs->reverse = reverseState;
     ecs->Fx = s2State;
+    ecs->Sync = syncMode;
     ecs->flashloaded = true;
 }
 

@@ -2,9 +2,10 @@
 TARGET = Ecco
 
 DEBUG = 1
+LDFLAGS += -u _printf_float
 
 # Sources
-CPP_SOURCES = Ecco.cpp scale.cpp taptempo.cpp DelayMulti.cpp LEDs.cpp QSPI_Settings.cpp oscillator_p.cpp ../daisy_saul.cpp
+CPP_SOURCES = Ecco.cpp scale.cpp taptempo.cpp DelayMulti.cpp LEDs.cpp oscillator_p.cpp ../daisy_saul.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy
