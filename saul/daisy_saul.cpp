@@ -75,7 +75,7 @@ void DaisySaul::Init(bool boost)
 
     // gate in 
     dsy_gpio_pin gate_gpio = seed.GetPin(PIN_CLOCK_IN);
-    gate.Init(&gate_gpio);
+    gate.Init(&gate_gpio,false);
 
 
     // ADCs
