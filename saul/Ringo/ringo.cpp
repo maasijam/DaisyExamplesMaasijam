@@ -52,6 +52,7 @@ size_t exciterState = 0;
 size_t polyState = 0;
 size_t eggFxState = 0;
 size_t modelState = 0;
+bool saveSt{false};
 
 // norm edit menu items
 bool exciterIn;
@@ -63,6 +64,29 @@ bool easterEggOn;
 
 int oldModel = 0;
 int old_poly = 0;
+
+#define PRESET_MAX 1
+bool flashloaded_ = false;
+
+typedef struct
+{
+   	uint8_t NoteStrum;
+	uint8_t Exciter;
+	uint8_t Poly;
+	uint8_t EggFx;
+	uint8_t Model;
+    bool flashloaded;	
+} RingoSetting;
+
+void FlashLoad(uint8_t aSlot);
+void FlashSave(uint8_t aSlot);
+void FlashErase(uint8_t aSlot);
+void FlashToSaul(RingoSetting *);
+void SaulToFlash(RingoSetting *);
+
+RingoSetting default_preset[PRESET_MAX] = {
+{3, 0, 0, 0, 0,true}
+};
 
 void ProcessControls(Patch* patch, PerformanceState* state)
 {
@@ -100,8 +124,8 @@ void AudioCallback(AudioHandle::InputBuffer  in,
                    AudioHandle::OutputBuffer out,
                    size_t                    size)
 {
-    hw.ProcessAllControls();
-
+    hw.ProcessAnalogControls();
+    
     PerformanceState performance_state;
     Patch            patch;
 
@@ -158,22 +182,34 @@ int main(void)
 
     cv_scaler.Init();
 
+    //FlashErase(0);
+    FlashLoad(0);
+    if(!flashloaded_) {
+    //    hw.SetRGBLed(3,DaisySaul::yellow);
+        FlashToSaul(&default_preset[0]);
+    }
+
 
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
 
-hw.seed.StartLog(false);
+//hw.seed.StartLog(false);
     while(1)
     {
-       hw.ProcessDigitalControls();
-       Update_Buttons();
-       Update_Leds();
+        hw.ProcessDigitalControls();
+        Update_Buttons();
+        Update_Leds();
+        if(saveSt)
+        {
+            FlashSave(0);
+        }
     }
 }
 
 void Update_Buttons()
 {  
-    
+    static uint32_t shiftTime{};
+
     if(hw.s[BTN_NOTE_STRUM].RisingEdge()){
         noteStrumState += 1;
         if(noteStrumState > 3) {
@@ -209,6 +245,19 @@ void Update_Buttons()
         easterEggOn = true;
     } else {
         easterEggOn = false;
+    }
+
+    if (hw.s[BTN_TAP].FallingEdge())    //when button is let go shift is off
+    {
+        saveSt = false;
+    }
+
+    if (hw.s[BTN_TAP].Pressed())
+    {
+        if ( (System::GetNow() - shiftTime) > shiftWait)
+        {
+            saveSt = true;
+        } 
     }
     
 }
@@ -260,5 +309,76 @@ void Update_Leds()
 
     hw.SetRGBLed(1,eggFxState);
     hw.SetRGBLed(4,modelState);
+
+    if(saveSt) {
+            hw.SetRGBLed(1,DaisySaul::red);
+            hw.SetRGBLed(2,DaisySaul::red);
+            hw.SetRGBLed(3,DaisySaul::red);
+            hw.SetRGBLed(4,DaisySaul::red);
+    } else {
+        hw.SetRGBLed(1,DaisySaul::off);
+        hw.SetRGBLed(2,DaisySaul::off);
+        hw.SetRGBLed(3,DaisySaul::off);
+        hw.SetRGBLed(4,DaisySaul::off);
+    }
     
+}
+
+// Flash handling - load and save
+// 8MB of flash
+// 4kB blocks
+// assume our settings < 4kB, so put one patch per block
+#define FLASH_BLOCK 4096
+
+uint8_t DSY_QSPI_BSS qspi_buffer[FLASH_BLOCK * 16];
+
+void FlashLoad(uint8_t aSlot)
+{
+	RingoSetting saulLoad;
+    size_t size = sizeof(RingoSetting);
+	memcpy(&saulLoad, &qspi_buffer[aSlot * FLASH_BLOCK], size);
+	FlashToSaul(&saulLoad);
+}
+
+
+
+void FlashSave(uint8_t aSlot)
+{
+	RingoSetting saulSave;
+	SaulToFlash(&saulSave);
+	size_t start_address = (size_t)qspi_buffer;
+    size_t size = sizeof(RingoSetting);
+	size_t slot_address = start_address + (aSlot * FLASH_BLOCK);
+    hw.seed.qspi.Erase(slot_address, slot_address + size);
+    hw.seed.qspi.Write(slot_address, size, (uint8_t*)&saulSave);
+}
+
+void FlashErase(uint8_t aSlot)
+{
+	size_t start_address = (size_t)qspi_buffer;
+    size_t size = sizeof(RingoSetting);
+	size_t slot_address = start_address + (aSlot * FLASH_BLOCK);
+    hw.seed.qspi.Erase(slot_address, slot_address + size);
+}
+
+
+
+void FlashToSaul(RingoSetting *rs)
+{
+	noteStrumState = rs->NoteStrum ;
+    exciterState = rs->Exciter;
+    polyState = rs->Poly;
+    eggFxState = rs->EggFx;
+    modelState = rs->Model;
+    flashloaded_ = rs->flashloaded;
+}
+
+void SaulToFlash(RingoSetting *rs)
+{
+	rs->NoteStrum = noteStrumState;
+    rs->Exciter = exciterState;
+    rs->Poly = polyState;
+    rs->EggFx = eggFxState;
+    rs->Model = modelState;
+    rs->flashloaded = true;
 }

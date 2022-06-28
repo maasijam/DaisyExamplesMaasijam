@@ -1,7 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-
+constexpr uint32_t shiftWait{1000};
 
 enum LEDS
 {

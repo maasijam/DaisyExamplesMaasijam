@@ -24,7 +24,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 
     float midi_nn = fclamp(coarse + voct, 0.f, 127.f);
     float freq    = mtof(midi_nn);
-
+hw.seed.PrintLine("Freq: %f", freq );
     osc.SetFreq(freq);
 
     for(size_t i = 0; i < size; i++)
@@ -41,6 +41,7 @@ int main(void)
     osc.Init(hw.AudioSampleRate());
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
+hw.seed.StartLog(false);
     while(1) {
             hw.ProcessAnalogControls();
         
