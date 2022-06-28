@@ -6,6 +6,7 @@ LDFLAGS += -u _printf_float
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy
 STMLIB_DIR = ../../stmlib
+DAISYSP_DIR = ../../DaisySP
 
 # Sources
 CPP_SOURCES = ringo.cpp \

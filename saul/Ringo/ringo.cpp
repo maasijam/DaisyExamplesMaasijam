@@ -162,7 +162,7 @@ int main(void)
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
 
-//hw.seed.StartLog(false);
+hw.seed.StartLog(false);
     while(1)
     {
        hw.ProcessDigitalControls();

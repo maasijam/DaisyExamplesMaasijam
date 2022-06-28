@@ -38,6 +38,8 @@
 
 #include "daisy.h"
 #include "../daisy_saul.h"
+#include "daisysp.h"
+
 
 extern daisy::DaisySaul hw;
 
@@ -45,6 +47,8 @@ namespace torus {
   
 using namespace std;
 using namespace stmlib;
+using namespace daisysp;
+
 
 
 /* static */
@@ -149,18 +153,20 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   transpose_ = static_cast<int32_t>(transpose + hysteresis + 0.5f);
   
   float note = 66.67f;
-  //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * -84.26f;
+  //float note = 0.0f;
+  note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * 84.26f;
+  //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * 48.0f;
   //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] ;
 //hw.seed.PrintLine("Note: %f", note );
 
   //performance_state->note = adc_lp_[ADC_CHANNEL_POT_FREQUENCY] * 48.0f;
-    float cv_voct = adc_lp_[ADC_CHANNEL_CV_V_OCT];
-    float voct    = fmap(cv_voct, 0, 60);
+    //float cv_voct = adc_lp_[ADC_CHANNEL_CV_V_OCT];
+    //float voct    = fmap(cv_voct, 0, 60);
 
     /** Convert from MIDI note number to frequency */
-    float midi_nn = fclamp(voct, 0.f, 127.f);
-    float note  += mtof(midi_nn);
-
+    //float midi_nn = fclamp(voct, 0.f, 127.f);
+    //float note  = mtof(midi_nn);
+hw.seed.PrintLine("Note: %f", note );
   
   performance_state->note = note;
   performance_state->tonic = 12.0f + transpose_;
