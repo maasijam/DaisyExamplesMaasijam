@@ -98,8 +98,11 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
     const ChannelSettings& settings = channel_settings_[i];
     if(i < 6) {
         value = hw.cv[cv_map[i]].Value();
+        //value = hw.GetCvValue(cv_map[i]);
+        
     } else {
         value = hw.knob[pot_map[i-6]].Value();
+        //value = hw.GetKnobValue(pot_map[i-6]);
     }
     
 
@@ -152,23 +155,25 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   float hysteresis = transpose - transpose_ > 0.0f ? -0.3f : +0.3f;
   transpose_ = static_cast<int32_t>(transpose + hysteresis + 0.5f);
   
-  float note = 66.67f;
+  //float note = 66.67f;
   //float note = 0.0f;
-  note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * 84.26f;
+  //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * 84.26f;
   //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * 48.0f;
   //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] ;
 //hw.seed.PrintLine("Note: %f", note );
 
   //performance_state->note = adc_lp_[ADC_CHANNEL_POT_FREQUENCY] * 48.0f;
+  performance_state->note = adc_lp_[ADC_CHANNEL_CV_V_OCT] * 60.0f;
     //float cv_voct = adc_lp_[ADC_CHANNEL_CV_V_OCT];
     //float voct    = fmap(cv_voct, 0, 60);
 
     /** Convert from MIDI note number to frequency */
     //float midi_nn = fclamp(voct, 0.f, 127.f);
-    //float note  = mtof(midi_nn);
-hw.seed.PrintLine("Note: %f", note );
+    //note  = mtof(midi_nn);
+//hw.seed.PrintLine("Note: %f", note );
+//hw.seed.PrintLine("Note: %f", note );
   
-  performance_state->note = note;
+  //performance_state->note = note;
   performance_state->tonic = 12.0f + transpose_;
     
   // Strumming / internal exciter triggering logic.    

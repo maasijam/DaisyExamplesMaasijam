@@ -1,6 +1,8 @@
 # Project Name
 TARGET = sosc
 
+LDFLAGS += -u _printf_float
+
 DEBUG = 1
 USE_FATFS = 1
 
