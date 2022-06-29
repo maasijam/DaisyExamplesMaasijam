@@ -247,9 +247,18 @@ void Update_Buttons()
         easterEggOn = false;
     }
 
+    if (hw.s[BTN_TAP].RisingEdge())    
+    {
+        shiftTime = System::GetNow();   //reset shift timer
+    }
+
     if (hw.s[BTN_TAP].FallingEdge())    //when button is let go shift is off
     {
         saveSt = false;
+        hw.SetRGBLed(1,DaisySaul::off);
+        hw.SetRGBLed(2,DaisySaul::off);
+        hw.SetRGBLed(3,DaisySaul::off);
+        hw.SetRGBLed(4,DaisySaul::off);
     }
 
     if (hw.s[BTN_TAP].Pressed())
@@ -315,12 +324,7 @@ void Update_Leds()
             hw.SetRGBLed(2,DaisySaul::red);
             hw.SetRGBLed(3,DaisySaul::red);
             hw.SetRGBLed(4,DaisySaul::red);
-    } else {
-        hw.SetRGBLed(1,DaisySaul::off);
-        hw.SetRGBLed(2,DaisySaul::off);
-        hw.SetRGBLed(3,DaisySaul::off);
-        hw.SetRGBLed(4,DaisySaul::off);
-    }
+    } 
     
 }
 
