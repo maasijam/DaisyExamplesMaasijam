@@ -38,7 +38,7 @@
 
 #include "daisy.h"
 #include "../daisy_saul.h"
-#include "daisysp.h"
+
 
 
 extern daisy::DaisySaul hw;
@@ -47,7 +47,7 @@ namespace torus {
   
 using namespace std;
 using namespace stmlib;
-using namespace daisysp;
+
 
 
 
@@ -136,11 +136,6 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
    ATTENUVERT(patch->damping, DAMPING, 0.0f, 1.0f);
    ATTENUVERT(patch->position, POSITION, 0.0f, 1.0f);
 
-  //patch->structure = adc_lp_[ADC_CHANNEL_POT_STRUCTURE];
-  //patch->brightness = adc_lp_[ADC_CHANNEL_POT_BRIGHTNESS];
-  //patch->damping = adc_lp_[ADC_CHANNEL_POT_DAMPING];
-  //patch->position = adc_lp_[ADC_CHANNEL_POT_POSITION];
-
   float fm = adc_lp_[ADC_CHANNEL_CV_FREQUENCY] * 48.0f;
   float error = fm - fm_cv_;
   if (fabs(error) >= 0.8f) {
@@ -148,32 +143,15 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   } else {
     fm_cv_ += 0.02f * error;
   }
-  performance_state->fm = fm_cv_ * adc_lp_[ADC_CHANNEL_ATTENUVERTER_FREQUENCY];
+  performance_state->fm = fm_cv_ * adc_lp_[ADC_CHANNEL_ATTENUVERTER_FREQUENCY] * -1.0f;
   CONSTRAIN(performance_state->fm, -48.0f, 48.0f);
   
   float transpose = 60.0f * adc_lp_[ADC_CHANNEL_POT_FREQUENCY];
   float hysteresis = transpose - transpose_ > 0.0f ? -0.3f : +0.3f;
   transpose_ = static_cast<int32_t>(transpose + hysteresis + 0.5f);
   
-  //float note = 66.67f;
-  //float note = 0.0f;
-  //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * 84.26f;
-  //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * 48.0f;
-  //note += adc_lp_[ADC_CHANNEL_CV_V_OCT] ;
-//hw.seed.PrintLine("Note: %f", note );
-
-  //performance_state->note = adc_lp_[ADC_CHANNEL_POT_FREQUENCY] * 48.0f;
   performance_state->note = adc_lp_[ADC_CHANNEL_CV_V_OCT] * 60.0f;
-    //float cv_voct = adc_lp_[ADC_CHANNEL_CV_V_OCT];
-    //float voct    = fmap(cv_voct, 0, 60);
-
-    /** Convert from MIDI note number to frequency */
-    //float midi_nn = fclamp(voct, 0.f, 127.f);
-    //note  = mtof(midi_nn);
-//hw.seed.PrintLine("Note: %f", note );
-//hw.seed.PrintLine("Note: %f", note );
   
-  //performance_state->note = note;
   performance_state->tonic = 12.0f + transpose_;
     
   // Strumming / internal exciter triggering logic.    
