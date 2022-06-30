@@ -236,6 +236,11 @@ float DaisySaul::GetCvValue(int idx) const
     return cv[idx < CV_LAST ? idx : 0].Value();
 }
 
+AnalogControl* DaisySaul::GetCv(size_t idx)
+{
+    return &cv[idx < CV_LAST ? idx : 0];
+}
+
 void DaisySaul::DelayMs(size_t del)
 {
     seed.DelayMs(del);

@@ -180,6 +180,10 @@ class DaisySaul
     float GetKnobValue(int idx) const;
     float GetCvValue(int idx) const;
 
+  /** Getter for CV objects.
+        \param idx The CV input of interest.
+    */
+    AnalogControl* GetCv(size_t idx);
 
     /** Returns true if gate in is HIGH */
     bool Gate();
