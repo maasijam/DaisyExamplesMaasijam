@@ -494,7 +494,7 @@ void Part::Process(const PerformanceState& performance_state,
 
     if(performance_state.strum)
     {
-        note_[active_voice_] = note_filter_.stable_note();
+        //note_[active_voice_] = note_filter_.stable_note();
         if(polyphony_ > 1 && polyphony_ & 1)
         {
             active_voice_ = kPingPattern[step_counter_ % 8];
@@ -515,8 +515,8 @@ void Part::Process(const PerformanceState& performance_state,
         // Compute MIDI note value, frequency, and cutoff frequency for excitation
         // filter.
         float cutoff = patch.brightness * (2.0f - patch.brightness);
-        float note
-            = note_[voice] + performance_state.tonic + performance_state.fm;
+        float note   = note_[voice] + performance_state.tonic + performance_state.fm;
+        //float note   = note_[voice];
         float frequency = SemitonesToRatio(note - 69.0f) * a3;
         float filter_cutoff_range
             = performance_state.internal_exciter

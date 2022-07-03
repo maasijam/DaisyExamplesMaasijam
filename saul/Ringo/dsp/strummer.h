@@ -69,6 +69,7 @@ class Strummer
             if(has_external_note_cv)
             {
                 performance_state->strum = note_changed;
+                //performance_state->strum = false;
             }
             else if(has_external_exciter)
             {

@@ -52,7 +52,7 @@ size_t exciterState = 0;
 size_t polyState = 0;
 size_t eggFxState = 0;
 size_t modelState = 0;
-bool saveSt{false};
+bool saveState{false};
 
 // norm edit menu items
 bool exciterIn;
@@ -108,7 +108,8 @@ void ProcessControls(Patch* patch, PerformanceState* state)
     state->internal_note    = noteStrumState == 1 || noteStrumState == 3 ? false : true;
     state->internal_exciter = exciterState == 1 ? false : true;
     state->internal_strum   = noteStrumState == 2 || noteStrumState == 3 ? false : true;
-
+    
+    
     //strum
     state->strum = hw.gate.Trig();
 }
@@ -125,6 +126,8 @@ void AudioCallback(AudioHandle::InputBuffer  in,
                    size_t                    size)
 {
     hw.ProcessAnalogControls();
+    hw.ProcessDigitalControls();
+    Update_Buttons();
     
     PerformanceState performance_state;
     Patch            patch;
@@ -156,7 +159,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
                        : 1.0f;
             input[i] = gain * in_sample;
         }
-
+        
         strummer.Process(input, size, &performance_state);
         part.Process(performance_state, patch, input, output, aux, size);
     }
@@ -196,10 +199,9 @@ int main(void)
 //hw.seed.StartLog(false);
     while(1)
     {
-        hw.ProcessDigitalControls();
-        Update_Buttons();
+        
         Update_Leds();
-        if(saveSt)
+        if(saveState)
         {
             FlashSave(0);
         }
@@ -254,7 +256,7 @@ void Update_Buttons()
 
     if (hw.s[BTN_TAP].FallingEdge())    //when button is let go shift is off
     {
-        saveSt = false;
+        saveState = false;
         hw.SetRGBLed(1,DaisySaul::off);
         hw.SetRGBLed(2,DaisySaul::off);
         hw.SetRGBLed(3,DaisySaul::off);
@@ -265,7 +267,7 @@ void Update_Buttons()
     {
         if ( (System::GetNow() - shiftTime) > shiftWait)
         {
-            saveSt = true;
+            saveState = true;
         } 
     }
     
@@ -319,7 +321,7 @@ void Update_Leds()
     hw.SetRGBLed(1,eggFxState);
     hw.SetRGBLed(4,modelState);
 
-    if(saveSt) {
+    if(saveState) {
             hw.SetRGBLed(1,DaisySaul::red);
             hw.SetRGBLed(2,DaisySaul::red);
             hw.SetRGBLed(3,DaisySaul::red);

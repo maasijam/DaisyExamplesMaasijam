@@ -59,10 +59,10 @@ ChannelSettings CvScaler::channel_settings_[CHAN_LAST] = {
    { LAW_LINEAR, true, 0.05f },  // ADC_CHANNEL_CV_DAMPING
    { LAW_LINEAR, true, 0.01f },  // ADC_CHANNEL_CV_POSITION
    { LAW_LINEAR, false, 1.00f },  // ADC_CHANNEL_CV_V_OCT
-  { LAW_LINEAR, false, 1.f },  // ADC_CHANNEL_POT_FREQUENCY
-  { LAW_LINEAR, false, 0.1f },  // ADC_CHANNEL_POT_STRUCTURE
-  { LAW_LINEAR, false, 0.1f },  // ADC_CHANNEL_POT_BRIGHTNESS
-  { LAW_LINEAR, false, 0.05f },  // ADC_CHANNEL_POT_DAMPING
+  { LAW_LINEAR, false, 0.01f },  // ADC_CHANNEL_POT_FREQUENCY
+  { LAW_LINEAR, false, 0.01f },  // ADC_CHANNEL_POT_STRUCTURE
+  { LAW_LINEAR, false, 0.01f },  // ADC_CHANNEL_POT_BRIGHTNESS
+  { LAW_LINEAR, false, 0.01f },  // ADC_CHANNEL_POT_DAMPING
   { LAW_LINEAR, false, 0.01f },  // ADC_CHANNEL_POT_POSITION
   { LAW_QUARTIC_BIPOLAR, false, 0.005f },  // ADC_CHANNEL_ATTENUVERTER_FREQUENCY
   { LAW_QUADRATIC_BIPOLAR, false, 0.005f },  //ADC_CHANNEL_ATTENUVERTER_STRUCTURE,
@@ -145,6 +145,7 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   }
   performance_state->fm = fm_cv_ * adc_lp_[ADC_CHANNEL_ATTENUVERTER_FREQUENCY] * -1.0f;
   CONSTRAIN(performance_state->fm, -48.0f, 48.0f);
+  //performance_state->fm = 0.0f;
   
   float transpose = 60.0f * adc_lp_[ADC_CHANNEL_POT_FREQUENCY];
   float hysteresis = transpose - transpose_ > 0.0f ? -0.3f : +0.3f;
@@ -153,6 +154,7 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   performance_state->note = adc_lp_[ADC_CHANNEL_CV_V_OCT] * 60.0f;
   
   performance_state->tonic = 12.0f + transpose_;
+  //performance_state->tonic = 12.0f;
     
   // Strumming / internal exciter triggering logic.    
 
