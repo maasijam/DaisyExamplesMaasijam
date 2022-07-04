@@ -4,6 +4,7 @@
 #include "daisysp.h"
 #include "fx/frame.h"
 #include "fx/reverb.h"
+#include "DroneOsc.h"
 
 
 
@@ -72,59 +73,6 @@ enum class WAVE_SUM_TYPE
 WAVE_SUM_TYPE sum_type = WAVE_SUM_TYPE::AVERAGE;
 
 
-class DroneOscillator
-{
-	Oscillator		m_low_osc;
-	Oscillator		m_base_osc;
-	Oscillator		m_high_osc;
-	float			m_amplitude = 0.0f;
-
-public:
-
-	void initialise(float sample_rate)
-	{
-		auto init_osc =[sample_rate](Oscillator& osc)
-		{
-			osc.Init(sample_rate);
-			osc.SetWaveform(osc.WAVE_POLYBLEP_SAW);
-			osc.SetAmp(1.0f);
-		};
-
-		init_osc(m_low_osc);
-		init_osc(m_base_osc);
-		init_osc(m_high_osc);
-
-		m_amplitude				= 0.0f;
-	}
-
-	void set_amplitude(float a)
-	{
-		m_amplitude = a;
-	}
-
-	void set_semitone( float base_frequency, int semitone )
-	{
-		auto semitone_to_frequency = [base_frequency](float semitone)->float
-		{
-			const float freq_mult	= powf( 2.0f, semitone / 12.0f );
-			return base_frequency * freq_mult;
-		};
-
-		constexpr int cents = 1;
-		constexpr float cent_mult_low = 1.0f - (cents/100.0f);
-		constexpr float cent_mult_high = 1.0f + (cents/100.0f);
-		m_low_osc.SetFreq( semitone_to_frequency(semitone*cent_mult_low) );
-		m_base_osc.SetFreq( semitone_to_frequency(semitone) );
-		m_high_osc.SetFreq( semitone_to_frequency(semitone*cent_mult_high) );
-	}
-
-	float process()
-	{
-		const float avg_sin = (m_low_osc.Process() + m_base_osc.Process() + m_high_osc.Process() ) / 3;
-		//float avg_sin = m_base_osc.Process();
-		return avg_sin * m_amplitude;
-	}
-};
 
 DroneOscillator oscillators[NUM_TONES];
 float gain = 0.0f;
@@ -232,7 +180,7 @@ void audio_callback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, 
 	}
 }
 
-void set_tones(float base_frequency)
+void set_tones(float base_frequency,float cv_voct)
 {
 	//hw.seed.PrintLine("BaseFreq: %f", base_frequency  );
 	//onstexpr int NUM_INTERVALS(4);
@@ -240,10 +188,10 @@ void set_tones(float base_frequency)
 	constexpr int NUM_INTERVALS(5);
 	const int intervals[NUM_INTERVALS] = { 12, 7, 5, 4, 3 };	// ocatave, 3rd, 7th, octave
 	int interval = 0;
-	int semitone = 0;
+	float semitone = 0.f;
 	for( int t = 0; t < NUM_TONES; ++t )
 	{
-		oscillators[t].set_semitone(base_frequency, semitone);
+		oscillators[t].set_freq(base_frequency, cv_voct, semitone);
 
 		semitone				+= intervals[interval];
 		interval				= ( interval + 1 ) % NUM_INTERVALS;
@@ -268,8 +216,8 @@ int main(void)
 	hpfilter.Init(sample_rate);
 
 	//const float base_frequency = 65.41f; // C2
-	const float base_frequency(440);
-	set_tones(base_frequency);
+	//const float base_frequency(440);
+	//set_tones(base_frequency,0.f);
 
 	// NOTE: AGND and DGND must be connected for audio and ADC to work
     hw.StartAdc();
@@ -277,10 +225,10 @@ int main(void)
 
     //hw.seed.StartLog(false);
 
-	int current_tone_set = 0;
-	const ToneSet& tone_set = tones_sets[current_tone_set];
+	//int current_tone_set = 0;
+	//const ToneSet& tone_set = tones_sets[current_tone_set];
 //hw.seed.PrintLine("ToneSetBase: %d", current_tone_set  );	
-	set_tones(tone_set.m_base_frequency);
+	//set_tones(tone_set.m_base_frequency,0.f);
 
     int pot_map[6] = {0,4,5,6,7,3};
 
@@ -294,6 +242,8 @@ int main(void)
 		{
 			const float pot_val = hw.knob[pot_map[t]].Value();
 			oscillators[t].set_amplitude( pot_val );
+			const float detune_val = hw.knob[8].Value();
+			oscillators[t].set_detune( detune_val );
 		}
 
 		//const float pot1_val = hw.adc.GetFloat(NUM_TONES);
@@ -340,14 +290,14 @@ int main(void)
 			sum_type = WAVE_SUM_TYPE::TRIANGLE_WAVE_FOLD;
 		}
 
-        float toneVal = fmap(hw.knob[2].Value(), 0.0f, 11.0f);
-        current_tone_set = toneVal > 10.98f ? 11 : static_cast<int>(std::floor(toneVal));
+        float toneVal = hw.knob[2].Value();
+        //current_tone_set = toneVal > 10.98f ? 11 : static_cast<int>(std::floor(toneVal));
         //hw.seed.PrintLine("ToneSet: %d", current_tone_set  );
         
-		const ToneSet& tone_set = tones_sets[current_tone_set];
-		set_tones(tone_set.m_base_frequency);
+		//const ToneSet& tone_set = tones_sets[current_tone_set];
+		set_tones(toneVal,0.f);
 
-		led_tone_set = current_tone_set;
+		//led_tone_set = current_tone_set;
 
         //wait 1 ms
         System::Delay(1);		
