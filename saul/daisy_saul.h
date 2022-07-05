@@ -190,6 +190,15 @@ class DaisySaul
 
     void SetLed(uint8_t idx, bool state);
     void SetRGBLed(uint8_t idx, uint8_t color);
+
+    /** Gets a random 32-bit value */
+    inline uint32_t GetRandomValue() { return Random::GetValue(); }
+
+    /** Gets a random floating point value between the specified minimum, and maxmimum */
+    inline float GetRandomFloat(float min = 0.f, float max = 1.f)
+    {
+        return Random::GetFloat(min, max);
+    }
     
 
     /**
