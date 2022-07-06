@@ -33,7 +33,7 @@
 
 #include "fx_engine.h"
 
-namespace torus
+namespace clouds_reverb
 {
 class Reverb
 {
@@ -180,6 +180,6 @@ class Reverb
     DISALLOW_COPY_AND_ASSIGN(Reverb);
 };
 
-} // namespace torus
+} // namespace clouds_reverb
 
 #endif // TORUS_DSP_FX_REVERB_H_

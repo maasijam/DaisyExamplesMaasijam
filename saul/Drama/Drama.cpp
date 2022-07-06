@@ -10,57 +10,31 @@
 
 using namespace daisy;
 using namespace daisysp;
-
-using namespace torus;
+using namespace clouds_reverb;
 
 
 DaisySaul hw;
 
 Reverb  reverb_;
-Phaser     phaser;
-MoogLadder moogfilter;
+MoogLadder moogfilter_l, moogfilter_r;
 WhiteNoise wnoise;
 Svf hpfilter;
+static CrossFade WidthXfade;
 
-float ph_wet;
+#define NUM_WAVEFORMS 4
 
-float ph_freqtarget, ph_freq;
-float ph_lfotarget, ph_lfo;
-int   ph_numstages;
+constexpr int NUM_TONES(4);
 
-constexpr int NUM_TONES(6);
-constexpr int NUM_POTS(NUM_TONES+2);	// tones pots plus 2 additional parameter pots
-constexpr int pot_pins[NUM_POTS] = { 17, 18, 19, 20, 21, 22, 16, 15 };
-int led_tone_set;
+Parameter  cutoff_ctrl, drone_width, drone_detune;
 
-Parameter  cutoff_ctrl;
-
-int resState = 0;
-int noiseState = 0;
+static int resState = 0;
+static int noiseState = 0;
+static int waveformState = 0;
+static int intervalSetState = 0;
 
 void Update_Leds();
 void Update_Buttons();
 
-struct ToneSet
-{
-	float	m_base_frequency;
-	char	m_note;
-	bool	m_is_sharp;
-};
-
-constexpr int NUM_TONE_SETS(12);
-ToneSet tones_sets[NUM_TONE_SETS] = {	{55.0f, 'A', false },
-										{58.27f, 'A', true },
-										{61.74f, 'B', false },
-										{65.41f, 'C', false },
-										{69.30f, 'C', true },
-										{73.42f, 'D', false },
-										{77.78f, 'D', true },
-										{82.41f, 'E', false },
-										{87.31f, 'F', false },
-										{92.50f, 'F', true },
-										{98.00f, 'G', false },
-										{103.83, 'G', true } };
 
 enum class WAVE_SUM_TYPE
 {
@@ -69,13 +43,26 @@ enum class WAVE_SUM_TYPE
 	TRIANGLE_WAVE_FOLD,
 };
 
+uint8_t waveforms[NUM_WAVEFORMS] = {
+    Oscillator::WAVE_SIN,
+    Oscillator::WAVE_POLYBLEP_TRI,
+    Oscillator::WAVE_POLYBLEP_SAW,
+    Oscillator::WAVE_POLYBLEP_SQUARE,
+};
+
 
 WAVE_SUM_TYPE sum_type = WAVE_SUM_TYPE::AVERAGE;
 
 
-
 DroneOscillator oscillators[NUM_TONES];
 float gain = 0.0f;
+
+constexpr int NUM_INTERVALS(4);
+constexpr int NUM_INTERVAL_SETS(2);
+const int intervals[NUM_INTERVAL_SETS][NUM_INTERVALS] = {
+    { 12, 7, 4, 3 },
+    { 12, 8, 9 ,10}
+};	// ocatave, 3rd, 7th, octave
 
 
 // https://www.desmos.com/calculator/ge2wvg2wgj
@@ -97,17 +84,21 @@ void audio_callback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, 
 	float cutoff = cutoff_ctrl.Process();
 	float hpcutoff = 2000.0f;
 	float gainboost, wnoise_sig, wnoise_boost;
-	moogfilter.SetFreq(cutoff);
+	moogfilter_l.SetFreq(cutoff);
+    moogfilter_r.SetFreq(cutoff);
 	if(resState == 1) {
-		moogfilter.SetRes(0.4f);
+		moogfilter_l.SetRes(0.4f);
+        moogfilter_r.SetRes(0.4f);
 		gainboost = 2.0f;
 		wnoise_boost = 0.6f;
 	} else if(resState == 2){
-		moogfilter.SetRes(0.85f);
+		moogfilter_l.SetRes(0.85f);
+        moogfilter_r.SetRes(0.85f);
 		gainboost = 3.0f;
 		wnoise_boost = 0.4f;
 	} else {
-		moogfilter.SetRes(0.0f);
+		moogfilter_l.SetRes(0.0f);
+        moogfilter_r.SetRes(0.0f);
 		gainboost = 1.0f;
 		wnoise_boost = 1.0f;
 	}
@@ -117,29 +108,37 @@ void audio_callback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, 
     
     for (size_t i = 0; i < size; i++)
 	{
-		float osc_out = 0.0f;
+		float osc_out_left = 0.0f;
+        float osc_out_right = 0.0f;
 		for( int o = 0; o < NUM_TONES; ++o )
 		{
-			osc_out += oscillators[o].process();
+			oscillators[o].set_waveform(waveforms[waveformState]);
+            osc_out_left += oscillators[o].process_left();
+            osc_out_right += oscillators[o].process_right();
 		}
 
 		switch(sum_type)
 		{
 			case WAVE_SUM_TYPE::AVERAGE:
 			{
-				osc_out /= NUM_TONES;
+				osc_out_left /= NUM_TONES;
+                osc_out_right /= NUM_TONES;
 				break;
 			}
 			case WAVE_SUM_TYPE::SINE_WAVE_FOLD:
 			{
-				osc_out = sin_wave_fold(osc_out);
-                osc_out *= 0.5f;
+				osc_out_left = sin_wave_fold(osc_out_left);
+                osc_out_left *= 0.5f;
+                osc_out_right = sin_wave_fold(osc_out_right);
+                osc_out_right *= 0.5f;
 				break;
 			}
 			case WAVE_SUM_TYPE::TRIANGLE_WAVE_FOLD:
 			{
-				osc_out = triangular_wave_fold(osc_out);
-                osc_out *= 0.4f;
+				osc_out_left = triangular_wave_fold(osc_out_left);
+                osc_out_left *= 0.4f;
+                osc_out_right = triangular_wave_fold(osc_out_right);
+                osc_out_right *= 0.4f;
                 break;
 			}
 		}
@@ -154,18 +153,22 @@ void audio_callback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, 
 		wnoise_sig = hpfilter.High();
 		wnoise_sig *= wnoise_boost;
 
-		osc_out += wnoise_sig;
+		osc_out_left += wnoise_sig;
+        osc_out_right += wnoise_sig;
 
-		osc_out = moogfilter.Process(osc_out);
-		osc_out *= gainboost;
+		osc_out_left = moogfilter_l.Process(osc_out_left);
+		osc_out_left *= gainboost;
+        osc_out_right = moogfilter_r.Process(osc_out_right);
+		osc_out_right *= gainboost;
 
+
+		float osc_out_left_SUM = WidthXfade.Process(osc_out_left,osc_out_right);    //mix to mono if width 0.0
+        float osc_out_right_SUM = WidthXfade.Process(osc_out_right,osc_out_left);
 
 		
 
-		
-
-        ins_left[i] = osc_out;
-        ins_right[i]= osc_out;
+        ins_left[i] = osc_out_left_SUM;
+        ins_right[i]= osc_out_right_SUM;
 
         
         reverb_.Process(&ins_left[i], &ins_right[i], 1);
@@ -173,27 +176,21 @@ void audio_callback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, 
 		
 		out[0][i] = ins_left[i] * gain;
         out[1][i] = ins_right[i] * gain;
-        //out[0][i] = osc_out;
-		//out[1][i] = osc_out;
-
         
 	}
 }
 
 void set_tones(float base_frequency,float cv_voct)
 {
-	//hw.seed.PrintLine("BaseFreq: %f", base_frequency  );
-	//onstexpr int NUM_INTERVALS(4);
-	//const int intervals[NUM_INTERVALS] = { 12, 3, 4, 5 };	// ocatave, 3rd, 7th, octave
-	constexpr int NUM_INTERVALS(5);
-	const int intervals[NUM_INTERVALS] = { 12, 7, 5, 4, 3 };	// ocatave, 3rd, 7th, octave
+	
 	int interval = 0;
 	float semitone = 0.f;
 	for( int t = 0; t < NUM_TONES; ++t )
 	{
-		oscillators[t].set_freq(base_frequency, cv_voct, semitone);
+		float rdm = hw.GetRandomFloat(0.f, 0.05f);
+        oscillators[t].set_freq(base_frequency, cv_voct, semitone, rdm);
 
-		semitone				+= intervals[interval];
+		semitone				+= intervals[intervalSetState][interval];
 		interval				= ( interval + 1 ) % NUM_INTERVALS;
 	}
 }
@@ -206,31 +203,26 @@ int main(void)
 	const float sample_rate = hw.AudioSampleRate();
 	for( DroneOscillator& osc : oscillators )
 	{
-		osc.initialise(sample_rate);
+		osc.init(sample_rate);
 	}
 
-	moogfilter.Init(sample_rate);
+    WidthXfade.Init();
+    WidthXfade.SetCurve(CROSSFADE_CPOW);
+
+    drone_width.Init(hw.knob[10], 0.5f, 0.0f, Parameter::LINEAR);
+    drone_detune.Init(hw.knob[0], 0.0f, 0.5f, Parameter::LINEAR);
+
+	moogfilter_l.Init(sample_rate);
+    moogfilter_r.Init(sample_rate);
 	wnoise.Init();
 	wnoise.SetAmp(0.1f);
 
 	hpfilter.Init(sample_rate);
 
-	//const float base_frequency = 65.41f; // C2
-	//const float base_frequency(440);
-	//set_tones(base_frequency,0.f);
-
-	// NOTE: AGND and DGND must be connected for audio and ADC to work
     hw.StartAdc();
 	hw.StartAudio(audio_callback);
 
-    //hw.seed.StartLog(false);
-
-	//int current_tone_set = 0;
-	//const ToneSet& tone_set = tones_sets[current_tone_set];
-//hw.seed.PrintLine("ToneSetBase: %d", current_tone_set  );	
-	//set_tones(tone_set.m_base_frequency,0.f);
-
-    int pot_map[6] = {0,4,5,6,7,3};
+    int pot_map[4] = {4,5,6,7};
 
 	while(1)
 	{	
@@ -242,16 +234,15 @@ int main(void)
 		{
 			const float pot_val = hw.knob[pot_map[t]].Value();
 			oscillators[t].set_amplitude( pot_val );
-			const float detune_val = hw.knob[8].Value();
+			const float detune_val = drone_detune.Process();
 			oscillators[t].set_detune( detune_val );
 		}
 
-		//const float pot1_val = hw.adc.GetFloat(NUM_TONES);
+        float width = drone_width.Process();
+        WidthXfade.SetPos(width);
 		gain = hw.knob[1].Value();
 
-        float reverb_amount = hw.knob[10].Value() * 0.95f;
-        //reverb_amount += feedback * (2.0f - feedback) * freeze_lp_;
-       //CONSTRAIN(reverb_amount, 0.0f, 1.0f);
+        float reverb_amount = hw.knob[3].Value() * 0.95f;
 
         reverb_.set_amount(reverb_amount * 0.54f);
         reverb_.set_diffusion(0.7f);
@@ -259,21 +250,7 @@ int main(void)
         reverb_.set_input_gain(0.2f);
         reverb_.set_lp(0.6f + 0.37f * 0.01f);
 
-        ph_wet = hw.knob[8].Value();
-
-        ph_numstages = 8;
-        phaser.SetPoles(ph_numstages);
-
-        float k = 0.3f;
-        phaser.SetLfoFreq(k * k * 20.f);
-        ph_lfo  = hw.knob[3].Process();
-        k    = 0.2f;
-        ph_freq = k * k * 7000; //0 - 10 kHz, square curve
-        phaser.SetFeedback(0.8f);
-
-
 		// Moog Ladder
-		//float cutoff = hw.knob[9].Value() * 0.95f;
 		cutoff_ctrl.Init(hw.knob[9], 100, 20000, Parameter::LOGARITHMIC);
 
 
@@ -290,14 +267,9 @@ int main(void)
 			sum_type = WAVE_SUM_TYPE::TRIANGLE_WAVE_FOLD;
 		}
 
-        float toneVal = hw.knob[2].Value();
-        //current_tone_set = toneVal > 10.98f ? 11 : static_cast<int>(std::floor(toneVal));
-        //hw.seed.PrintLine("ToneSet: %d", current_tone_set  );
+        float toneVal = hw.knob[8].Value();
         
-		//const ToneSet& tone_set = tones_sets[current_tone_set];
 		set_tones(toneVal,0.f);
-
-		//led_tone_set = current_tone_set;
 
         //wait 1 ms
         System::Delay(1);		
@@ -305,87 +277,7 @@ int main(void)
 }
 
 void Update_Leds() {
-    switch (led_tone_set)
-        {
-        case 0:
-            hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.off);
-            hw.SetRGBLed(4, hw.off);
-            break;
-        case 1:
-            hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.off);
-            hw.SetRGBLed(4, hw.green);
-            break;
-        case 2:
-            hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.green);
-            hw.SetRGBLed(4, hw.off);
-            break;
-        case 3:
-           hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.green);
-            hw.SetRGBLed(4, hw.green);
-            break;
-        case 4:
-            hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.green);
-            hw.SetRGBLed(3, hw.off);
-            hw.SetRGBLed(4, hw.off);
-            break;
-        case 5:
-            hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.green);
-            hw.SetRGBLed(3, hw.off);
-            hw.SetRGBLed(4, hw.green);
-            break;
-        case 6:
-            hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.green);
-            hw.SetRGBLed(3, hw.green);
-            hw.SetRGBLed(4, hw.off);
-            break;
-        case 7:
-           hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.green);
-            hw.SetRGBLed(3, hw.green);
-            hw.SetRGBLed(4, hw.green);
-            break;
-        case 8:
-            hw.SetRGBLed(1, hw.green);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.off);
-            hw.SetRGBLed(4, hw.off);
-            break;
-        case 9:
-           hw.SetRGBLed(1, hw.green);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.off);
-            hw.SetRGBLed(4, hw.green);
-            break;
-        case 10:
-            hw.SetRGBLed(1, hw.green);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.green);
-            hw.SetRGBLed(4, hw.off);
-            break;
-        case 11:
-            hw.SetRGBLed(1, hw.green);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.green);
-            hw.SetRGBLed(4, hw.green);
-            break;
-        default:
-            hw.SetRGBLed(1, hw.off);
-            hw.SetRGBLed(2, hw.off);
-            hw.SetRGBLed(3, hw.off);
-            hw.SetRGBLed(4, hw.off);
-            break;
-        }
+   
 
 	switch (resState)
     {
@@ -418,6 +310,38 @@ void Update_Leds() {
         hw.SetLed(2,true);
         break;
     }
+
+    switch (waveformState)
+    {
+    case 1:
+        hw.SetRGBLed(1, hw.blue);
+        
+        break;
+    case 2:
+        hw.SetRGBLed(1, hw.yellow);
+       
+        break;
+    case 3:
+        hw.SetRGBLed(1, hw.purple);
+       
+        break;
+    default:
+        hw.SetRGBLed(1, hw.green);
+       
+        break;
+    }
+
+    switch (intervalSetState)
+    {
+    case 1:
+        hw.SetRGBLed(4, hw.blue);
+        
+        break;
+    default:
+        hw.SetRGBLed(4, hw.green);
+       
+        break;
+    }
 }
 
 void Update_Buttons() {
@@ -431,6 +355,18 @@ void Update_Buttons() {
         noiseState += 1;
         if(noiseState > 1) {
            noiseState = 0;     
+        } 
+    }
+    if(hw.s[3].RisingEdge()){
+        waveformState += 1;
+        if(waveformState > 3) {
+           waveformState = 0;     
+        } 
+    }
+    if(hw.s[2].RisingEdge()){
+        intervalSetState += 1;
+        if(intervalSetState > 1) {
+           intervalSetState = 0;     
         } 
     }
 }

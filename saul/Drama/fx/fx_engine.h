@@ -36,7 +36,7 @@
 #include "stmlib/dsp/dsp.h"
 #include "stmlib/dsp/cosine_oscillator.h"
 
-namespace torus
+namespace clouds_reverb
 {
 #define TAIL , -1
 
