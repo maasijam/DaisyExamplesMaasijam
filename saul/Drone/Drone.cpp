@@ -61,7 +61,7 @@ Parameter  drone_width, drone_detune;
 
 uint8_t waveforms[NUM_WAVEFORMS] = {
     Oscillator::WAVE_SIN,
-    Oscillator::WAVE_TRI,
+    Oscillator::WAVE_POLYBLEP_TRI,
     Oscillator::WAVE_POLYBLEP_SAW,
     Oscillator::WAVE_POLYBLEP_SQUARE,
 };
