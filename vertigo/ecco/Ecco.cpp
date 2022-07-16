@@ -20,7 +20,7 @@
 // 
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
-#include "Veno-Echo-Versio.h"
+#include "Ecco.h"
 #include "QSPI_Settings.h"
 #include "daisysp.h"
 #include "delayline_multitap.h" //modified delayline
@@ -101,8 +101,9 @@ DelayRev delaysL_REV,delaysR_REV;
 //LED objects:
 ButtonLED LPF_sw,HPF_sw,Rev_L_sw,Rev_R_sw, Tap_Button;
 TempoLED tempoLED_BASE;
+ButtonSW S_L,S_R;
 
-Led syncled;
+Led syncled,sw_l_led1,sw_l_led2,sw_r_led1,sw_r_led2;
 
 AnalogControl knobs[KNOB_LAST];
 
@@ -146,6 +147,9 @@ bool mute{};
 
 bool ClockInFlag{false};
 bool PostFilters{false};
+
+size_t reverseLState = 0;
+size_t reverseRState = 0;
 
 std::atomic<bool> save_flag{};
 
@@ -409,8 +413,8 @@ Counter = (Counter + 1) % updateDiv;
         Update_Mod();
         
 
-        bool revSwL = (sw[0].Read() == 1 || sw[0].Read() == 2) ? true : false;
-        bool revSwR = sw[0].Read() == 2 ? true : false;
+        bool revSwL = (reverseLState == 1) ? true : false;
+        bool revSwR = (reverseRState == 1) ? true : false;
 
         //get xfade positions from envelopes:
         float FwdRevLXFadepos = FwdRevLEnv.Process(revSwL);
@@ -701,13 +705,20 @@ int main(void)
 
     syncled.Init(hw.GetPin(PIN_LED2_G),true,hw.AudioSampleRate() / static_cast<float> (updateDiv));  //150hz PWM)
     syncled.Set(0.0f);
+    sw_l_led1.Init(hw.GetPin(20),false,hw.AudioSampleRate() / static_cast<float> (updateDiv));
+    sw_l_led2.Init(hw.GetPin(18),false,hw.AudioSampleRate() / static_cast<float> (updateDiv));
+    sw_r_led1.Init(hw.GetPin(8),false,hw.AudioSampleRate() / static_cast<float> (updateDiv));
+    sw_r_led2.Init(hw.GetPin(9),false,hw.AudioSampleRate() / static_cast<float> (updateDiv));
     
     //Buttons or switches with status LEDs
-    Rev_L_sw.init(hw.GetPin(20),hw.GetPin(6),ButtonLED::Toggle,hw.AudioSampleRate() / static_cast<float> (updateDiv),false);
-    Rev_R_sw.init(hw.GetPin(20),hw.GetPin(5),ButtonLED::Toggle,hw.AudioSampleRate() / static_cast<float> (updateDiv),false);
+    //Rev_L_sw.init(hw.GetPin(20),hw.GetPin(6),ButtonLED::Toggle,hw.AudioSampleRate() / static_cast<float> (updateDiv),false);
+    //Rev_R_sw.init(hw.GetPin(20),hw.GetPin(5),ButtonLED::Toggle,hw.AudioSampleRate() / static_cast<float> (updateDiv),false);
     Tap_Button.init(hw.GetPin(PIN_LED1_G),hw.GetPin(30),ButtonLED::Toggle_inverted,hw.AudioSampleRate() / static_cast<float> (updateDiv),true);
 
-    Sync.Init(hw.GetPin(1), hw.AudioSampleRate() / static_cast<float> (updateDiv));
+    S_L.init(hw.GetPin(7),ButtonSW::Momentary,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
+    S_R.init(hw.GetPin(2),ButtonSW::Momentary,hw.AudioSampleRate()/ static_cast<float> (updateDiv));
+
+    Sync.Init(hw.GetPin(6), hw.AudioSampleRate() / static_cast<float> (updateDiv));
 
     dsy_gpio_pin gate_gpio = hw.GetPin(24);
     gate.Init(&gate_gpio);
@@ -1667,11 +1678,13 @@ void Update_Buttons()
     static uint32_t resetTime{};
     static int buttonstate{};
 
-    Rev_L_sw.update();
-    Rev_R_sw.update();
+    LPF_sw.update();
+    HPF_sw.update();
     //LPF_sw.update();
     //HPF_sw.update();
     Tap_Button.update();
+    S_L.update();
+    S_R.update();
 
     //ReverseGateL.Debounce();
     //ReverseGateR.Debounce();
@@ -1809,6 +1822,21 @@ void Update_Buttons()
             }
     } 
 
+    if(S_L.RisingEdge()){
+        reverseLState += 1;
+        if(reverseLState > 1) {
+           reverseLState = 0;     
+        } 
+
+    }
+
+    if(S_R.RisingEdge()){
+        reverseRState += 1;
+        if(reverseRState > 1) {
+           reverseRState = 0;     
+        } 
+    }
+
     syncMode = Sync.Pressed() ? true : false;
 }
 
@@ -1827,6 +1855,20 @@ void Update_SyncLed()
             syncled.Set(0.0f);
     }
     syncled.Update();
+
+    if(reverseLState == 1){
+        sw_l_led1.Set(1.f);
+    } else {
+        sw_l_led1.Set(0.f);
+    }
+    if(reverseRState == 1){
+        sw_r_led1.Set(1.f);
+    } else {
+        sw_r_led1.Set(0.f);
+    }
+    sw_l_led1.Update();
+    sw_r_led1.Update();
+
 }
 
 void Update_DelayTempoLEDs()

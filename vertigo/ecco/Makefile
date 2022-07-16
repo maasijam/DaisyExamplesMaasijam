@@ -1,10 +1,10 @@
 # Project Name
-TARGET = Veno-Echo-Versio
+TARGET = ecco
 
 DEBUG = 1
 
 # Sources
-CPP_SOURCES = Veno-Echo-Versio.cpp scale.cpp taptempo.cpp DelayMulti.cpp LEDs.cpp QSPI_Settings.cpp oscillator_p.cpp
+CPP_SOURCES = Ecco.cpp scale.cpp taptempo.cpp DelayMulti.cpp LEDs.cpp QSPI_Settings.cpp oscillator_p.cpp ../daisy_vertigo.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy

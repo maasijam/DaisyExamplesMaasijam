@@ -112,5 +112,44 @@ class ButtonLED    //button with status LED
     SwitchType switchtype_; //momentary or toggle
 };
 
+class ButtonSW   //button with status LED
+{
+    public:
+    ButtonSW() {}
+    ~ButtonSW() {}
+
+    enum SwitchType
+    {  
+        Momentary,
+        Toggle,
+        Toggle_inverted,
+        maxTypes,
+    };
+
+    void init(dsy_gpio_pin switch_pin, SwitchType switchtype, float Samplerate);
+
+    void update(); //check switch and update LED
+
+    void toggle();
+
+    void turnON();
+
+    void turnOFF();
+
+    bool getState(); //getter function, so nothing else can change isON
+
+    bool RisingEdge();
+
+    bool FallingEdge();
+
+
+     
+    private:
+    bool isON;
+    Switch sw;
+    SwitchType switchtype_; //momentary or toggle
+};
+
+
 
 #endif

@@ -20,8 +20,8 @@
 // 
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
-#ifndef VENO_ECHO_H
-#define VENO_ECHO_H
+#ifndef ECCO_H
+#define ECCO_H
 
 //defines for HW pins:
 

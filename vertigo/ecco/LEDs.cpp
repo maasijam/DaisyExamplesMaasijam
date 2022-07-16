@@ -234,3 +234,81 @@ void ButtonLED::LED_set(float brightness)
 {
     led.Set(brightness);
 }
+
+
+//ButtonSW Functions:
+
+void ButtonSW::init(dsy_gpio_pin switch_pin, SwitchType switchtype, float Samplerate)
+{
+    sw.Init(switch_pin, Samplerate);
+    switchtype_ = switchtype;
+    isON = false; 
+}
+
+void ButtonSW::update() //check switch and update LED
+{
+sw.Debounce();
+switch (switchtype_)
+{
+    case Momentary:
+        if(sw.RisingEdge())
+        {
+            toggle();
+        }
+    break;
+
+    case Toggle:
+        if(!sw.Pressed())
+        {
+            turnON();
+        } 
+        else
+        {
+            turnOFF();
+        }
+    break;
+    case Toggle_inverted:
+        if(sw.Pressed())
+        {
+            turnON();
+        } 
+        else
+        {
+            turnOFF();
+        }
+    break;
+    default:
+    break;
+}
+
+}
+
+void ButtonSW::toggle()
+{
+    isON = !isON;
+}
+
+void ButtonSW::turnON()
+{
+    isON = true;
+}
+
+void ButtonSW::turnOFF()
+{
+    isON = false;
+}
+
+bool ButtonSW::getState() //getter function, so nothing else can change isON
+{
+    return isON;
+}
+
+bool ButtonSW::RisingEdge()    //access switch rising and falling edges
+{
+    return sw.RisingEdge();
+}
+
+bool ButtonSW::FallingEdge()
+{
+    return sw.FallingEdge();
+}
