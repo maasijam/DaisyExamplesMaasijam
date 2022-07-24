@@ -22,6 +22,7 @@ class DaisyWhite
         KNOB_8,   /**< */
         KNOB_9,   /**< */
         KNOB_10,   /**< */
+        KNOB_11,   /**< */
         KNOB_LAST /**< */
     };
 
@@ -117,6 +118,39 @@ class DaisyWhite
       LED_S8
   };
 
+  /** Leds in ringled */
+    enum RgbLeds
+    {
+        RGB_LED_1,   /**< & */
+        RGB_LED_2,   /**< & */
+        RGB_LED_3,   /**< & */
+        RGB_LED_4,   /**< & */
+        RGB_LED_LAST /**< & */
+    };
+
+    /** footswitch leds */
+    enum GreenLeds
+    {
+        GREEN_LED_1,    /**< & */
+        GREEN_LED_2,    /**< & */
+        GREEN_LED_3,    /**< & */
+        GREEN_LED_4,    /**< & */
+        GREEN_LED_LAST, /**< & */
+    };
+
+    enum GreenDirectLeds
+    {
+        GREEN_D_LED_1,    /**< & */
+        GREEN_D_LED_2,    /**< & */
+        GREEN_D_LED_3,    /**< & */
+        GREEN_D_LED_4,    /**< & */
+        GREEN_D_LED_5,    /**< & */
+        GREEN_D_LED_6,    /**< & */
+        GREEN_D_LED_LAST, /**< & */
+    };
+
+    
+
   
 
 
@@ -160,6 +194,11 @@ class DaisyWhite
        \param cb New interleaved callback function.
     */
     void ChangeAudioCallback(AudioHandle::InterleavingAudioCallback cb);
+
+        /** Turns on the built-in 12-bit DAC on the Daisy Seed */
+    /** **This is now deprecated and does nothing.** 
+     ** The polling use of the DACs now handles starting the tranmission.  */
+    void StartDac();
 
     /** Sets the output of CV out 1 to a value between 0-4095 that corresponds to 0-5V */
     void SetCvOut1(uint16_t val);
@@ -249,6 +288,36 @@ class DaisyWhite
   */
     void DelayMs(size_t del);
 
+    /** Turn all leds off */
+    void ClearLeds();
+
+    /** Update Leds to values you had set. */
+    void UpdateLeds();
+
+    
+    /**
+       Set rgb LED colors
+       \param idx Index to set
+       \param r Red value
+       \param g Green value
+       \param b Blue value
+     */
+    void SetRgbLeds(RgbLeds idx, float r, float g, float b);
+
+    /**
+       Set Green LED driver LED
+       \param idx Led Index
+       \param bright Brightness
+     */
+    void SetGreenLeds(GreenLeds idx, float bright);
+
+    /**
+       Set Green Direct LED
+       \param idx Led Index
+       \param bright Brightness
+     */
+    void SetGreenDirectLeds(GreenDirectLeds idx, float bright);
+
 
 
     
@@ -256,18 +325,21 @@ class DaisyWhite
     DaisySeed       seed;                /**< Seed object */
     AnalogControl   knob[KNOB_LAST]; /**< Array of AnalogControls */
     AnalogControl   cv[CV_LAST]; /**< Array of AnalogControls */
-    LedDriverPca9685<1, true>   led_driver;
+    LedDriverPca9685<1, true>   led_driver_;
     Switch3       sw[SW_LAST];
     Switch        s[S_LAST];
     GateIn        gate;
-    Led    green_led[4];
+    dsy_gpio      gate_out_1, gate_out_2;
 
+    RgbLed rgb_leds[4];       /**< & */
+    Led    green_leds[4]; /**< & */
+    Led    green_direct_leds[6]; /**< & */
     
 
   private:
     void SetHidUpdateRates();
-    ShiftRegister4021<1> switches_sr_; /**< Two 4021s daisy-chained. */
-    uint8_t              switches_state_[8];
+    ShiftRegister4021<2> switches_sr_; /**< Two 4021s daisy-chained. */
+    uint8_t              switches_state_[16];
     
 };
 
