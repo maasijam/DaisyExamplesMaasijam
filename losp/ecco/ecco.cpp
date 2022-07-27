@@ -16,22 +16,27 @@ DaisyLosp hw;
 
 
 DelayLineMultiTap<float, static_cast<size_t>(48000 * 36.0f)> DSY_SDRAM_BSS delMemsL;
+DelayLineMultiTap<float, static_cast<size_t>(48000 * 36.0f)> DSY_SDRAM_BSS delMemsR;
+DelayLineMultiTap<float, static_cast<size_t>(48000 * 36.0f)> DSY_SDRAM_BSS delMemsC;
+DelayLineMultiTap<float, static_cast<size_t>(48000 * 36.0f)> DSY_SDRAM_BSS delMemsC2;
 
-DelayMulti delayL;
+DelayMulti delayL, delayR, delayC, delayC2;
 
 //Tap tempo
 Taptempo BaseTempo; 
 TempoLED tempoLED_BASE;
 
-float delayTimeL{};
-float feedbackL{};
+PitchShifter ps,ps2;
+
+float delayTime{};
+float feedback{};
 float drywet{0.5};
 float encDryWet{25};
 bool syncMode{false};
 bool ClockInFlag{false};
 
-void Update_DelayTimeL();
-void Update_feedbackL();
+void Update_DelayTime();
+void Update_feedback();
 void Update_drywet();
 void Update_DelayBaseTempo();
 void Update_BaseTempoLED();
@@ -47,8 +52,8 @@ void callback(AudioHandle::InputBuffer  in,
 {
         hw.ProcessAnalogControls();
        
-        Update_DelayTimeL();
-        Update_feedbackL();
+        Update_DelayTime();
+        Update_feedback();
         Update_DelayTempoLEDs();
         
         // Audio is interleaved stereo by default
@@ -62,48 +67,73 @@ void callback(AudioHandle::InputBuffer  in,
 
             //Get combined output from all delay heads
             float delaySignal_L{delayL.GetOutput()};   
+            float delaySignal_R{delayR.GetOutput()};
+            float delaySignal_C{delayC.GetOutput()};
+            float delaySignal_C2{delayC2.GetOutput()};
             
             //Update Base Tempo LED
             Update_BaseTempoLED();
 
             //hard limit
             delaySignal_L = HardLimit(delaySignal_L,AudioLimit);
+            delaySignal_R = HardLimit(delaySignal_R,AudioLimit);
+            delaySignal_C = HardLimit(delaySignal_C,AudioLimit);
+            delaySignal_C2 = HardLimit(delaySignal_C2,AudioLimit);
 
-            static float LNegFB{};
+            static float NegFB{};
 
             //ensure we never get inverse feedback
-            if(feedbackL < LNegFB) 
-                LNegFB = 0.0f;
+            if(feedback < NegFB) 
+                NegFB = 0.0f;
 
-            float feedbackSignalL{ (feedbackL - LNegFB) * delaySignal_L };
-
+            float feedbackSignalL{ (feedback - NegFB) * delaySignal_L };
             float combinedL{feedbackSignalL + Left_In};
-
             delayL.Write( combinedL );
+
+            float feedbackSignalR{ (feedback - NegFB) * delaySignal_R };
+            float combinedR{feedbackSignalR + Right_In};
+            delayR.Write( combinedR );
+
+            float feedbackSignalC{ (feedback - NegFB) * delaySignal_C };
+            float combinedC{feedbackSignalC + Left_In};
+            delayC.Write( combinedC );
+
+            float feedbackSignalC2{ (feedback - NegFB) * delaySignal_C2 };
+            float combinedC2{feedbackSignalC2 + Right_In};
+            delayC2.Write( combinedC2 );
 
             // floats for wet dry mix
             float mixL;
-            
+            float mixR;
+
+            float shifted = ps.Process(combinedC);
+             shifted *= 0.3;
+
+            float shifted2 = ps2.Process(combinedC2);
+             shifted2 *= 0.15;
 
             if(drywet < 0.5f)
             {
-                mixL = Left_In + (2.0f * drywet * delaySignal_L);
+                mixL = Left_In + (2.0f * drywet * (delaySignal_L + shifted));
+                mixR = Right_In + (2.0f * drywet * (delaySignal_R + shifted2));
                 
             }
             else if(drywet > 0.5f)
             {
-                mixL = ((1 - drywet)* 2.0f * Left_In) + delaySignal_L;
+                mixL = ((1 - drywet)* 2.0f * Left_In) + delaySignal_L + shifted;
+                mixR = ((1 - drywet)* 2.0f * Right_In) + delaySignal_R + shifted2;
                 
             }
             else
             {
-                mixL = Left_In + delaySignal_L;
+                mixL = Left_In + delaySignal_L + shifted;
+                mixR = Right_In + delaySignal_R + shifted2;
                 
             }
 
             
             out[0][i] = mixL;
-            out[1][i] = mixL;
+            out[1][i] = mixR;
             
         }
 }
@@ -112,14 +142,22 @@ void InitDelays(float samplerate)
 {
 
     //Init fwd delays
-    delMemsL.Init(2);    //2 heads
-    
+    delMemsL.Init(1);    //2 heads
+    delMemsR.Init(1);    //2 heads
+    delMemsC.Init(1);    //2 heads
+    delMemsC2.Init(1);    //2 heads
 
     //point del classes at SDRAM buffers
     delayL.del = &delMemsL; 
+    delayR.del = &delMemsR; 
+    delayC.del = &delMemsC; 
+    delayC2.del = &delMemsC2; 
     
 
     delayL.init(hw.seed.GetPin(26),samplerate);
+    delayR.init(hw.seed.GetPin(7),samplerate);
+    delayC.init(hw.seed.GetPin(7),samplerate);
+    delayC2.init(hw.seed.GetPin(7),samplerate);
        
 
 }
@@ -145,6 +183,11 @@ int main(void)
     tempoLED_BASE.init(hw.seed.GetPin(28),hw.AudioSampleRate());
     tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
     tempoLED_BASE.resetPhase();
+
+    ps.Init(samplerate);
+    ps.SetTransposition(12.0f);
+    ps2.Init(samplerate);
+    ps2.SetTransposition(24.0f);
 
     
     hw.StartAudio(callback);
@@ -175,52 +218,64 @@ float HardLimit(float input, float limit)
 void Update_DelayBaseTempo()
 {
     delayL.SetBaseTempo(BaseTempo.getDelayLength());
+    delayR.SetBaseTempo(BaseTempo.getDelayLength());
+    delayC.SetBaseTempo(BaseTempo.getDelayLength());
+    delayC2.SetBaseTempo(BaseTempo.getDelayLength());
 }
 
-void Update_DelayTimeL()
+void Update_DelayTime()
 {
     static bool lastShift{};
-    static bool delayTimeL_pickup{};
+    static bool delayTime_pickup{};
     
     
-    static float delayTimeL_Last{};
+    static float delayTime_Last{};
 
     //update pot values
-    float delayTimeL_Pot{hw.GetKnobValue(DaisyLosp::CONTROL_KNOB_TOP)};
+    float delayTime_Pot{hw.GetKnobValue(DaisyLosp::CONTROL_KNOB_TOP)};
 
     //counter used to limit how quickly delay time is changed, 
     //and to ensure L and R delay times don't change at the same time.
-    static int counterL{};
-    counterL = (counterL + 1) % (32 * 6);    
+    static int counter{};
+    counter = (counter + 1) % (32 * 6);    
 
     
-        static float delayTimeL_new{};
+        static float delayTime_new{};
         
-            if(!delayTimeL_pickup)  //not picked up
+            if(!delayTime_pickup)  //not picked up
             {
-                if(abs(delayTimeL_Pot - delayTimeL_new) > pickupTolerance)  //checked if changed from new value
+                if(abs(delayTime_Pot - delayTime_new) > pickupTolerance)  //checked if changed from new value
                 {
-                    delayTimeL_pickup = true;   //set to picked up
+                    delayTime_pickup = true;   //set to picked up
                 }
             }
         
 
-        float delayTimeL{};
+        float delayTime{};
 
-        if(delayTimeL_pickup)
+        if(delayTime_pickup)
         {
-            delayTimeL = delayTimeL_Pot; //combine pot value and CV
-            delayTimeL_Last = delayTimeL_Pot; //update last value
+            delayTime = delayTime_Pot; //combine pot value and CV
+            delayTime_Last = delayTime_Pot; //update last value
         }
 
         else
         {
-            delayTimeL = delayTimeL_Last; //combine last pot value and CV
+            delayTime = delayTime_Last; //combine last pot value and CV
         }
 
-        if(counterL == 0)
+        if(counter == 0)
         {
-            if(delayL.SetDelayTime(delayTimeL,syncMode))
+            if(delayL.SetDelayTime(delayTime,syncMode))
+            {
+            };
+            if(delayR.SetDelayTime((delayTime * 0.5),syncMode))
+            {
+            };
+            if(delayC.SetDelayTime((delayTime * 0.25),syncMode))
+            {
+            };
+            if(delayC2.SetDelayTime((delayTime * 0.75),syncMode))
             {
             };
         }
@@ -246,46 +301,45 @@ void Update_BaseTempoLED()
     
 }
 
-void Update_feedbackL()
+void Update_feedback()
 {
     static bool lastShift{};
-    static bool feedbackL_pickup{};
-    static bool HPCutoff_pickup{};
-
-    static float feedbackL_Last{};
+    static bool feedback_pickup{};
+    
+    static float feedback_Last{};
 
     //get pot values:
     //float feedbackL_Pot{hw.adc.GetFloat(2)};
-    float feedbackL_Pot{hw.GetKnobValue(DaisyLosp::CONTROL_KNOB_BOTTOM)};
+    float feedback_Pot{hw.GetKnobValue(DaisyLosp::CONTROL_KNOB_BOTTOM)};
 
       
-        static float feedbackL_new{};
+        static float feedback_new{};
         //update pickup
         
-            if(!feedbackL_pickup)  //not picked up
+            if(!feedback_pickup)  //not picked up
             {
-                if(abs(feedbackL_Pot - feedbackL_new) > pickupTolerance)  //checked if changed from new value
+                if(abs(feedback_Pot - feedback_new) > pickupTolerance)  //checked if changed from new value
                 {
-                    feedbackL_pickup = true;   //set to picked up
+                    feedback_pickup = true;   //set to picked up
                 }
             }
        
 
-        float feedbackL_combo{};
+        float feedback_combo{};
 
-        if(feedbackL_pickup)
+        if(feedback_pickup)
         {
-            feedbackL_combo = feedbackL_Pot;
-            feedbackL_Last = feedbackL_Pot; //update last value
+            feedback_combo = feedback_Pot;
+            feedback_Last = feedback_Pot; //update last value
         }
 
         else
         {
-            feedbackL_combo = feedbackL_Last;
+            feedback_combo = feedback_Last;
         }
   
-        float feedbackL_Target{scale(feedbackL_combo,0.0,maxFB,LINEAR)};  
-        fonepole(feedbackL,feedbackL_Target,0.032f);
+        float feedback_Target{scale(feedback_combo,0.0,maxFB,LINEAR)};  
+        fonepole(feedback,feedback_Target,0.032f);
 
     
 }
