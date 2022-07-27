@@ -5,7 +5,7 @@ DEBUG = 1
 LDFLAGS += -u _printf_float
 
 # Sources
-CPP_SOURCES = ppdelay.cpp ../daisy_losp.cpp
+CPP_SOURCES = ppdelay.cpp taptempo.cpp LEDs.cpp oscillator_p.cpp ../daisy_losp.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy
