@@ -1,4 +1,4 @@
-# Saul
+# Daisy::SAUL
 
 Examples for the daisy seed based maasijam SAUL hardware.
 
