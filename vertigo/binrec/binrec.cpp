@@ -1,6 +1,7 @@
 ////// Rhythm Delay v2.1 - 20220206 - Written by Sonic Explorer //////
 #include "daisysp.h"
 #include "../daisy_vertigo.h"
+#include "taptempo.h"
 
 #include <string>
 #include <cmath>
@@ -16,6 +17,12 @@ DaisyVertigo vertigo;
 
 DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delayMems[4];
 DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS swellMems[4];
+
+//Tap tempo
+Taptempo BaseTempo;
+
+constexpr int mintap{20000};    //in us (0.02s)
+constexpr int maxtap{6000000};  //in us (6s)
 
 //Switch switch_r,switch_l;
 
@@ -87,6 +94,7 @@ bool  passThruOn; // When this is true 'bypass' is on
 void ProcessControls(int part);//this has to be declared above the AudioCallback so it knows it is a function since it is defined below the AudioCallback.
 void UpdateSwitches();
 bool DelaySwCheck(int idx);
+void UpdateClock();
 
 int call_counter = 0;//This counts how many times audiocallback has been ran.
 int process_counter = 0;//this keeps track of how many times the same part of procescontrol is ran. 
@@ -120,7 +128,9 @@ static void AudioCallback(AudioHandle::InputBuffer in,
 	
     for(size_t i = 0; i < size; i++)
 	{
-	    float final_mix = 0;
+	    UpdateClock();
+        
+        float final_mix = 0;
 	    float all_delay_signals = 0;
 	    float swell_signals = 0;
 	    float pre_filter_delay_signals = 0;
@@ -322,6 +332,8 @@ int main(void)
     //This is an example of what is required to add extra switches
     if(false)
 	InitExSwitches();
+
+    BaseTempo.init(mintap,maxtap,1.25f,1);  //max 6 second tap
     
     passThruOn = false;// This starts the pedal in the 'off' (or delay bypassed) position
 
@@ -373,14 +385,17 @@ void ProcessControls(int part)
 	float time_long;
 	float age_val = ageParam.Process();
 
-	time_long = delayParam.Process();//this is just the knob value from -1 to 1.
-	time_long = MAX_DELAY*(0.1+0.9*(powf(time_long,3)+1)/2);//this now converts the knob value to the delay time in samples, 1 sample is 1/samplerate seconds.
+    
+	time_long = BaseTempo.getDelayLength();
+    
+    //time_long = delayParam.Process();//this is just the knob value from -1 to 1.
+	//time_long = MAX_DELAY*(0.1+0.9*(powf(time_long,3)+1)/2);//this now converts the knob value to the delay time in samples, 1 sample is 1/samplerate seconds.
 	// The funny function with the powf and 0.1+0.9*(etc) is to get a knob taper where it starts at 0.1*MAX_DELAY, goes to 1*MAX_DELAY and spends most of the knobs rotation on the middle delay values. 
 
 	osc_delay[0].SetFreq(samplerate/time_long);// this is set to the delaytime in Hz of the longest delay
 	//led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
     if(osc_delay_val[0]>0.9 && delayOn[3]) {
-        vertigo.SetLed(DaisyVertigo::LED_3,0.f,0.f,1.f);
+        vertigo.SetLed(DaisyVertigo::LED_3,1.f,0.27f,0.f);
     } else {
         vertigo.SetLed(DaisyVertigo::LED_3,0.f,0.f,0.f);
     }
@@ -388,7 +403,7 @@ void ProcessControls(int part)
     osc_delay[1].SetFreq(samplerate/(time_long*0.75f));// this is set to the delaytime in Hz of the longest * 0.75 delay
 	//led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
     if(osc_delay_val[1]>0.9 && delayOn[2]) {
-        vertigo.SetLed(DaisyVertigo::LED_2,0.f,0.f,1.f);
+        vertigo.SetLed(DaisyVertigo::LED_2,1.f,0.27f,0.f);
     } else {
         vertigo.SetLed(DaisyVertigo::LED_2,0.f,0.f,0.f);
     }
@@ -396,7 +411,7 @@ void ProcessControls(int part)
     osc_delay[2].SetFreq(samplerate/(time_long*0.50f));// this is set to the delaytime in Hz of the longest * 0.50 delay
 	//led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
     if(osc_delay_val[2]>0.9 && delayOn[1]) {
-        vertigo.SetLed(DaisyVertigo::LED_1,0.f,0.f,1.f);
+        vertigo.SetLed(DaisyVertigo::LED_1,1.f,0.27f,0.f);
     } else {
         vertigo.SetLed(DaisyVertigo::LED_1,0.f,0.f,0.f);
     }
@@ -404,7 +419,7 @@ void ProcessControls(int part)
     osc_delay[3].SetFreq(samplerate/(time_long*0.25f));// this is set to the delaytime in Hz of the longest * 0.25 delay
 	//led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
     if(osc_delay_val[3]>0.9 && delayOn[0]) {
-        vertigo.SetLed(DaisyVertigo::LED_0,0.f,0.f,1.f);
+        vertigo.SetLed(DaisyVertigo::LED_0,1.f,0.27f,0.f);
     } else {
         vertigo.SetLed(DaisyVertigo::LED_0,0.f,0.f,0.f);
     }
@@ -521,6 +536,7 @@ void UpdateSwitches() {
 
     vertigo.s[DaisyVertigo::S_Left].Debounce();
     vertigo.s[DaisyVertigo::S_Right].Debounce();
+    vertigo.s[DaisyVertigo::S_Tap].Debounce();
 
     if(vertigo.s[DaisyVertigo::S_Left].RisingEdge()){
         swLeftState += 1;
@@ -536,6 +552,16 @@ void UpdateSwitches() {
            swRightState = 0;     
         } 
     }
+
+    if (vertigo.s[DaisyVertigo::S_Tap].RisingEdge())    
+    {
+        if(BaseTempo.tap()) //if tempo changed
+        {
+            
+        }
+        
+    }
+
 }
 
 bool DelaySwCheck(int idx){
@@ -576,3 +602,21 @@ bool DelaySwCheck(int idx){
     }
 }
 
+void UpdateClock()
+{
+    static uint32_t ClockCounter{};
+
+    ClockCounter += 1; //increment by one
+    //if clock in pulse received
+    if (vertigo.Gate())     
+    {   
+        
+        //tempoLED_BASE.resetPhase();
+            if(BaseTempo.clock(ClockCounter)) //if valid tap resistered
+            {
+
+            }
+            ClockCounter = 0; //reset counter
+
+    } 
+}

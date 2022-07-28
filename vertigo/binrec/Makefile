@@ -4,7 +4,7 @@ TARGET = binrec
 DEBUG = 1
 
 # Sources
-CPP_SOURCES = binrec.cpp ../daisy_vertigo.cpp
+CPP_SOURCES = binrec.cpp taptempo.cpp ../daisy_vertigo.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy
