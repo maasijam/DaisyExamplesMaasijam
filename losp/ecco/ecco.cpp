@@ -107,7 +107,7 @@ void callback(AudioHandle::InputBuffer  in,
             float mixR;
 
             float shifted = ps.Process(combinedC);
-             shifted *= 0.3;
+             shifted *= 0.2;
 
             float shifted2 = ps2.Process(combinedC2);
              shifted2 *= 0.15;
@@ -115,19 +115,24 @@ void callback(AudioHandle::InputBuffer  in,
             if(drywet < 0.5f)
             {
                 mixL = Left_In + (2.0f * drywet * (delaySignal_L + shifted));
-                mixR = Right_In + (2.0f * drywet * (delaySignal_R + shifted2));
-                
+                mixR = Right_In + (2.0f * drywet * (delaySignal_R + shifted));
+                //mixL = Left_In + (2.0f * drywet * (delaySignal_L));
+                //mixR = Right_In + (2.0f * drywet * (delaySignal_R));
             }
             else if(drywet > 0.5f)
             {
                 mixL = ((1 - drywet)* 2.0f * Left_In) + delaySignal_L + shifted;
-                mixR = ((1 - drywet)* 2.0f * Right_In) + delaySignal_R + shifted2;
+                mixR = ((1 - drywet)* 2.0f * Right_In) + delaySignal_R + shifted;
+                //mixL = ((1 - drywet)* 2.0f * Left_In) + delaySignal_L;
+                //mixR = ((1 - drywet)* 2.0f * Right_In) + delaySignal_R;
                 
             }
             else
             {
                 mixL = Left_In + delaySignal_L + shifted;
-                mixR = Right_In + delaySignal_R + shifted2;
+                mixR = Right_In + delaySignal_R + shifted;
+                //mixL = Left_In + delaySignal_L;
+                //mixR = Right_In + delaySignal_R;
                 
             }
 
@@ -142,10 +147,10 @@ void InitDelays(float samplerate)
 {
 
     //Init fwd delays
-    delMemsL.Init(1);    //2 heads
-    delMemsR.Init(1);    //2 heads
-    delMemsC.Init(1);    //2 heads
-    delMemsC2.Init(1);    //2 heads
+    delMemsL.Init(2);    //2 heads
+    delMemsR.Init(2);    //2 heads
+    delMemsC.Init(2);    //2 heads
+    delMemsC2.Init(2);    //2 heads
 
     //point del classes at SDRAM buffers
     delayL.del = &delMemsL; 
@@ -269,13 +274,13 @@ void Update_DelayTime()
             if(delayL.SetDelayTime(delayTime,syncMode))
             {
             };
-            if(delayR.SetDelayTime((delayTime * 0.5),syncMode))
+            if(delayR.SetDelayTime((delayTime * 0.25),syncMode))
             {
             };
-            if(delayC.SetDelayTime((delayTime * 0.25),syncMode))
+            if(delayC.SetDelayTime((delayTime * 0.1),syncMode))
             {
             };
-            if(delayC2.SetDelayTime((delayTime * 0.75),syncMode))
+            if(delayC2.SetDelayTime((delayTime),syncMode))
             {
             };
         }
