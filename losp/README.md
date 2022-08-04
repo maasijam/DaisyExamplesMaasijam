@@ -1,1 +1,3 @@
-# LOSP - Noise Engineering Legio clone
+# Daisy LOSP
+
+Examples for the daisy seed based maasijam LOSP hardware.
