@@ -75,6 +75,9 @@ void audio_callback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, 
     {
         lfos[0].Process(DacHandle::Channel::ONE);
         lfos[1].Process(DacHandle::Channel::TWO);
+
+        out[0][i] = in[0][i]; 
+		out[1][i] = in[0][i];
     }
 }
 
@@ -118,42 +121,76 @@ void Update_Buttons() {
 
     hw.ClearLeds();
 
+
 	if(!hw.SwitchState(S1)){
-       hw.SetRgbLeds(DaisyWhite::RGB_LED_1, 1.f,0.f,0.f);
+       hw.SetGreenLeds(DaisyWhite::GREEN_LED_1, 1.f);
     } 
     if(!hw.SwitchState(S2)){
-        hw.SetRgbLeds(DaisyWhite::RGB_LED_2, 1.f,0.f,0.2f);
-    } 
-    if(!hw.SwitchState(S3)){
-        hw.SetRgbLeds(DaisyWhite::RGB_LED_3, 0.f,1.f,0.f);
-    } 
-    if(!hw.SwitchState(S4)){
-        hw.SetRgbLeds(DaisyWhite::RGB_LED_4, 0.f,0.f,1.f);
-    } 
-    if(!hw.SwitchState(S5)){
-        hw.SetGreenLeds(DaisyWhite::GREEN_LED_1, 1.f);
-    } 
-    if(!hw.SwitchState(S6)){
-        hw.SetGreenLeds(DaisyWhite::GREEN_LED_2, 1.f);
-    } 
-    if(!hw.SwitchState(S7)){
         hw.SetGreenLeds(DaisyWhite::GREEN_LED_3, 1.f);
     } 
-    if(!hw.SwitchState(S8)){
+    if(!hw.SwitchState(S3)){
+       hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_6, 1.f);
+    } 
+    if(!hw.SwitchState(S4)){
         hw.SetGreenLeds(DaisyWhite::GREEN_LED_4, 1.f);
+        
     } 
-    if(!hw.SwitchState(S0A)){
-        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_1, 1.f);
+    if(!hw.SwitchState(S5)){
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_5, 1.f);
+        
     } 
-    if(!hw.SwitchState(S0B)){
+    if(!hw.SwitchState(S6)){
         hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_2, 1.f);
     } 
-    if(!hw.SwitchState(S1A)){
-        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_3, 1.f);
+    if(!hw.SwitchState(S7)){
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_1, 1.f);
     } 
-    if(!hw.SwitchState(S1B)){
+    if(!hw.SwitchState(S8)){
+        hw.SetGreenLeds(DaisyWhite::GREEN_LED_2, 1.f);
+    } 
+    
+    if(!hw.SwitchState(S1A)){
         hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_4, 1.f);
     } 
+    if(!hw.SwitchState(S1B)){
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_3, 1.f);
+    } 
+   
+    if(!hw.SwitchState(S0A)){
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_1, 0.f,0.f,1.f * hw.GetKnobValue(0));
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_2, 0.f,0.f,1.f * hw.GetKnobValue(1));
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_3, 0.f,0.f,1.f * hw.GetKnobValue(2));
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_4, 0.f,0.f,1.f * hw.GetKnobValue(3));
+    } else if(!hw.SwitchState(S0B)) {
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_1, 0.f,1.f * hw.GetKnobValue(4),0.f);
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_2, 0.f,1.f * hw.GetKnobValue(5),0.f);
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_3, 0.f,1.f * hw.GetKnobValue(6),0.f);
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_4, 0.f,1.f * hw.GetKnobValue(7),0.f);
+    } else {
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_1, 1.f * hw.GetKnobValue(8),0.f,0.f);
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_2, 1.f * hw.GetKnobValue(9),0.f,0.f);
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_3, 1.f * hw.GetKnobValue(10),0.f,0.f);
+        hw.SetRgbLeds(DaisyWhite::RGB_LED_4, 1.f * hw.GetKnobValue(11),0.f,0.f);
+    }
+
+    if(!hw.GateIn1()) {
+        hw.SetGreenLeds(DaisyWhite::GREEN_LED_3, 1.f);
+        hw.SetGreenLeds(DaisyWhite::GREEN_LED_4, 1.f);
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_6, 1.f);
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_5, 1.f);
+        dsy_gpio_write(&hw.gate_out_1, true);
+    } else {
+        dsy_gpio_write(&hw.gate_out_1, false);
+    }
+    if(!hw.GateIn2()) {
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_4, 1.f);
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_2, 1.f);
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_3, 1.f);
+        hw.SetGreenDirectLeds(DaisyWhite::GREEN_D_LED_1, 1.f);
+        dsy_gpio_write(&hw.gate_out_2, true);
+    } else {
+        dsy_gpio_write(&hw.gate_out_2, false);
+    }
     
       hw.UpdateLeds();
 }
