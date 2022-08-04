@@ -16,26 +16,30 @@ using namespace daisysp;
 DaisyVertigo vertigo;
 
 DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delayMems[4];
-DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS swellMems[4];
+//DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS swellMems[4];
 
 //Tap tempo
 Taptempo BaseTempo;
+
+
 
 constexpr int mintap{20000};    //in us (0.02s)
 constexpr int maxtap{6000000};  //in us (6s)
 
 //Switch switch_r,switch_l;
 
-static Tone toneLP; // this is for a Tone object, Tone is just a low-pass filter
-static ATone toneHP; // this is for a ATone object, ATone is just a high-pass filter
+static Tone toneLP_L,toneLP_R; // this is for a Tone object, Tone is just a low-pass filter
+static ATone toneHP_L,toneHP_R; // this is for a ATone object, ATone is just a high-pass filter
 static Balance bal; // this is for a Balance object, which will correct for volume drop from the filters
-static CrossFade cfade; //this is for a CrossFade object, which we will to blend the wet/dry and maintain a constant volume
+static CrossFade cfade_L,cfade_R,widthXfade,revMixL,revMixR; //this is for a CrossFade object, which we will to blend the wet/dry and maintain a constant volume
 static Oscillator osc,osc2; //These are for the 'age' or modulation on the delays
 static Oscillator osc_delay[4]; //This is for LED2 to show the delay time
-static Compressor comp;
+//static Compressor compL,compR;
+static ReverbSc   DSY_SDRAM_BSS verb;
+static DcBlock    blk[2];
+//static PitchShifter DSY_SDRAM_BSS ps[3];
 
-bool dac_output = false; // make this true if you want to use the dac output instead of the default leds
-float mod_out,mod_out2; // these are what is sent to the dac_output
+
 
 // Declare some global variable so all functions can see them
 float feedback = 0;
@@ -47,6 +51,10 @@ float drywet_ratio = 0.5f; // drywet_ratio=0.0 is effect off
 float tone_val =0.0f, swell_val=0.0f;
 float samplerate, osc_delay_val[4]={0,0,0,0};
 float mod_osc,mod_osc2;
+float width_val =0.0f;
+
+static float      drylevel;
+
 
 float rand_now=0,rand_val=0;
 bool R_ON,L_ON;
@@ -73,15 +81,17 @@ struct Delay
 };
 
 Delay delays[4];// This creates a delay structure to store delay parameters
-Delay swells[4];// This creates a delay structure for the 'swell' delays
+//Delay swells[4];// This creates a delay structure for the 'swell' delays
 
 // All these Params will be controlled by Pots
-Parameter delayParam;
+
 Parameter feedbackParam;
 Parameter mixParam;
 Parameter toneParam;
-Parameter swellParam;
+//Parameter swellParam;
 Parameter ageParam;
+Parameter stereoWidthParam;
+Parameter verbMixParam;
 
 // Each delay head will be turned on/off independently
 bool delayOn[4];
@@ -118,90 +128,160 @@ static void AudioCallback(AudioHandle::InputBuffer in,
 	    ProcessControls(1);
 	    process_counter+=1;
 	    break;
-	case 1*m_val: ProcessControls(2);
+	case 1*m_val: //ProcessControls(2);
 	    break;
-	case 2*m_val: ProcessControls(3);
+	case 2*m_val: //ProcessControls(3);
 	    break;
 	case 3*m_val: ProcessControls(4);
 	    break;
 	}
+
+    
+    
 	
     for(size_t i = 0; i < size; i++)
 	{
 	    UpdateClock();
         
-        float final_mix = 0;
-	    float all_delay_signals = 0;
-	    float swell_signals = 0;
-	    float pre_filter_delay_signals = 0;
+        
+        //float final_mix = 0;
+        float final_mix_L = 0;
+        float final_mix_R = 0;
+        
+	    //float all_delay_signals = 0;
+        float all_delay_signals_L = 0;
+        float all_delay_signals_R = 0;
+
+        //float  all_delay_signals_L_W = 0;
+        //float  all_delay_signals_R_W = 0;
+	    //float swell_signals = 0;
+        //float swell_signals_L = 0;
+        //float swell_signals_R = 0;
+	    //float pre_filter_delay_signals = 0;
+        float pre_filter_delay_signals_L = 0;
+        float pre_filter_delay_signals_R = 0;
+
+        float wetL, wetR;
+        float delSig;
+
         for(int c = 0; c < 4; c++){
 	        osc_delay_val[c] = osc_delay[c].Process();
         }
 	    if(passThruOn){ // This if statement makes the Daisy only process the input through the delays when the pedal is turned 'on'
-		// Do below if the pedal is in 'bypass' mode
-		out[0][i] = in[0][i]; // in[0][i] is the input audio, out[0][i] is the output audio
-		out[1][i] = in[0][i]; // Something is odd with the audio_Out channels on the the Seedv1.1, so we send the audio in to both audio outs. 
-		// The for statment below takes the feedback to 0 when the pedal is off, which *almost* clears the repeats, but not if the pedal is turned off and on again quickly. 
-		for(int d = 0; d < 4; d++){
-		    delays[d].feedback = 0;
-		    delays[d].Process(0);
-		    swells[d].feedback = feedback;
-		    swells[d].Process(0);
-		}
+		    // Do below if the pedal is in 'bypass' mode
+		    out[0][i] = in[0][i]; // in[0][i] is the input audio, out[0][i] is the output audio
+		    out[1][i] = in[0][i]; // Something is odd with the audio_Out channels on the the Seedv1.1, so we send the audio in to both audio outs. 
+		    // The for statment below takes the feedback to 0 when the pedal is off, which *almost* clears the repeats, but not if the pedal is turned off and on again quickly. 
+		    for(int d = 0; d < 4; d++){
+		        delays[d].feedback = 0;
+		        delays[d].Process(0);
+		        //swells[d].feedback = feedback;
+		        //swells[d].Process(0);
+		    }
 	    }
 	    else{
-		// calculate the oscillators for the Age control
-		mod_osc = osc.Process();//This is the base sine wave
-		mod_osc2 = osc2.Process();//This is the square wave for glitches
+		    // calculate the oscillators for the Age control
+		    mod_osc = osc.Process();//This is the base sine wave
+		    mod_osc2 = osc2.Process();//This is the square wave for glitches
 
-		// create the delayed signal for each of the 4 delays
-		for(int d = 0; d < 4; d++)
-		    if(delayOn[d]){
-			delays[d].feedback = feedback;
-			all_delay_signals += delays[d].Process(in[0][i]);
-		    }
+		    // create the delayed signal for each of the 4 delays
+		    for(int d = 0; d < 4; d++)
+		        if(delayOn[d]){
+			        delays[d].feedback = feedback;
+                    delSig = delays[d].Process(in[0][i]);
+                           
+                    if((d == 0 || d == 3) && vertigo.sw[0].Read() == 1) {
+                        all_delay_signals_L += delSig;
+                    } else if((d == 0 || d == 2) && vertigo.sw[0].Read() == 0) {
+                        all_delay_signals_L += delSig;
+                    } else if((d == 1 || d == 2) && vertigo.sw[0].Read() == 2) {
+                        all_delay_signals_L += delSig;
+                    } else if((d == 1 || d == 2) && vertigo.sw[0].Read() == 1) {
+                        all_delay_signals_R += delSig;
+                    } else if((d == 1 || d == 3) && vertigo.sw[0].Read() == 0) {
+                        all_delay_signals_R += delSig;
+                    } else if((d == 0 || d == 3) && vertigo.sw[0].Read() == 2) {
+                        all_delay_signals_R += delSig;
+                    }
+			//all_delay_signals += delays[d].Process(in[0][i]);
+		        }
 		// sends the delays signal through 4 delay heads that are always on for a faux reverb 'swell' effect
+        /*
 		for(int d = 0; d < 4; d++){
 		    if(feedback<0.2f) /// This will make the swells adhere to the feedback knob at low feedback values
 			swells[d].feedback = feedback;
 		    else
 			swells[d].feedback = 0.2f;
-		    if(d==0)
-			swell_signals += swells[d].Process(all_delay_signals)*0.5;
-		    else
-			swell_signals += swells[d].Process(swell_signals)*0.5;
+		    if(d==0) {
+			swell_signals_L += swells[d].Process(all_delay_signals_L)*0.5;
+            swell_signals_R += swells[d].Process(all_delay_signals_R)*0.5;
+            } else {
+			swell_signals_L += swells[d].Process(swell_signals_L)*0.5;
+            swell_signals_R += swells[d].Process(swell_signals_R)*0.5;
+            }
 		}
-
+        */
 		//// Apply a bit of compression to the swells -- there is lots of room for the compression settings to be made better
-		swell_signals = comp.Process(swell_signals);
+		//swell_signals_L = compL.Process(swell_signals_L);
+        //swell_signals_R = compR.Process(swell_signals_R);
 		//swell_signals = comp.Process(swell_signals,all_delay_signals);//maybe sidechain this to the all_delay_singals? - I tried this but it sounded less natural to me. 
 
 		// Add the swells to the normal delay head signals
-		all_delay_signals += swell_signals*(swell_val*swell_val)/2;//two factor of swell_val and the 1/2 here just seemed to feel right for the amount
-		
+		//all_delay_signals_L += swell_signals_L*(swell_val*swell_val)/2;//two factor of swell_val and the 1/2 here just seemed to feel right for the amount
+		//all_delay_signals_R += swell_signals_R*(swell_val*swell_val)/2;
 		// Save the pre-filtered delay signals as a reference volume
-		pre_filter_delay_signals = all_delay_signals;
+        //float wp = 0;
+       
+        
+        float all_delay_signals_L_W = widthXfade.Process(all_delay_signals_L,all_delay_signals_R);    //mix to mono if width 0.0
+        float all_delay_signals_R_W = widthXfade.Process(all_delay_signals_R,all_delay_signals_L);
+        //all_delay_signals_L_W = all_delay_signals_L;
+        //all_delay_signals_R_W = all_delay_signals_R;
+
+		pre_filter_delay_signals_L = all_delay_signals_L_W;
+        pre_filter_delay_signals_R = all_delay_signals_R_W;
 
 		// Filter the delay signals with a LP and HP based on the tone knob
-		all_delay_signals = toneHP.Process(all_delay_signals);
-		all_delay_signals = toneLP.Process(all_delay_signals);
+		all_delay_signals_L_W = toneHP_L.Process(all_delay_signals_L_W);
+		all_delay_signals_L_W = toneLP_L.Process(all_delay_signals_L_W);
 		// This 'balances' (I think compresses) the pre & post filter delayed signal to make up for volume loss due to the filter
-		all_delay_signals = bal.Process(all_delay_signals, pre_filter_delay_signals*(1.f-tone_val/1.5f));
+		all_delay_signals_L_W = bal.Process(all_delay_signals_L_W, pre_filter_delay_signals_L*(1.f-tone_val/1.5f));
+
+        all_delay_signals_R_W = toneHP_R.Process(all_delay_signals_R_W);
+		all_delay_signals_R_W = toneLP_R.Process(all_delay_signals_R_W);
+		// This 'balances' (I think compresses) the pre & post filter delayed signal to make up for volume loss due to the filter
+		all_delay_signals_R_W = bal.Process(all_delay_signals_R_W, pre_filter_delay_signals_R*(1.f-tone_val/1.5f));
 		//** at extreme HP levels this introduces noise for the lower notes since it has to raise the volume a lot to make up for the low frew loss
 		//     I added the tone_val factor here to account for this noise a bit and to lower the repeat volume at the extremes of the tone pot
+
+        
 		
 		// Use a crossfade object to maintain a constant power while creating the delayed/raw audio mix
-		cfade.SetPos(drywet_ratio);
+		cfade_L.SetPos(drywet_ratio);
+        cfade_R.SetPos(drywet_ratio);
 		//final_mix = cfade.Process(in[i], all_delay_signals);
 		float orig = in[0][i]; // I don't exactly know why I have to do this, but something with the pointing is not behaving with cfade
-		final_mix = cfade.Process(orig, all_delay_signals);
-		out[0][i] = final_mix; // this sends 'final_mix' to the (left) audio
-		out[1][i] = final_mix; // Something is odd with the audio_Out channels on the the Seedv1.1, so we send the effected audio to both audio outs. 
+		final_mix_L = cfade_L.Process(orig, all_delay_signals_L_W);
+        final_mix_R = cfade_R.Process(orig, all_delay_signals_R_W);
+
+        //if(vertigo.sw[1].Read() == 2) {
+
+        revMixL.SetPos(drylevel);
+        revMixR.SetPos(drylevel);
+        verb.Process(final_mix_L*0.5f ,final_mix_R*0.5f, &wetL, &wetR);
+        // Dc Block
+        wetL = blk[0].Process(wetL);
+        wetR = blk[1].Process(wetR);
+        out[0][i] = revMixL.Process(final_mix_L,wetL); // this sends 'final_mix' to the (left) audio
+		out[1][i] = revMixR.Process(final_mix_R,wetR); // Something is odd with the audio_Out channels on the the Seedv1.1, so we send the effected audio to both audio outs. 
+        //} else {
+        //    out[0][i] = blk[0].Process(final_mix_L); // this sends 'final_mix' to the (left) audio
+		//    out[1][i] = blk[1].Process(final_mix_R); // Something is odd with the audio_Out channels on the the Seedv1.1, so we send the effected audio to both audio outs. 
+        //}
+
+		
 	    }
-	    if(dac_output){
-		    //vertigo.seed.dac.WriteValue(DacHandle::Channel::TWO, (mod_out+1)*1000);
-		    //vertigo.seed.dac.WriteValue(DacHandle::Channel::ONE, (mod_out2+1)*1000);
-	    }
+	    
 	}
 }
 
@@ -211,28 +291,34 @@ void InitDelays(float samplerate)
     { 
         delayMems[i].Init();
         delays[i].delay = &delayMems[i];
-	delays[i].feedback = 0;
-	swellMems[i].Init();
-        swells[i].delay = &swellMems[i];
-	swells[i].feedback = 0; 
+	    delays[i].feedback = 0;
+	    //swellMems[i].Init();
+        //swells[i].delay = &swellMems[i];
+	    //swells[i].feedback = 0; 
        //delay times: - just one knob controls all delay times
        //    (delay times for 1-3 are set as fractions of this knob value in ProcessControls below)
 	
     }
     //delayParam.Init(petal.knob[Terrarium::KNOB_1], samplerate * .1, MAX_DELAY * 1.0,Parameter::LINEAR);
-    delayParam.Init(vertigo.knobs[DaisyVertigo::KNOB_0], -1, 1.0,Parameter::LINEAR);
-    mixParam.Init(vertigo.knobs[DaisyVertigo::KNOB_6], 0.0, 1.0, Parameter::LINEAR);  // mix is knob 2
+    //delayParam.Init(vertigo.knobs[DaisyVertigo::KNOB_0], -1, 1.0,Parameter::LINEAR);
+    mixParam.Init(vertigo.knobs[DaisyVertigo::KNOB_0], 0.0, 1.0, Parameter::LINEAR);  // mix is knob 2
     feedbackParam.Init(vertigo.knobs[DaisyVertigo::KNOB_4], 0.0, maxFeedback, Parameter::LINEAR);  // feedback is knob 3
 }
 
 void InitSwell(float samplerate)
 { // Initilize the compression and knob for the swell
-    swellParam.Init(vertigo.knobs[DaisyVertigo::KNOB_1], 0.0, 1, Parameter::LINEAR);  // swell is knob 6
-    comp.Init(samplerate);
-    comp.SetThreshold(-40.0f);
-    comp.SetRatio(10.0f);
-    comp.SetAttack(0.5f);
-    comp.SetRelease(0.5f);
+    //swellParam.Init(vertigo.knobs[DaisyVertigo::KNOB_1], 0.0, 1, Parameter::LINEAR);  // swell is knob 6
+    //compL.Init(samplerate);
+    //compL.SetThreshold(-40.0f);
+    //compL.SetRatio(10.0f);
+    //compL.SetAttack(0.5f);
+    //compL.SetRelease(0.5f);
+
+    //compR.Init(samplerate);
+    //compR.SetThreshold(-40.0f);
+    //compR.SetRatio(10.0f);
+    //compR.SetAttack(0.5f);
+    //compR.SetRelease(0.5f);
 }
 
 void InitAge(float samplerate)
@@ -250,8 +336,10 @@ void InitAge(float samplerate)
 
 void InitTone(float samplerate)
 {   // Initialize the Tone object
-    toneHP.Init(samplerate);
-    toneLP.Init(samplerate);
+    toneHP_L.Init(samplerate);
+    toneLP_L.Init(samplerate);
+    toneHP_R.Init(samplerate);
+    toneLP_R.Init(samplerate);
     toneParam.Init(vertigo.knobs[DaisyVertigo::KNOB_2], -1.0f, 1.0f, Parameter::LINEAR); // This knob value will be converted later in ProcessControls to a frequency for the High/Low Pass filter
 }
 
@@ -266,6 +354,26 @@ void InitWaveOut()
     vertigo.seed.dac.Init(cfg);
 }
 
+void InitVerb(float samplerate) {
+    verb.Init(samplerate);
+    verb.SetFeedback(0.85f);
+    verb.SetLpFreq(18000.0f);
+    verbMixParam.Init(vertigo.knobs[DaisyVertigo::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR);
+    blk[0].Init(samplerate);
+    blk[1].Init(samplerate);
+}
+
+void InitPs(float samplerate) {
+    //ps[0].Init(samplerate);
+    //ps[0].SetTransposition(20.0f);
+    //ps[1].Init(samplerate);
+    //ps[1].SetTransposition(12.0f);
+    //ps[2].Init(samplerate);
+    //ps[2].SetTransposition(-12.0f);
+}
+
+
+
 void InitLeds(void)
 {
     //Initialize the leds - these are using LED objects
@@ -277,9 +385,9 @@ void InitLeds(void)
     for (size_t i = 0; i < 4; i++)
     {
         osc_delay[i].Init(samplerate);
-    osc_delay[i].SetWaveform(osc.WAVE_SIN);
-    osc_delay[i].SetFreq(2.0f);
-    osc_delay[i].SetAmp(1.0f);
+        osc_delay[i].SetWaveform(osc.WAVE_SIN);
+        osc_delay[i].SetFreq(2.0f);
+        osc_delay[i].SetAmp(1.0f);
     }
     
     
@@ -303,11 +411,7 @@ int main(void)
     samplerate = vertigo.AudioSampleRate();
     vertigo.SetAudioBlockSize(1);////////Adjust the blocksize 
 
-    // Setup the DACs:
-    if(dac_output) // make dac_output=true in the program header to use the DAC outputs
-	    InitWaveOut();
-    else    // Initialize the leds since you cannot use both the leds & dac on the Terrarium
-        InitLeds();
+    InitLeds();
     
     // Initialize the delay lines
     InitDelays(samplerate);
@@ -324,15 +428,32 @@ int main(void)
     // Initializes the swell functions/params
     InitSwell(samplerate);
 
+    InitVerb(samplerate);
+
+    //InitPs(samplerate);
+    
+    
+    stereoWidthParam.Init(vertigo.knobs[DaisyVertigo::KNOB_6], 0.5f, 0.0f, Parameter::LINEAR);//LOGARITHMIC);//LINEAR);  
+    widthXfade.Init();
+    widthXfade.SetCurve(CROSSFADE_CPOW);
+    //widthXfade.SetPos(0.f);
+
     // Initialize & set params for CrossFade object
-    cfade.Init();
-    cfade.SetCurve(CROSSFADE_CPOW);
+    cfade_L.Init();
+    cfade_L.SetCurve(CROSSFADE_CPOW);
+    cfade_R.Init();
+    cfade_R.SetCurve(CROSSFADE_CPOW);
+
+    revMixL.Init();
+    revMixL.SetCurve(CROSSFADE_CPOW);
+    revMixR.Init();
+    revMixR.SetCurve(CROSSFADE_CPOW);
     //This sets to crossfade to maintain constant power, which will maintain a constant volume as we go from full dry to full wet on the mix knob
 
     //This is an example of what is required to add extra switches
     if(false)
 	InitExSwitches();
-
+//WidthXfade.SetPos(0.0f);
     BaseTempo.init(mintap,maxtap,1.25f,1);  //max 6 second tap
     
     passThruOn = false;// This starts the pedal in the 'off' (or delay bypassed) position
@@ -340,195 +461,179 @@ int main(void)
     vertigo.StartAdc();
     vertigo.StartAudio(AudioCallback);
 
+    //vertigo.seed.StartLog(false);
+
     while(1)
     {
 	//   dsy_system_delay(6);
-    }
+        float width = stereoWidthParam.Process();
+        widthXfade.SetPos(width);
+
+        ProcessControls(2);
+        ProcessControls(3);
+        ProcessControls(4);
+        
+        vertigo.UpdateLeds();
+
+        UpdateSwitches();
+	    for(int i=0; i<4; i++)
+	        delayOn[i] = DelaySwCheck(i);
+	
+            vertigo.sw_led[DaisyVertigo::S_Led1].Set(delayOn[0] ? 1.f : 0.f);
+            vertigo.sw_led[DaisyVertigo::S_Led2].Set(delayOn[1] ? 1.f : 0.f);
+            vertigo.sw_led[DaisyVertigo::S_Led4].Set(delayOn[2] ? 1.f : 0.f);
+            vertigo.sw_led[DaisyVertigo::S_Led3].Set(delayOn[3] ? 1.f : 0.f);
+        }
 }
 
 void ProcessControls(int part)
 {
 
     if(part==1){
-	vertigo.ProcessAnalogControls();
-	//led1.Update();
-	//led2.Update();
-    vertigo.UpdateLeds();
+	    vertigo.ProcessAnalogControls();
+	   
 	
-	/////// Below is for led2 to show if knob feedback is different than the current feedback, this is useful for runaway feedback or sound-on-sound
-	///////      .....but i found it was introducing some noise - so I changed led2 to show the delay time
-	//////             - The led noise seems to only happen when some audio is going through the pedal and when something other than just true or false is feed to the led
-	// The brightnes of led2 tells us the fractional difference between the current feedback and the feedback knob setting
-	//   The led turns off a little early because there is a voltage offset for an led to turn on, but this will vary  bit by led
-	//led2.Set((feedback-feedbackParam.Value())/(secondaryFeedback-feedbackParam.Value()));
-	//led2.Update();
-
-	// footswitch 2 (the right one)
-	////// SECONDARY FEEDBACK -- this needs to be in the same 'part' as the ProcessAnalogControls() because it needs to be continually updated for the 
-	if(vertigo.sw[DaisyVertigo::SW_1].Read() == 1) // secondary feedback footswitch
-	    feedbackSecondary = true;
-	else
-	    feedbackSecondary = false;
-	// **I think the ramp-up and ramp-down times feel a bit better, but if they varied based on the current length of the delay time it might be better
-	//    Right now he noise floor rises pretty high during secondaryFeedback for longer delays
-	if(feedbackSecondary)
-	    //If FS_2 is pressed, start bringing the feedback up to secondaryFeedback
-	    fonepole(feedback, secondaryFeedback, 0.002f); //decrease the number for a faster ramp & vice-versa
-	else
-	    //Bring the feedback to be equal to the knob value, if FS_2 was not pressed this will aleady be the case
-	    fonepole(feedback, feedbackParam.Process(), 0.001f); //decrease the number for a faster ramp & vice-versa
+	//Bring the feedback to be equal to the knob value, if FS_2 was not pressed this will aleady be the case
+	fonepole(feedback, feedbackParam.Process(), 0.001f); //decrease the number for a faster ramp & vice-versa
+ 
     }
+
     if(part==2){
-	/////////////////////////////////////////
-	//knobs
-	float mod_total;
-	float time_long;
-	float age_val = ageParam.Process();
+	    /////////////////////////////////////////
+	    //knobs
+	    float mod_total;
+	    float time_long;
+	    float age_val = ageParam.Process();
 
     
-	time_long = BaseTempo.getDelayLength();
+	    time_long = BaseTempo.getDelayLength();
+        //time_long += 100.f;
     
-    //time_long = delayParam.Process();//this is just the knob value from -1 to 1.
-	//time_long = MAX_DELAY*(0.1+0.9*(powf(time_long,3)+1)/2);//this now converts the knob value to the delay time in samples, 1 sample is 1/samplerate seconds.
-	// The funny function with the powf and 0.1+0.9*(etc) is to get a knob taper where it starts at 0.1*MAX_DELAY, goes to 1*MAX_DELAY and spends most of the knobs rotation on the middle delay values. 
+        //time_long = delayParam.Process();//this is just the knob value from -1 to 1.
+	    //time_long = MAX_DELAY*(0.1+0.9*(powf(time_long,3)+1)/2);//this now converts the knob value to the delay time in samples, 1 sample is 1/samplerate seconds.
+	    // The funny function with the powf and 0.1+0.9*(etc) is to get a knob taper where it starts at 0.1*MAX_DELAY, goes to 1*MAX_DELAY and spends most of the knobs rotation on the middle delay values. 
 
-	osc_delay[0].SetFreq(samplerate/time_long);// this is set to the delaytime in Hz of the longest delay
-	//led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
-    if(osc_delay_val[0]>0.9 && delayOn[3]) {
-        vertigo.SetLed(DaisyVertigo::LED_3,1.f,0.27f,0.f);
-    } else {
-        vertigo.SetLed(DaisyVertigo::LED_3,0.f,0.f,0.f);
-    }
+	    osc_delay[0].SetFreq(samplerate/time_long);// this is set to the delaytime in Hz of the longest delay
+	    //led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
+        if(osc_delay_val[0]>0.9 && delayOn[3]) {
+            vertigo.SetLed(DaisyVertigo::LED_3,0.f,0.f,0.6f);
+        } else {
+            vertigo.SetLed(DaisyVertigo::LED_3,0.f,0.f,0.f);
+        }
     
-    osc_delay[1].SetFreq(samplerate/(time_long*0.75f));// this is set to the delaytime in Hz of the longest * 0.75 delay
-	//led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
-    if(osc_delay_val[1]>0.9 && delayOn[2]) {
-        vertigo.SetLed(DaisyVertigo::LED_2,1.f,0.27f,0.f);
-    } else {
-        vertigo.SetLed(DaisyVertigo::LED_2,0.f,0.f,0.f);
-    }
+        osc_delay[1].SetFreq(samplerate/(time_long*0.75f));// this is set to the delaytime in Hz of the longest * 0.75 delay
+	    //led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
+        if(osc_delay_val[1]>0.9 && delayOn[2]) {
+            vertigo.SetLed(DaisyVertigo::LED_2,0.f,0.f,0.6f);
+        } else {
+            vertigo.SetLed(DaisyVertigo::LED_2,0.f,0.f,0.f);
+        }
 
-    osc_delay[2].SetFreq(samplerate/(time_long*0.50f));// this is set to the delaytime in Hz of the longest * 0.50 delay
-	//led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
-    if(osc_delay_val[2]>0.9 && delayOn[1]) {
-        vertigo.SetLed(DaisyVertigo::LED_1,1.f,0.27f,0.f);
-    } else {
-        vertigo.SetLed(DaisyVertigo::LED_1,0.f,0.f,0.f);
-    }
+        osc_delay[2].SetFreq(samplerate/(time_long*0.50f));// this is set to the delaytime in Hz of the longest * 0.50 delay
+	    //led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
+        if(osc_delay_val[2]>0.9 && delayOn[1]) {
+            vertigo.SetLed(DaisyVertigo::LED_1,0.f,0.f,0.6f);
+        } else {
+            vertigo.SetLed(DaisyVertigo::LED_1,0.f,0.f,0.f);
+        }
 
-    osc_delay[3].SetFreq(samplerate/(time_long*0.25f));// this is set to the delaytime in Hz of the longest * 0.25 delay
-	//led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
-    if(osc_delay_val[3]>0.9 && delayOn[0]) {
-        vertigo.SetLed(DaisyVertigo::LED_0,1.f,0.27f,0.f);
-    } else {
-        vertigo.SetLed(DaisyVertigo::LED_0,0.f,0.f,0.f);
-    }
+        osc_delay[3].SetFreq(samplerate/(time_long*0.25f));// this is set to the delaytime in Hz of the longest * 0.25 delay
+	    //led2.Set(osc_delay_val>0.9); //led2 is set to show the delay time of head 4, the longest delay. ---- comment out this line if you want to turn off the delay time indicator
+        if(osc_delay_val[3]>0.9 && delayOn[0]) {
+            vertigo.SetLed(DaisyVertigo::LED_0,0.f,0.f,0.6f);
+        } else {
+            vertigo.SetLed(DaisyVertigo::LED_0,0.f,0.f,0.f);
+        }
 	
-	/////// This next section all builds the Age modulation///////-------------------------------------------------
-	// get a random value that updates every roughly 0.1*delay time, but with some randomness in how often one is selected
-	if(process_counter%((int)(time_long/10))==(int)(get_rand()*time_long*0.05))
-	    rand_val = get_rand();
-	// Smooth out the random values to make them less jarring
-	fonepole(rand_now,rand_val,1/(48000.0f*1/10.0f));//when the denominator is smaller the interpolation takes longer
+	    /////// This next section all builds the Age modulation///////-------------------------------------------------
+	    // get a random value that updates every roughly 0.1*delay time, but with some randomness in how often one is selected
+	    if(process_counter%((int)(time_long/10))==(int)(get_rand()*time_long*0.05))
+	        rand_val = get_rand();
+	    // Smooth out the random values to make them less jarring
+	    fonepole(rand_now,rand_val,1/(48000.0f*1/10.0f));//when the denominator is smaller the interpolation takes longer
 
-	osc.SetFreq(0.25*samplerate/time_long);// samplerate/time_long should be the delaytime in Hz of the longest delay (head 4)
-	osc2.SetFreq(0.17*samplerate/time_long);
-	float max_amp = 0.02;//Make this number bigger if you want more modulation in the Age control ---- this is the modulation/Age magic number.
-	float amp_val;
-	if(age_val<0.5)//This maxes out the age_val at noon on the knob, so >Noon only addes degregation
-	    amp_val = age_val*max_amp;
-	else
-	    amp_val = max_amp/2;
-	// We will slowly build up the shape of the modulation for the Age parameter, comment out any of the lines below the first one to remove that component of the modulation
-	mod_total = mod_osc;//This is the base sine wave
-	mod_total *=(1+0.2*(mod_osc2+0.5));//This adds a small sq wave for some abrupt changes
-	mod_total *= (1+(rand_now-0.5)*0.6);//This adds a slowly changing random value, pretty subtle right now
-	mod_total *= amp_val; // This makes the amplitude of the modulation obey the value of the age knob
+	    osc.SetFreq(0.25*samplerate/time_long);// samplerate/time_long should be the delaytime in Hz of the longest delay (head 4)
+	    osc2.SetFreq(0.17*samplerate/time_long);
+	    float max_amp = 0.02;//Make this number bigger if you want more modulation in the Age control ---- this is the modulation/Age magic number.
+	    float amp_val;
+	    if(age_val<0.5)//This maxes out the age_val at noon on the knob, so >Noon only addes degregation
+	        amp_val = age_val*max_amp;
+	    else
+	        amp_val = max_amp/2;
+	    // We will slowly build up the shape of the modulation for the Age parameter, comment out any of the lines below the first one to remove that component of the modulation
+	    mod_total = mod_osc;//This is the base sine wave
+	    mod_total *=(1+0.2*(mod_osc2+0.5));//This adds a small sq wave for some abrupt changes
+	    mod_total *= (1+(rand_now-0.5)*0.6);//This adds a slowly changing random value, pretty subtle right now
+	    mod_total *= amp_val; // This makes the amplitude of the modulation obey the value of the age knob
 
-	// Add the degredation to the Age knob when it is above noon
-	// ---this is kind of 'code-bending', we are changing hte delay time really fast and allowing it to inject artifacts into the delayed sound on purpose.
-	if(age_val>0.5 && age_val <0.6)
-	    mod_total += (powf(.6,3)/0.1)*(age_val-.5)*get_rand()/10; 
-	if(age_val >0.6)
-	    mod_total += powf(age_val,3)*get_rand()/10;
+	    // Add the degredation to the Age knob when it is above noon
+	    // ---this is kind of 'code-bending', we are changing hte delay time really fast and allowing it to inject artifacts into the delayed sound on purpose.
+	    if(age_val>0.5 && age_val <0.6)
+	        mod_total += (powf(.6,3)/0.1)*(age_val-.5)*get_rand()/10; 
+	    if(age_val >0.6)
+	        mod_total += powf(age_val,3)*get_rand()/10;
 	
-	//Below is for sending the mod signal to the dac_outputs to look at the waveform
-	if(dac_output){
-	    mod_out = mod_total/amp_val;
-	    mod_out2 = mod_osc;
-	}
-	/////// End of building the Age (it gets added to the delay times just below)///////--------------------------------
+	    //Below is for sending the mod signal to the dac_outputs to look at the waveform
+	    
+	    /////// End of building the Age (it gets added to the delay times just below)///////--------------------------------
 
-	//  Below each delay line has its own delay value
-	for(int i = 0; i < 4; i++)
+	    //  Below each delay line has its own delay value
+	    for(int i = 0; i < 4; i++)
 	    //The (i+0.25-i*0.75) just sets the delay intervals to 1/4,1/2/,3/4,1.0 for i=0,1,2,3
 	    //delays[i].delayTarget = (i+0.25-i*0.75)*time_long; //this is NO Age (modulation)
-	    delays[i].delayTarget = (i+0.25-i*0.75)*time_long*(1+mod_total); //this also adds the Age to the swell delays
-	
-	drywet_ratio = mixParam.Process();
-	//feedback is processed above, since it will depend on what footswitch 2
+            if(vertigo.sw[1].Read() == 1) {
+                delays[i].delayTarget = (i+0.25-i*0.75)*time_long*(1+mod_total); //this also adds the Age to the swell delays
+            } else if (vertigo.sw[1].Read() == 0) {
+                delays[i].delayTarget = (i+0.375-i*0.625)*time_long*(1+mod_total);
+            } 
+	    	
+	    drywet_ratio = mixParam.Process();
+   
+	    //feedback is processed above, since it will depend on what footswitch 2
 
-	// Below are the delays for the 'swell' reverb like sound
-	for(int i = 0; i < 4; i++)
-	    swells[i].delayTarget = (i+0.25-i*0.75)*time_long;//*(1+get_rand()*0.01);
-
+	    // Below are the delays for the 'swell' reverb like sound
+	    //for(int i = 0; i < 4; i++)
+	    //    swells[i].delayTarget = (i+0.25-i*0.75)*time_long;//*(1+get_rand()*0.01);
+        
     }//ends part 2
     
     if(part==3){
-	// These are the cutoff freqs for the high and low pass filters
-	float tone_freqHP;
-	float tone_freqLP;
+	    // These are the cutoff freqs for the high and low pass filters
+	    float tone_freqHP_L;
+	    float tone_freqLP_L;
+        float tone_freqHP_R;
+	    float tone_freqLP_R;
 
-	// swell parameter updating
-	swell_val = powf(swellParam.Process(),1/1.5);
+	    // swell parameter updating
+	    //swell_val = powf(swellParam.Process(),1/1.5);
 	
-	// use a potentiameter for a tone control - toneParam sweeps from -1 to 1
-	tone_val = toneParam.Process();
-	if (tone_val<0.0f){ // left half of pot HP off, LP on
-	    tone_freqHP = 0;
-	    tone_freqLP = 5000.0f*(powf(10,2*tone_val))+100.f;//This is a more complex function just to make the taper nice and smooth, the filter turned on too fast when linear
-	}
-	else{// right half of pot HP on, LP off 
-	    tone_freqHP = 5000.0f*powf(10,2.f*tone_val-2);//This is a more complex function just to make the taper nice and smooth, the filter turned on too fast when linear
-	    tone_freqLP = 1000000.0f;// just something very high so the filter is not killing any actual guitar sound
-	}
-	toneHP.SetFreq(tone_freqHP);
-	toneLP.SetFreq(tone_freqLP);
+	    // use a potentiameter for a tone control - toneParam sweeps from -1 to 1
+	    tone_val = toneParam.Process();
+    
+	    if (tone_val<0.0f){ // left half of pot HP off, LP on
+	        tone_freqHP_L = 0;
+	        tone_freqLP_L = 5000.0f*(powf(10,2*tone_val))+100.f;//This is a more complex function just to make the taper nice and smooth, the filter turned on too fast when linear
+            tone_freqHP_R = 0;
+	        tone_freqLP_R = 5000.0f*(powf(10,2*tone_val))+100.f;
+	    } else{// right half of pot HP on, LP off 
+	        tone_freqHP_L = 5000.0f*powf(10,2.f*tone_val-2);//This is a more complex function just to make the taper nice and smooth, the filter turned on too fast when linear
+	        tone_freqLP_L = 1000000.0f;// just something very high so the filter is not killing any actual guitar sound
+            tone_freqHP_R = 5000.0f*powf(10,2.f*tone_val-2);//This is a more complex function just to make the taper nice and smooth, the filter turned on too fast when linear
+	        tone_freqLP_R = 1000000.0f;// just something very high so the filter is not killing any actual guitar sound
+	    }
+	    toneHP_L.SetFreq(tone_freqHP_L);
+	    toneLP_L.SetFreq(tone_freqLP_L);
+        toneHP_R.SetFreq(tone_freqHP_R);
+	    toneLP_R.SetFreq(tone_freqLP_R);
+
+        //width_val = stereoWidthParam.Process();
+    
+
     }
     if(part==4){
-	//	petal.ProcessAnalogControls();
-	//vertigo.ProcessDigitalControls();
-	/////////////////////////////////////////
-	//Delay Switches
-	//     - The .Pressed() function below counts an 'ON' switch as pressed.
-	//     - Each delay is controlled by it's own switch
-	//int switches[4] = {Terrarium::SWITCH_1, Terrarium::SWITCH_2, Terrarium::SWITCH_3, Terrarium::SWITCH_4};
-    UpdateSwitches();
-	for(int i=0; i<4; i++)
-	    delayOn[i] = DelaySwCheck(i);
-	
-    vertigo.sw_led[DaisyVertigo::S_Led1].Set(delayOn[0] ? 1.f : 0.f);
-    vertigo.sw_led[DaisyVertigo::S_Led2].Set(delayOn[1] ? 1.f : 0.f);
-    vertigo.sw_led[DaisyVertigo::S_Led4].Set(delayOn[2] ? 1.f : 0.f);
-    vertigo.sw_led[DaisyVertigo::S_Led3].Set(delayOn[3] ? 1.f : 0.f);
-	/////////////////////////////////////////
-	//footswitch 1 = 'bypass' 
-	//if(petal.switches[Terrarium::FOOTSWITCH_1].RisingEdge()) // ON/OFF footswitch
-	//    {
-	//	passThruOn = !passThruOn;
-	//	led1.Set(passThruOn ? 0.0f : 1.0f);
-		// Above is an imbedded 'if' statement. If 'passThruOn=true' then set the led value to 0, if 'passThruOn=false' then set led value to 1.0
-	//    }
-
-	// These are for the extra switches I added to my Terrarium build:
-	if(false)
-	    {
-		//switch_r.Debounce();
-		//switch_l.Debounce();
-		//L_ON = switch_l.Pressed();
-		//R_ON = switch_r.Pressed();
-	    }
+        drylevel = verbMixParam.Process();
     }
+    
 }
 
 

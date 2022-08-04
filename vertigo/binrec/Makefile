@@ -1,7 +1,8 @@
 # Project Name
 TARGET = binrec
 
-DEBUG = 1
+# DEBUG = 1
+# LDFLAGS += -u _printf_float
 
 # Sources
 CPP_SOURCES = binrec.cpp taptempo.cpp ../daisy_vertigo.cpp
