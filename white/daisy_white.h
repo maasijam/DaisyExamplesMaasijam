@@ -253,7 +253,8 @@ class DaisyWhite
     AnalogControl* GetCv(size_t idx);
 
     /** Returns true if gate in is HIGH */
-    bool Gate();
+    bool GateIn1();
+    bool GateIn2();
 
     void SetLed(uint8_t idx, bool state);
     void SetRGBLed(uint8_t idx, uint8_t color);
@@ -328,7 +329,7 @@ class DaisyWhite
     LedDriverPca9685<1, true>   led_driver_;
     Switch3       sw[SW_LAST];
     Switch        s[S_LAST];
-    GateIn        gate;
+    GateIn        gate_in1, gate_in2;
     dsy_gpio      gate_out_1, gate_out_2;
 
     RgbLed rgb_leds[4];       /**< & */

@@ -7,8 +7,8 @@ using namespace daisy;
 
 
 // WHITE Pins
-#define PIN_GATE_IN1 0
-#define PIN_GATE_IN2 10
+#define PIN_GATE_IN1 10
+#define PIN_GATE_IN2 0
 #define PIN_GATE_OUT1 13
 #define PIN_GATE_OUT2 14
 
@@ -72,8 +72,10 @@ void DaisyWhite::Init(bool boost)
    
 
     // gate in 
-    dsy_gpio_pin gate_gpio = seed.GetPin(PIN_GATE_IN1);
-    gate.Init(&gate_gpio,false);
+    dsy_gpio_pin gateIn1_gpio = seed.GetPin(PIN_GATE_IN1);
+    dsy_gpio_pin gateIn2_gpio = seed.GetPin(PIN_GATE_IN2);
+    gate_in1.Init(&gateIn1_gpio,false);
+    gate_in2.Init(&gateIn2_gpio,false);
 
 
     // ADCs
@@ -235,9 +237,13 @@ Switch* DaisyWhite::GetSwitch(size_t idx)
 }
 
 
-bool DaisyWhite::Gate()
+bool DaisyWhite::GateIn1()
 {
-    return !gate.State();
+    return !gate_in1.State();
+}
+bool DaisyWhite::GateIn2()
+{
+    return !gate_in2.State();
 }
 
 void DaisyWhite::ProcessDigitalControls()
