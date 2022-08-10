@@ -1,6 +1,8 @@
 # Project Name
 TARGET = Blink
 
+APP_TYPE = BOOT_QSPI
+
 # Sources
 CPP_SOURCES = Blink.cpp 
 
