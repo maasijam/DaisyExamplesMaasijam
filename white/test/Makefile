@@ -1,8 +1,10 @@
 # Project Name
 TARGET = test
 
+USE_FATFS = 1
+
 # Sources
-CPP_SOURCES = test.cpp ../daisy_white.cpp
+CPP_SOURCES = test.cpp wavplayer2.cpp ../daisy_white.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy
