@@ -3,6 +3,8 @@
 #include "daisy_seed.h"
 
 
+
+
 namespace daisy
 {
 class DaisyWhite
@@ -36,30 +38,9 @@ class DaisyWhite
         CV_5,   /**< */
         CV_6,   /**< */
         CV_7,   /**< */
-        CV_8,   /**< */
-        CV_9,   /**< */
-        CV_10,   /**< */
         CV_LAST /**< */
     };
 
-    enum 
-    {
-        SW_0,
-        SW_1,
-        SW_LAST
-    };
-
-    enum 
-    {
-        S_0,
-        S_1,
-        S_2,
-        S_3,
-        S_4,
-        S_5,
-        S_6,
-        S_LAST
-    };
 
     enum 
     {
@@ -118,40 +99,34 @@ class DaisyWhite
       LED_S8
   };
 
-  /** Leds in ringled */
-    enum RgbLeds
+
+  enum LeddriverLeds
     {
-        RGB_LED_1,   /**< & */
-        RGB_LED_2,   /**< & */
-        RGB_LED_3,   /**< & */
-        RGB_LED_4,   /**< & */
-        RGB_LED_LAST /**< & */
+        RGB_LED_1 = 0,   /**< & */
+        RGB_LED_2 = 1,   /**< & */
+        RGB_LED_3 = 2,   /**< & */
+        RGB_LED_4 = 3,
+        GREEN_LED_1 = 12,    /**< & */
+        GREEN_LED_2 = 13,    /**< & */
+        GREEN_LED_3 = 14,    /**< & */
+        GREEN_LED_4 = 15,
+        LEDDRIVER_LEDS_LAST = 8
     };
 
-    /** footswitch leds */
-    enum GreenLeds
-    {
-        GREEN_LED_1,    /**< & */
-        GREEN_LED_2,    /**< & */
-        GREEN_LED_3,    /**< & */
-        GREEN_LED_4,    /**< & */
-        GREEN_LED_LAST, /**< & */
-    };
-
-    enum GreenDirectLeds
+  enum DirectLeds
     {
         GREEN_D_LED_1,    /**< & */
         GREEN_D_LED_2,    /**< & */
         GREEN_D_LED_3,    /**< & */
         GREEN_D_LED_4,    /**< & */
         GREEN_D_LED_5,    /**< & */
-        GREEN_D_LED_6,    /**< & */
-        GREEN_D_LED_LAST, /**< & */
+        GREEN_D_LED_6,
+        DIRECT_LEDS_LAST
     };
 
     
 
-  
+
 
 
     /** Constructor */
@@ -234,12 +209,6 @@ class DaisyWhite
         ProcessDigitalControls();
     }
 
-     /** Getter for switch objects
-        \param idx The switch of interest.
-    */
-    Switch* GetSwitch(size_t idx);
-
-  
 
     /**
      Get value for a particular control _\param k Which control to get
@@ -256,8 +225,6 @@ class DaisyWhite
     bool GateIn1();
     bool GateIn2();
 
-    void SetLed(uint8_t idx, bool state);
-    void SetRGBLed(uint8_t idx, uint8_t color);
 
     /** Gets a random 32-bit value */
     inline uint32_t GetRandomValue() { return Random::GetValue(); }
@@ -303,23 +270,23 @@ class DaisyWhite
        \param g Green value
        \param b Blue value
      */
-    void SetRgbLeds(RgbLeds idx, float r, float g, float b);
+    void SetRgbLeds(LeddriverLeds idx, float r, float g, float b);
 
     /**
        Set Green LED driver LED
        \param idx Led Index
        \param bright Brightness
      */
-    void SetGreenLeds(GreenLeds idx, float bright);
+    void SetGreenLeds(size_t idx, float bright);
 
     /**
        Set Green Direct LED
        \param idx Led Index
        \param bright Brightness
      */
-    void SetGreenDirectLeds(GreenDirectLeds idx, float bright);
+    void SetGreenDirectLeds(DirectLeds idx, float bright);
 
-
+    float CVKnobCombo(float CV_Val,float Pot_Val);
 
     
 
@@ -327,13 +294,8 @@ class DaisyWhite
     AnalogControl   knob[KNOB_LAST]; /**< Array of AnalogControls */
     AnalogControl   cv[CV_LAST]; /**< Array of AnalogControls */
     LedDriverPca9685<1, true>   led_driver_;
-    Switch3       sw[SW_LAST];
-    Switch        s[S_LAST];
     GateIn        gate_in1, gate_in2;
     dsy_gpio      gate_out_1, gate_out_2;
-
-    RgbLed rgb_leds[4];       /**< & */
-    Led    green_leds[4]; /**< & */
     Led    green_direct_leds[6]; /**< & */
     
 

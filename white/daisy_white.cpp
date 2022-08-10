@@ -134,7 +134,7 @@ void DaisyWhite::Init(bool boost)
     seed.dac.Init(cfg);
 
     int direct_led_pins[6] = {25,24,21,20,19,18};
-    for(size_t i = 0; i < GREEN_D_LED_LAST; i++)
+    for(size_t i = 0; i < DIRECT_LEDS_LAST; i++)
     {
         green_direct_leds[i].Init(seed.GetPin(direct_led_pins[i]),true);
     }
@@ -231,12 +231,6 @@ void DaisyWhite::ProcessAnalogControls()
     }
 }
 
-Switch* DaisyWhite::GetSwitch(size_t idx)
-{
-    return &s[idx < S_LAST ? idx : 0];
-}
-
-
 bool DaisyWhite::GateIn1()
 {
     return !gate_in1.State();
@@ -248,12 +242,6 @@ bool DaisyWhite::GateIn2()
 
 void DaisyWhite::ProcessDigitalControls()
 {
-    // Switches
-    for(size_t i = 0; i < S_LAST; i++)
-    {
-        s[i].Debounce();
-        
-    }
     switches_sr_.Update();
     for(size_t i = 0; i < 16; i++)
     {
@@ -333,6 +321,7 @@ void DaisyWhite::ClearLeds()
     //    {
     //        ring_led[i].SetColor(c);
     //    }
+    /*
     for(size_t i = 0; i < RGB_LED_LAST; i++)
     {
         SetRgbLeds(static_cast<RgbLeds>(i), 0.0f, 0.0f, 0.0f);
@@ -345,28 +334,43 @@ void DaisyWhite::ClearLeds()
     {
         SetGreenDirectLeds(static_cast<GreenDirectLeds>(i), 0.0f);
     }
+    */
+    for (size_t i = 0; i < LEDDRIVER_LEDS_LAST; i++)
+    {
+        if(i < 4) {
+            SetRgbLeds(static_cast<LeddriverLeds>(i), 0.0f, 0.0f, 0.0f);
+        } else  {
+            //SetGreenLeds(static_cast<LeddriverLeds>(i), 0.0f);
+            SetGreenLeds((i+8), 0.0f);
+        } 
+    }
+    for(size_t i = 0; i < DIRECT_LEDS_LAST; i++)
+    {
+        SetGreenDirectLeds(static_cast<DirectLeds>(i), 0.0f);
+    }
+    
 }
 
 void DaisyWhite::UpdateLeds()
 {
     led_driver_.SwapBuffersAndTransmit();
-    for(size_t i = 0; i < GREEN_D_LED_LAST; i++)
+    for(size_t i = 0; i < DIRECT_LEDS_LAST; i++)
     {
         green_direct_leds[i].Update();
     }
 }
 
-void DaisyWhite::SetRgbLeds(RgbLeds idx, float r, float g, float b)
+void DaisyWhite::SetRgbLeds(LeddriverLeds idx, float r, float g, float b)
 {
-    uint8_t r_addr[RGB_LED_LAST] = {LED_1_R,
+    uint8_t r_addr[4] = {LED_1_R,
                                      LED_2_R,
                                      LED_3_R,
                                      LED_4_R};
-    uint8_t g_addr[RGB_LED_LAST] = {LED_1_G,
+    uint8_t g_addr[4] = {LED_1_G,
                                      LED_2_G,
                                      LED_3_G,
                                      LED_4_G};
-    uint8_t b_addr[RGB_LED_LAST] = {LED_1_B,
+    uint8_t b_addr[4] = {LED_1_B,
                                      LED_2_B,
                                      LED_3_B,
                                      LED_4_B};
@@ -376,14 +380,30 @@ void DaisyWhite::SetRgbLeds(RgbLeds idx, float r, float g, float b)
     led_driver_.SetLed(g_addr[idx], g);
     led_driver_.SetLed(b_addr[idx], b);
 }
-void DaisyWhite::SetGreenLeds(GreenLeds idx, float bright)
+void DaisyWhite::SetGreenLeds(size_t idx, float bright)
 {
-    uint8_t fs_addr[GREEN_LED_LAST]
-        = {LED_GREEN_1, LED_GREEN_2, LED_GREEN_3, LED_GREEN_4};
-    led_driver_.SetLed(fs_addr[idx], bright);
+    led_driver_.SetLed(idx, bright);
 }
 
-void DaisyWhite::SetGreenDirectLeds(GreenDirectLeds idx, float bright)
+void DaisyWhite::SetGreenDirectLeds(DirectLeds idx, float bright)
 {
     green_direct_leds[idx].Set(bright);
+}
+
+float DaisyWhite::CVKnobCombo(float CV_Val,float Pot_Val)
+{
+    float output{};
+    output = CV_Val + Pot_Val;
+
+    if(output < 0.0f)
+    {
+        output = 0.0f;
+    }
+
+    if(output > 1.0f)
+    {
+        output = 1.0f;
+    }
+
+    return output;
 }
