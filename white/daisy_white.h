@@ -224,7 +224,8 @@ class DaisyWhite
     /** Returns true if gate in is HIGH */
     bool GateIn1();
     bool GateIn2();
-
+    bool TrigIn1();
+    bool TrigIn2();
 
     /** Gets a random 32-bit value */
     inline uint32_t GetRandomValue() { return Random::GetValue(); }

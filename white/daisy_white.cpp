@@ -239,6 +239,14 @@ bool DaisyWhite::GateIn2()
 {
     return !gate_in2.State();
 }
+bool DaisyWhite::TrigIn1()
+{
+    return gate_in1.Trig();
+}
+bool DaisyWhite::TrigIn2()
+{
+    return gate_in2.Trig();
+}
 
 void DaisyWhite::ProcessDigitalControls()
 {
