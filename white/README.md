@@ -2,7 +2,7 @@
 
 Examples for the daisy seed based maasijam WHITE hardware.
 
-Features:
+## Features:
 * 12 Pots (8 Alpha with alu knobs and 4 standard)
 * 8 CV inputs 
 * 2 Gate/Trig inputs
