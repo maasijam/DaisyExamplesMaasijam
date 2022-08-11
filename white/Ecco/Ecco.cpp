@@ -151,6 +151,7 @@ bool doSave{false};
 bool firstLoop{false};
 
 
+
 bool saveSt{false};
 
 bool ClockInFlag{false};
@@ -203,6 +204,7 @@ static CrossFade FilterMix_R_post;
 Taptempo BaseTempo; 
 
 float tempo_;
+float tapRatio_;
 
 QSPIHandle::Result saveResult{};
 
@@ -260,6 +262,7 @@ float PotCVCombo(float Pot_Val, float CV_Val);
 bool checkPickupState(float value, float lastvalue, bool lastState, bool ShiftChange);
 pickupState checkPickupState_alt(float value, float lastValue, pickupState lastState, bool ShiftChange);
 void Update_Leds();
+
 
 #define PRESET_MAX 1
 bool flashloaded_ = false;
@@ -387,8 +390,8 @@ Counter = (Counter + 1) % updateDiv;
         float FwdRevLXFadepos = FwdRevLEnv.Process(revSwL);
         float FwdRevRXFadepos = FwdRevREnv.Process(revSwR);
         
-        float HPFXFadepos = HPF_Env.Process(!hw.SwitchState(S1B));
-        float LPFXFadepos = LPF_Env.Process(!hw.SwitchState(S1A));
+        float HPFXFadepos = HPF_Env.Process(hw.SwitchState(S1A));
+        float LPFXFadepos = LPF_Env.Process(hw.SwitchState(S1B));
 
         float Left_In = in[0][i];
         float Right_In = in[1][i];
@@ -798,12 +801,13 @@ int main(void)
     tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
     tempoLED_BASE.resetPhase();
 
+    
     //FlashErase(0);
     FlashLoad(0);
     if(!flashloaded_) {
     //    hw.SetRGBLed(3,DaisySaul::yellow);
         FlashToWhite(&default_preset[0]);
-    }
+    } 
 
 
 //hw.seed.StartLog(false);
@@ -1178,30 +1182,47 @@ void Update_LPF()
 
 void Update_Res()
 {
-    float resVal;
-    //switch (resState)
-    //{
-    //case 1:
-    //    resVal = 0.40f;
-    //    break;
-    //case 2:
-    //    resVal = 0.80f;
-    //    break;
-    //default:
-        resVal = 0.0f;
-    //    break;
-    //}
+    static bool lastShift{};
+    static bool Res_pickup{};
+
+    //get pot values:
+    float res_Pot{hw.seed.adc.GetMuxFloat(0,2)};
+
+        static float Res_new{};
+        //update pickup
+        if (shift != lastShift) //recent shift change
+        {
+            lastShift = shift;
+            Res_pickup = false; //set to not picked up
+            Res_new = res_Pot; //update new value
+        } 
+        else    //not a default shift change
+        {
+            if(!Res_pickup)  //not picked up
+            {
+                if(abs(res_Pot - Res_new) > pickupTolerance)  //checked if changed from new value
+                {
+                    Res_pickup = true;   //set to picked up
+                }
+            }
+        }
+
+        
+
+        if(Res_pickup)
+        {
     
-    float Res{};
-    Res = scale(resVal,minRes,maxRes,LINEAR);
-    LPF_L.SetRes(Res);
-    LPF_R.SetRes(Res);
-    HPF_L.SetRes(Res);
-    HPF_R.SetRes(Res);
-    LPF_L_post.SetRes(Res);
-    LPF_R_post.SetRes(Res);
-    HPF_L_post.SetRes(Res);
-    HPF_R_post.SetRes(Res);
+            float Res{};
+            Res = scale(res_Pot,minRes,maxRes,LINEAR);
+            LPF_L.SetRes(Res);
+            LPF_R.SetRes(Res);
+            HPF_L.SetRes(Res);
+            HPF_R.SetRes(Res);
+            LPF_L_post.SetRes(Res);
+            LPF_R_post.SetRes(Res);
+            HPF_L_post.SetRes(Res);
+            HPF_R_post.SetRes(Res);
+        }
 }
 
 void Update_RevLen()
@@ -1563,7 +1584,7 @@ void UpdateClock()
 
     ClockCounter += 1; //increment by one
     //if clock in pulse received
-    if (hw.GateIn1())     
+    if (hw.TrigIn1())     
     {   
 
             if(BaseTempo.clock(ClockCounter)) //if valid tap resistered
@@ -1684,7 +1705,7 @@ void Update_Buttons()
         if(s6State > 2) {
            s6State = 1;     
         } 
-
+        
     }
 
     if(hw.SwitchRisingEdge(S7)){
@@ -1697,7 +1718,7 @@ void Update_Buttons()
     //if(hw.SwitchState(S0A)){
     syncMode = !hw.SwitchState(S0A);
     //}
-
+    PostFilters = s6State == 2 ? true : false;
     
     //hw.ProcessDigitalControls();
 }
@@ -1976,6 +1997,8 @@ return retVal;
 }
 
 
+
+
 // Flash handling - load and save
 // 8MB of flash
 // 4kB blocks
@@ -2029,7 +2052,9 @@ void FlashToWhite(EccoSetting *ecs)
     flashloaded_ = ecs->flashloaded;
 
     BaseTempo.setTempo(tempo_);
+    BaseTempo.setTapRatio(1.0f);
     tempoLED_BASE.setTempo(BaseTempo.getTapFreq());
+    //PostFilters = s6State == 2 ? true : false;
 }
 
 void WhiteToFlash(EccoSetting *ecs)

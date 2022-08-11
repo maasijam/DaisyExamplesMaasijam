@@ -58,7 +58,7 @@ constexpr float XFadeTime{0.01}; //in seconds
 //Filters
 constexpr float default_Res{0.0};
 constexpr float minRes{0.0};
-constexpr float maxRes{0.5};
+constexpr float maxRes{0.3};
 
 constexpr float defaultDrive{0.7f}; //used to be 0.2
 
