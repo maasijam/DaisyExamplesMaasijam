@@ -143,18 +143,11 @@ float ModDepth{0.0f};   //100.0 is a lot!
 float modulation_CV_Raw{};
 
 bool syncMode{false};
-bool revLMode{false};
-bool revRMode{false};
 bool shift{false};  //global variable for secondary shift functions
 bool mute{};
 bool doSave{false};
 bool firstLoop{false};
 
-
-
-bool saveSt{false};
-
-bool ClockInFlag{false};
 bool PostFilters{false};
 
 size_t s2State = 0;
@@ -163,7 +156,7 @@ size_t s4State = 0;
 size_t s5State = 0;
 size_t s6State = 1;
 size_t s7State = 0;
-bool saveState = false;
+
 
 float DELAYL_DEBUG;
 float DELAYR_DEBUG;
@@ -1636,21 +1629,6 @@ void Update_Buttons()
     }
 
     
-
-    if (hw.SwitchRisingEdge(S8))    
-    {
-        //saveSt = false;
-        //shiftTime = System::GetNow();   //reset shift timer
-        //hw.seed.PrintLine("S8 Rising: %d", 1);
-    }
-
-    if (hw.SwitchFallingEdge(S8))    //when button is let go shift is off
-    {
-        //hw.seed.PrintLine("S8 Falling: %d", 1);
-        //doSave = false;
-        
-    }
-
     if (!hw.SwitchState(S8))
     {
         
