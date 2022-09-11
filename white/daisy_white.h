@@ -74,10 +74,17 @@ class DaisyWhite
       green,
       blue,
       yellow,
+      cyan,
       purple,
-      aqua,
-      off,
-      white
+      orange,
+      darkgreen,
+      darkblue,
+      darkred,
+      turq,
+      grey,
+      darkorange,
+      white,
+      off
   };
 
   enum {
@@ -272,6 +279,7 @@ class DaisyWhite
        \param b Blue value
      */
     void SetRgbLeds(LeddriverLeds idx, float r, float g, float b);
+    void SetRGBColor(LeddriverLeds idx, Colors c);
 
     /**
        Set Green LED driver LED

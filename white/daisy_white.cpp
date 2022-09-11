@@ -398,6 +398,60 @@ void DaisyWhite::SetGreenDirectLeds(DirectLeds idx, float bright)
     green_direct_leds[idx].Set(bright);
 }
 
+void DaisyWhite::SetRGBColor (LeddriverLeds idx, Colors color)
+{
+    
+    switch (color)
+    {
+    case red:
+        SetRgbLeds(idx,1.f,0.f,0.f);
+        break;
+    case green:
+        SetRgbLeds(idx,0.f,0.7f,0.f);
+        break;
+    case blue:
+        SetRgbLeds(idx,0.f,0.f,1.f);
+        break;
+    case yellow:
+        SetRgbLeds(idx,1.f,0.7f,0.f);
+        break;
+    case cyan:
+        SetRgbLeds(idx,0.f,1.f,1.f);
+        break;
+    case purple:
+        SetRgbLeds(idx,1.f,0.f,1.f);
+        break;
+    case orange:
+        SetRgbLeds(idx,1.f,0.3f,0.f);
+        break;
+    case darkgreen:
+        SetRgbLeds(idx,0.f,0.2f,0.f);
+        break;
+    case darkblue:
+        SetRgbLeds(idx,0.2f,0.2f,0.6f);
+        break;
+    case darkred:
+        SetRgbLeds(idx,0.4f,0.f,0.f);
+        break;
+    case turq:
+        SetRgbLeds(idx,0.f,0.5f,0.5f);
+        break;
+    case grey:
+        SetRgbLeds(idx,0.75f,0.75f,0.75f);
+        break;
+    case darkorange:
+        SetRgbLeds(idx,0.5f,0.2f,0.f);
+        break;
+    case white:
+        SetRgbLeds(idx,1.f,1.f,1.f);
+        break;
+    case off:
+        SetRgbLeds(idx,0.f,0.f,0.f);
+        break;
+    }
+    
+}
+
 float DaisyWhite::CVKnobCombo(float CV_Val,float Pot_Val)
 {
     float output{};
