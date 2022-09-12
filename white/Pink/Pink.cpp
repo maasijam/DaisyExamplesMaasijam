@@ -34,9 +34,46 @@ enum
 
 void updateSwitches();
 void updateLeds();
+void LoadPinkSettings();
+void SavePinkSettings();
 
 int patched_fmt = 0;
 int patched_ml = 0;
+
+bool trigger_save;
+//bool saveLed;
+
+//uint32_t startTime;
+//uint32_t curTime;
+
+struct PinkSettings
+{
+	PinkSettings() : p_fmt(0), p_ml(0), engine(0) {}
+	int p_fmt, p_ml, engine;
+	
+    bool operator==(const PinkSettings &rhs)
+    {
+        if(p_fmt != rhs.p_fmt)
+        {
+            return false;
+        }
+        else if(p_ml != rhs.p_ml)
+        {
+            return false;
+        }
+		else if(engine != rhs.engine)
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    
+    bool operator!=(const PinkSettings &rhs) { return !operator==(rhs); }
+};
+
+
 
 Parameter fm_att, timbre_att, morph_att;
 
@@ -100,6 +137,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 
 
 int main(void) {
+	
 	hw.Init();
 	hw.SetAudioBlockSize(BLOCK_SIZE); // number of samples handled per callback
 	hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
@@ -121,9 +159,29 @@ int main(void) {
     hw.StartAdc();
 	hw.StartAudio(AudioCallback);
 
+	//trigger_save = false;
+	//saveLed = false;
+	
+	LoadPinkSettings();
+
 	while (1) {
 		
 		updateLeds();
+		if(trigger_save)
+        {
+            SavePinkSettings();
+			//startTime = System::GetNow();
+			
+			trigger_save = false;
+			//saveLed = true;
+			            
+        }
+		//if(saveLed) {
+			//curTime = System::GetNow();
+			//if((System::GetNow() - startTime) > 1000) {
+			//	saveLed = false;
+			//}
+		//}
 	}
 }
 
@@ -136,7 +194,7 @@ void updateSwitches() {
           } else {
             patch.engine = (patch.engine + 1) % 8;
           }
-          //SaveState();
+          trigger_save = true;
         }
   
         if (hw.SwitchRisingEdge(S5)) {
@@ -146,7 +204,7 @@ void updateSwitches() {
           } else {
             patch.engine = 8 + ((patch.engine + 1) % 8);
           }
-          //SaveState();
+          trigger_save = true;
         }
 
 		if (hw.SwitchRisingEdge(S2)) {
@@ -154,6 +212,7 @@ void updateSwitches() {
           if (patched_fmt > 3) {
             patched_fmt = 0;
           } 
+		  trigger_save = true;
         }
 
 		if (hw.SwitchRisingEdge(S3)) {
@@ -161,17 +220,17 @@ void updateSwitches() {
           if (patched_ml > 3) {
             patched_ml = 0;
           } 
+		  trigger_save = true;
         }
+
+		if (hw.SwitchRisingEdge(S8)) {
+			//trigger_save = true;
+		}
 }
 
 void updateLeds() {
 	hw.ClearLeds();
-	/*
 	
-	patch_->engine & 7,
-              patch_->engine & 8 ? red : green);
-	
-	*/
 	hw.SetRGBColor((patch.engine & 8 ? hw.RGB_LED_4 : hw.RGB_LED_1),DaisyWhite::Colors (patch.engine & 7));
 
 	if(patched_fmt == 1) {
@@ -192,5 +251,48 @@ void updateLeds() {
 		hw.SetGreenDirectLeds(hw.GREEN_D_LED_5,1.f);
 	}
 
+
 	hw.UpdateLeds();
+}
+
+/** @brief Sets the calibration data for 1V/Octave over Warp CV 
+ *  typically set after reading stored data from external memory.
+ */
+inline void SetPatchedSettings(int pfmt, int pml, int engine)
+{
+	patched_fmt = pfmt;
+	patched_ml = pml;
+	patch.engine = engine;
+}
+
+static constexpr uint32_t kSettingsDataOffset = 1024;
+
+/** Get the scale and offset data from the calibration 
+ *  \retval returns true if calibration has been performed.
+*/
+inline void GetPatchedSettings(int &pfmt, int &pml, int &engine)
+{
+	pfmt  = patched_fmt;
+	pml = patched_ml;
+	engine = patch.engine;
+}
+
+
+void LoadPinkSettings()
+{
+	daisy::PersistentStorage<PinkSettings> settings_storage(hw.seed.qspi);
+	PinkSettings                           default_settings;
+	settings_storage.Init(default_settings, kSettingsDataOffset);
+	auto &pink_settings = settings_storage.GetSettings();
+	SetPatchedSettings(pink_settings.p_fmt, pink_settings.p_ml, pink_settings.engine);
+}
+
+void SavePinkSettings()
+{
+	daisy::PersistentStorage<PinkSettings> settings_storage(hw.seed.qspi);
+	PinkSettings                           default_settings;
+	settings_storage.Init(default_settings, kSettingsDataOffset);
+	auto &pink_settings = settings_storage.GetSettings();
+	GetPatchedSettings(pink_settings.p_fmt, pink_settings.p_ml, pink_settings.engine);
+	settings_storage.Save();
 }
