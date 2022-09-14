@@ -192,9 +192,9 @@ int main(void)
     trigger_save = false;
 
     /** Restore settings from previous power cycle */
-    if(cal_storage.GetState() == MyStorageClass::State::USER)
+    if(cal_storage.GetState() == MyStorageClass::State::FACTORY)
     {
-       float bright2 = 1.f; 
+       bright2 = 1.f; 
     }
     led2.Set(bright2);
     led2.Update();
