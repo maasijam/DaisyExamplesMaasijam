@@ -1,6 +1,9 @@
 # Project Name
 TARGET = TripleSaw
 
+DEBUG = 1
+LDFLAGS += -u _printf_float
+
 # Sources
 CPP_SOURCES = TripleSaw.cpp \
 
