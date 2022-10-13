@@ -1,3 +1,3 @@
-# PINK WHITE
+# PINK VARGA
 
 Mutable Instruments Plaits port.
