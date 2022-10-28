@@ -2,7 +2,7 @@
 TARGET = codectest
 
 # Build Project for Daisy Bootloader
-APP_TYPE = BOOT_SRAM
+#APP_TYPE = BOOT_SRAM
 
 # Sources
 CPP_SOURCES = codectest.cpp ../daisy_patch_3060.cpp
