@@ -70,7 +70,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	patch.lpg_colour = 0.5f;
 	patch.decay = 0.5f;
 	patch.frequency_modulation_amount = 0.f;
-	patch.timbre_modulation_amount = 0.f;
+	patch.timbre_modulation_amount = 2.f;
 	patch.morph_modulation_amount = 0.f;
 
 	float voct_cv = hw.GetCvValue(hw.CV_3);

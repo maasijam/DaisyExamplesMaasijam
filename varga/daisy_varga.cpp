@@ -11,8 +11,8 @@ using namespace daisy;
 #define PIN_SW_MODEL 14
 #define PIN_SW_EVIL 13
 #define PIN_LED1_R 27
-#define PIN_LED1_G 29
-#define PIN_LED1_B 30
+#define PIN_LED1_G 28
+#define PIN_LED1_B 15
 #define PIN_LED2_R 10
 #define PIN_LED2_G 9
 #define PIN_LED2_B 8
@@ -54,7 +54,7 @@ void DaisyVarga::Init(bool boost)
 
     // gate in 
     dsy_gpio_pin gate_gpio = seed.GetPin(PIN_CLOCK_IN);
-    gate.Init(&gate_gpio,false);
+    gate.Init(&gate_gpio,true);
 
 
     // ADCs
