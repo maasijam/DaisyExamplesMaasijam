@@ -157,7 +157,7 @@ int main(void) {
 
 
 void updateSwitches() {
-	if (hw.s[hw.S_1].RisingEdge()) {
+	if (hw.s[hw.S_1].FallingEdge()) {
           //RealignPots();
           if (patch.engine >= 8) {
             patch.engine = patch.engine & 7;
@@ -167,7 +167,7 @@ void updateSwitches() {
           trigger_save = true;
         }
   
-        if (hw.s[hw.S_0].RisingEdge()) {
+        if (hw.s[hw.S_0].FallingEdge()) {
           //RealignPots();
           if (patch.engine < 8) {
             patch.engine = (patch.engine & 7) + 8;
