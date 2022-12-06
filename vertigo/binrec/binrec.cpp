@@ -53,6 +53,8 @@ float samplerate, osc_delay_val[4]={0,0,0,0};
 float mod_osc,mod_osc2;
 float width_val =0.0f;
 
+float dadj = 0.05;
+
 static float      drylevel;
 
 
@@ -194,16 +196,19 @@ static void AudioCallback(AudioHandle::InputBuffer in,
                         all_delay_signals_L += delSig;
                     } else if((d == 0 || d == 2) && vertigo.sw[0].Read() == 0) {
                         all_delay_signals_L += delSig;
-                    } else if((d == 1 || d == 2) && vertigo.sw[0].Read() == 2) {
+                    } else if((d == 0 || d == 1) && vertigo.sw[0].Read() == 2) {
                         all_delay_signals_L += delSig;
                     } else if((d == 1 || d == 2) && vertigo.sw[0].Read() == 1) {
                         all_delay_signals_R += delSig;
                     } else if((d == 1 || d == 3) && vertigo.sw[0].Read() == 0) {
                         all_delay_signals_R += delSig;
-                    } else if((d == 0 || d == 3) && vertigo.sw[0].Read() == 2) {
+                    } else if((d == 2 || d == 3) && vertigo.sw[0].Read() == 2) {
                         all_delay_signals_R += delSig;
                     }
-			//all_delay_signals += delays[d].Process(in[0][i]);
+                    // Up: Left:1|4, Right:2|3
+                    // Center: Left:1|3, Right:2|4
+                    // Down: Left:1|2, Right:3|4
+			
 		        }
 		// sends the delays signal through 4 delay heads that are always on for a faux reverb 'swell' effect
         /*
@@ -581,11 +586,13 @@ void ProcessControls(int part)
 	    for(int i = 0; i < 4; i++)
 	    //The (i+0.25-i*0.75) just sets the delay intervals to 1/4,1/2/,3/4,1.0 for i=0,1,2,3
 	    //delays[i].delayTarget = (i+0.25-i*0.75)*time_long; //this is NO Age (modulation)
-            if(vertigo.sw[1].Read() == 1) {
-                delays[i].delayTarget = (i+0.25-i*0.75)*time_long*(1+mod_total); //this also adds the Age to the swell delays
-            } else if (vertigo.sw[1].Read() == 0) {
-                delays[i].delayTarget = (i+0.375-i*0.625)*time_long*(1+mod_total);
-            } 
+            if(vertigo.sw[1].Read() == 0) {
+                delays[i].delayTarget = ((i+0.25-i*0.75)-dadj)*time_long*(1+mod_total); //Center: 1/4,2/4,3/4,4/4
+            } else if (vertigo.sw[1].Read() == 1) {
+                delays[i].delayTarget = ((i+0.375-i*0.625)-dadj)*time_long*(1+mod_total); //Up: 3/8,6/8,9/8,12/8
+            } else if (vertigo.sw[1].Read() == 2) {
+                delays[i].delayTarget = ((i+0.1875-i*0.8125)-dadj)*time_long*(1+mod_total); //Down: 3/16,6/16,9/16,12/16
+            }
 	    	
 	    drywet_ratio = mixParam.Process();
    
