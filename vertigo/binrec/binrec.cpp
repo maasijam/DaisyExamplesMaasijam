@@ -53,7 +53,7 @@ float samplerate, osc_delay_val[4]={0,0,0,0};
 float mod_osc,mod_osc2;
 float width_val =0.0f;
 
-float dadj = 0.05;
+float dadj = 0.046;
 
 static float      drylevel;
 
@@ -363,7 +363,7 @@ void InitVerb(float samplerate) {
     verb.Init(samplerate);
     verb.SetFeedback(0.85f);
     verb.SetLpFreq(18000.0f);
-    verbMixParam.Init(vertigo.knobs[DaisyVertigo::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR);
+    verbMixParam.Init(vertigo.knobs[DaisyVertigo::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR);
     blk[0].Init(samplerate);
     blk[1].Init(samplerate);
 }
@@ -438,7 +438,7 @@ int main(void)
     //InitPs(samplerate);
     
     
-    stereoWidthParam.Init(vertigo.knobs[DaisyVertigo::KNOB_6], 0.5f, 0.0f, Parameter::LINEAR);//LOGARITHMIC);//LINEAR);  
+    stereoWidthParam.Init(vertigo.knobs[DaisyVertigo::KNOB_3], 0.5f, 0.0f, Parameter::LINEAR);//LOGARITHMIC);//LINEAR);  
     widthXfade.Init();
     widthXfade.SetCurve(CROSSFADE_CPOW);
     //widthXfade.SetPos(0.f);
@@ -587,11 +587,11 @@ void ProcessControls(int part)
 	    //The (i+0.25-i*0.75) just sets the delay intervals to 1/4,1/2/,3/4,1.0 for i=0,1,2,3
 	    //delays[i].delayTarget = (i+0.25-i*0.75)*time_long; //this is NO Age (modulation)
             if(vertigo.sw[1].Read() == 0) {
-                delays[i].delayTarget = ((i+0.25-i*0.75)-dadj)*time_long*(1+mod_total); //Center: 1/4,2/4,3/4,4/4
+                delays[i].delayTarget = ((i+0.25-i*0.75)+dadj)*time_long*(1+mod_total); //Center: 1/4,2/4,3/4,4/4
             } else if (vertigo.sw[1].Read() == 1) {
-                delays[i].delayTarget = ((i+0.375-i*0.625)-dadj)*time_long*(1+mod_total); //Up: 3/8,6/8,9/8,12/8
+                delays[i].delayTarget = ((i+0.375-i*0.625)+dadj)*time_long*(1+mod_total); //Up: 3/8,6/8,9/8,12/8
             } else if (vertigo.sw[1].Read() == 2) {
-                delays[i].delayTarget = ((i+0.1875-i*0.8125)-dadj)*time_long*(1+mod_total); //Down: 3/16,6/16,9/16,12/16
+                delays[i].delayTarget = ((i+0.1875-i*0.8125)+dadj)*time_long*(1+mod_total); //Down: 3/16,6/16,9/16,12/16
             }
 	    	
 	    drywet_ratio = mixParam.Process();
