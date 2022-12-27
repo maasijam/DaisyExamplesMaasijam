@@ -37,7 +37,7 @@ static Oscillator osc_delay[4]; //This is for LED2 to show the delay time
 //static Compressor compL,compR;
 static ReverbSc   DSY_SDRAM_BSS verb;
 static DcBlock    blk[2];
-//static PitchShifter DSY_SDRAM_BSS ps[3];
+static PitchShifter DSY_SDRAM_BSS ps,ps1;
 
 
 
@@ -186,11 +186,14 @@ static void AudioCallback(AudioHandle::InputBuffer in,
 		    mod_osc = osc.Process();//This is the base sine wave
 		    mod_osc2 = osc2.Process();//This is the square wave for glitches
 
+            
+
 		    // create the delayed signal for each of the 4 delays
 		    for(int d = 0; d < 4; d++)
 		        if(delayOn[d]){
 			        delays[d].feedback = feedback;
                     delSig = delays[d].Process(in[0][i]);
+                    
                            
                     if((d == 0 || d == 3) && vertigo.sw[0].Read() == 1) {
                         all_delay_signals_L += delSig;
@@ -242,6 +245,13 @@ static void AudioCallback(AudioHandle::InputBuffer in,
         float all_delay_signals_R_W = widthXfade.Process(all_delay_signals_R,all_delay_signals_L);
         //all_delay_signals_L_W = all_delay_signals_L;
         //all_delay_signals_R_W = all_delay_signals_R;
+
+        //float shiftedl = ps.Process(all_delay_signals_L_W);
+        //float shiftedr = ps1.Process(all_delay_signals_R_W);
+
+        //all_delay_signals_L_W = all_delay_signals_L_W + (shiftedl*0.5);
+        //all_delay_signals_R_W = all_delay_signals_R_W + (shiftedr*0.5);
+
 
 		pre_filter_delay_signals_L = all_delay_signals_L_W;
         pre_filter_delay_signals_R = all_delay_signals_R_W;
@@ -369,12 +379,11 @@ void InitVerb(float samplerate) {
 }
 
 void InitPs(float samplerate) {
-    //ps[0].Init(samplerate);
-    //ps[0].SetTransposition(20.0f);
-    //ps[1].Init(samplerate);
-    //ps[1].SetTransposition(12.0f);
-    //ps[2].Init(samplerate);
-    //ps[2].SetTransposition(-12.0f);
+    ps.Init(samplerate);
+    ps.SetTransposition(21.0f);
+    ps1.Init(samplerate);
+    ps1.SetTransposition(24.0f);
+    
 }
 
 
@@ -435,7 +444,7 @@ int main(void)
 
     InitVerb(samplerate);
 
-    //InitPs(samplerate);
+    InitPs(samplerate);
     
     
     stereoWidthParam.Init(vertigo.knobs[DaisyVertigo::KNOB_3], 0.5f, 0.0f, Parameter::LINEAR);//LOGARITHMIC);//LINEAR);  
