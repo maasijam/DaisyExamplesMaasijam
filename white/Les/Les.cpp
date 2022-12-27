@@ -14,6 +14,8 @@ using namespace daisysp;
 
 DaisyWhite hw;
 
+
+
 enum
 {
     S1      = 15,
@@ -166,9 +168,6 @@ struct sampHoldStruct
 };
 
 
-bool        menuSelect;
-int         lfoSelect;
-
 
 lfoStruct lfos[2];
 envStruct envs[2];
@@ -238,7 +237,7 @@ int main(void)
 
 	while(1)
 	{	
-		hw.DelayMs(1);   
+		  
 	}
 }
 
