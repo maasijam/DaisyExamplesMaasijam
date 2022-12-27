@@ -49,9 +49,12 @@ int appMode[2];
 struct lfoStruct
 {
     Oscillator osc;
+    Wavefolder wf;
     Parameter  freqCtrl;
     Parameter  ampCtrl;
     Parameter  pwCtrl;
+    Parameter  wfGainCtrl;
+    Parameter  wfOffsetCtrl;
     float      amp;
     float      freq;
     int        waveform;
@@ -59,23 +62,30 @@ struct lfoStruct
     float      ledvalue;
     bool       eoc;
     int        eocCounter;
+    int        octave;
+    float      oscOut;
+    float      oscWfOut; 
 
-    void Init(float samplerate, AnalogControl freqKnob, AnalogControl ampKnob, AnalogControl pwKnob)
+    void Init(float samplerate, AnalogControl freqKnob, AnalogControl ampKnob, AnalogControl pwKnob, AnalogControl wfGainKnob, AnalogControl wfOffsetKnob)
     {
         osc.Init(samplerate);
         osc.SetAmp(1);
+        wf.Init();
         waveform = 0;
         eoc = false;
         eocCounter = 0;
-        freqCtrl.Init(freqKnob, .1, 35, Parameter::LOGARITHMIC);
+        octave = 0;
+        freqCtrl.Init(freqKnob, .1, 20, Parameter::LOGARITHMIC);
         ampCtrl.Init(ampKnob, 0, 1, Parameter::LINEAR);
-        pwCtrl.Init(pwKnob, 0, 1, Parameter::LINEAR);
+        pwCtrl.Init(pwKnob, 0.1, 0.87, Parameter::LINEAR);
+        wfGainCtrl.Init(wfGainKnob, 0, 1, Parameter::LINEAR);
+        wfOffsetCtrl.Init(wfOffsetKnob, 0, 1, Parameter::LINEAR);
     }
 
     void Process(DacHandle::Channel chn)
     {
         //read the knobs and set params
-        osc.SetFreq(freqCtrl.Process());
+        osc.SetFreq(freqCtrl.Process()*(GetOctMult(octave)));
         osc.SetWaveform(waveform);
         if(waveform == osc.WAVE_SQUARE) {
             osc.SetPw(pwCtrl.Process());
@@ -86,17 +96,39 @@ struct lfoStruct
         if(osc.IsFalling()) {
             eoc = false;
         }
+        wf.SetGain(wfGainCtrl.Process());
+        wf.SetOffset(wfOffsetCtrl.Process());
 
-        
+        oscOut = osc.Process();
+        oscWfOut = wf.Process(oscOut);
 
         //write to the DAC
         hw.seed.dac.WriteValue(
             chn,
-            uint16_t((osc.Process() + 1.f) * .5f * ampCtrl.Process() * 4095.f));
+            uint16_t((oscWfOut + 1.f) * .5f * ampCtrl.Process() * 4095.f));
 
         ledvalue = (osc.Process() + 1.f) * .5f * ampCtrl.Process();
         
         
+    }
+
+    float GetOctMult(int oct)
+    {
+        switch (oct)
+        {
+        case 0:
+            return 1;
+            break;
+        case 1:
+            return 2;
+            break;
+        case 2:
+            return 4;
+            break;
+        default:
+            return 1;
+            break;
+        }
     }
 };
 
@@ -222,8 +254,8 @@ int main(void)
 
     float samplerate = hw.AudioSampleRate();
 
-    lfos[0].Init(samplerate, hw.knob[0], hw.knob[1], hw.knob[9]);
-    lfos[1].Init(samplerate, hw.knob[3], hw.knob[2], hw.knob[10]);
+    lfos[0].Init(samplerate, hw.knob[0], hw.knob[1], hw.knob[9], hw.knob[4], hw.knob[5]);
+    lfos[1].Init(samplerate, hw.knob[3], hw.knob[2], hw.knob[10], hw.knob[7], hw.knob[6]);
 
     envs[0].Init(samplerate, hw.knob[0], hw.knob[1], hw.knob[4], hw.knob[5]);
     envs[1].Init(samplerate, hw.knob[3], hw.knob[2], hw.knob[7], hw.knob[6]);
@@ -253,6 +285,25 @@ void Update_Digital() {
                 lfos[0].waveform = 0;
             }
         }
+        if(hw.SwitchRisingEdge(S2)) {
+            lfos[0].octave++;
+            if(lfos[0].octave == 3){
+                lfos[0].octave = 0;
+            }
+        }
+        switch (lfos[0].octave)
+        {
+        case 1:
+            hw.SetGreenLeds(hw.GREEN_LED_3,1);
+            break;
+        case 2:
+            hw.SetGreenLeds(hw.GREEN_LED_4,1);
+            break;
+        default:
+            break;
+        }
+        
+        
         hw.SetRGBColor(hw.RGB_LED_1,static_cast<DaisyWhite::Colors>(lfos[0].waveform));
         hw.SetGreenLeds(hw.GREEN_LED_1,lfos[0].ledvalue);
         if(lfos[0].eoc){
@@ -267,6 +318,23 @@ void Update_Digital() {
             if(lfos[1].waveform == MAX_WAVE){
                 lfos[1].waveform = 0;
             }
+        }
+        if(hw.SwitchRisingEdge(S6)) {
+            lfos[1].octave++;
+            if(lfos[1].octave == 3){
+                lfos[1].octave = 0;
+            }
+        }
+        switch (lfos[1].octave)
+        {
+        case 1:
+            hw.SetGreenDirectLeds(hw.GREEN_D_LED_2,1);
+            break;
+        case 2:
+            hw.SetGreenDirectLeds(hw.GREEN_D_LED_4,1);
+            break;
+        default:
+            break;
         }
         hw.SetRGBColor(hw.RGB_LED_4,static_cast<DaisyWhite::Colors>(lfos[1].waveform));
         hw.SetGreenLeds(hw.GREEN_LED_2,lfos[1].ledvalue);
