@@ -138,6 +138,28 @@ struct envStruct {
     }
 };
 
+struct sampHoldStruct
+{
+    SampleHold       sampHold;
+    SampleHold::Mode mode;
+    WhiteNoise noise;
+    float            output;
+
+    void Init()
+    {
+        noise.Init();
+    }
+
+
+    void Process(bool trigger, DacHandle::Channel chn)
+    {
+        output = sampHold.Process(trigger, noise.Process() * 500 + 500, mode);
+        hw.seed.dac.WriteValue(
+            chn,
+            uint16_t(output * 4095.f));
+    }
+};
+
 
 bool        menuSelect;
 int         lfoSelect;
@@ -145,6 +167,7 @@ int         lfoSelect;
 
 lfoStruct lfos[2];
 envStruct envs[2];
+sampHoldStruct sampHolds[2];
 
 
 
@@ -155,84 +178,58 @@ void audio_callback(AudioHandle::InputBuffer  in,
 	Update_Controls();
     Update_Digital();
 
-    switch (appMode[0])
-    {
-    case lfo:
-        if (hw.TrigIn1()) {lfos[0].osc.Reset();}
-        for(size_t i = 0; i < size; i++)
+    for(size_t i = 0; i < size; i++)
         {
+        switch (appMode[0])
+        {
+        case lfo:
+            if (hw.TrigIn1()) {lfos[0].osc.Reset();}
             lfos[0].Process(DacHandle::Channel::ONE);
-        }
-        break;
-    case env:
-        for(size_t i = 0; i < size; i++)
-        {
+            break;
+        case env:
             envs[0].Process(DacHandle::Channel::ONE,hw.gate_in1);
-        }
-        break;
-    case sh:
-        /* code */
-        break;
-    }	
+            break;
+        case sh:
+            sampHolds[0].Process(hw.gate_in1.State(),DacHandle::Channel::ONE);
+            break;
+        }	
 
-    switch (appMode[1])
-    {
-    case lfo:
-        if (hw.TrigIn2()) {lfos[1].osc.Reset();}
-        for(size_t i = 0; i < size; i++)
+        switch (appMode[1])
         {
+        case lfo:
+            if (hw.TrigIn2()) {lfos[1].osc.Reset();}
             lfos[1].Process(DacHandle::Channel::TWO);
-        }
-        break;
-    case env:
-        for(size_t i = 0; i < size; i++)
-        {
+            break;
+        case env:
             envs[1].Process(DacHandle::Channel::TWO,hw.gate_in2);
+            break;
+        case sh:
+            sampHolds[1].Process(hw.gate_in2.State(),DacHandle::Channel::TWO);
+            break;
         }
-        break;
-    case sh:
-        /* code */
-        break;
     }
-    
 }
 
 
 
 int main(void)
 {
-    hw.Init();
-    
-    
+    hw.Init(); 
 
     float samplerate = hw.AudioSampleRate();
 
-    AppMode(samplerate);
+    lfos[0].Init(samplerate, hw.knob[0], hw.knob[1]);
+    lfos[1].Init(samplerate, hw.knob[3], hw.knob[2]);
 
+    envs[0].Init(samplerate, hw.knob[0], hw.knob[1], hw.knob[4], hw.knob[5]);
+    envs[1].Init(samplerate, hw.knob[3], hw.knob[2], hw.knob[7], hw.knob[6]);
 
-    //init the lfos
-    if(appMode[0] == lfo) {
-        lfos[0].Init(samplerate, hw.knob[0], hw.knob[1]);
-    }
-    if(appMode[1] == lfo) {
-        lfos[1].Init(samplerate, hw.knob[3], hw.knob[2]);
-    }
+    sampHolds[0].Init();
+    sampHolds[1].Init();
 
-    //init the lfos
-    if(appMode[0] == env) {
-        envs[0].Init(samplerate, hw.knob[0], hw.knob[1], hw.knob[4], hw.knob[5]);
-    }
-    if(appMode[1] == env) {
-        envs[1].Init(samplerate, hw.knob[3], hw.knob[2], hw.knob[6], hw.knob[7]);
-    }
-
-
-
-    	
+        	
     hw.StartAdc();
 	hw.StartAudio(audio_callback);
-
-    
 
 	while(1)
 	{	
@@ -242,8 +239,6 @@ int main(void)
 
 
 void Update_Digital() {
-
-    AppMode(hw.AudioSampleRate());
 
     hw.ClearLeds();
 
@@ -276,6 +271,22 @@ void Update_Digital() {
         }
         dsy_gpio_write(&hw.gate_out_2, lfos[1].eoc);
     }
+
+    if(appMode[0] == env) {
+         hw.SetRGBColor(hw.RGB_LED_1,hw.purple);
+    }
+
+    if(appMode[1] == env) {
+         hw.SetRGBColor(hw.RGB_LED_4,hw.purple);
+    }
+
+    if(appMode[0] == sh) {
+         hw.SetRGBColor(hw.RGB_LED_1,hw.orange);
+    }
+
+    if(appMode[1] == sh) {
+         hw.SetRGBColor(hw.RGB_LED_4,hw.orange);
+    }
     
     
     hw.UpdateLeds();
@@ -283,26 +294,27 @@ void Update_Digital() {
 
 void Update_Controls() {
     hw.ProcessAllControls();
+    AppMode(hw.AudioSampleRate());
 }
 
 void AppMode(float samplerate) {
     if(!hw.SwitchState(S0A)) {
         appMode[0] = lfo;
-        lfos[0].Init(samplerate, hw.knob[0], hw.knob[1]);
+        
     } else if(!hw.SwitchState(S0B)) {
         appMode[0] = sh;
     } else {
         appMode[0] = env;
-        envs[0].Init(samplerate, hw.knob[0], hw.knob[1], hw.knob[4], hw.knob[5]);
+        
     }
 
     if(!hw.SwitchState(S1A)) {
         appMode[1] = lfo;
-        lfos[1].Init(samplerate, hw.knob[3], hw.knob[2]);
+        
     } else if(!hw.SwitchState(S1B)) {
         appMode[1] = sh;
     } else {
         appMode[1] = env;
-        envs[1].Init(samplerate, hw.knob[3], hw.knob[2], hw.knob[6], hw.knob[7]);
+        
     }
 }

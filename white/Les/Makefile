@@ -1,11 +1,11 @@
 # Project Name
-TARGET = Lfo
+TARGET = Les
 
  #DEBUG = 1
  #LDFLAGS += -u _printf_float
 
 # Sources
-CPP_SOURCES = Lfo.cpp ../daisy_white.cpp
+CPP_SOURCES = Les.cpp ../daisy_white.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy
