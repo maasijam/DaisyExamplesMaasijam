@@ -49,6 +49,7 @@ struct lfoStruct
     Oscillator osc;
     Parameter  freqCtrl;
     Parameter  ampCtrl;
+    Parameter  pwCtrl;
     float      amp;
     float      freq;
     int        waveform;
@@ -57,7 +58,7 @@ struct lfoStruct
     bool       eoc;
     int        eocCounter;
 
-    void Init(float samplerate, AnalogControl freqKnob, AnalogControl ampKnob)
+    void Init(float samplerate, AnalogControl freqKnob, AnalogControl ampKnob, AnalogControl pwKnob)
     {
         osc.Init(samplerate);
         osc.SetAmp(1);
@@ -66,6 +67,7 @@ struct lfoStruct
         eocCounter = 0;
         freqCtrl.Init(freqKnob, .1, 35, Parameter::LOGARITHMIC);
         ampCtrl.Init(ampKnob, 0, 1, Parameter::LINEAR);
+        pwCtrl.Init(pwKnob, 0, 1, Parameter::LINEAR);
     }
 
     void Process(DacHandle::Channel chn)
@@ -73,6 +75,9 @@ struct lfoStruct
         //read the knobs and set params
         osc.SetFreq(freqCtrl.Process());
         osc.SetWaveform(waveform);
+        if(waveform == osc.WAVE_SQUARE) {
+            osc.SetPw(pwCtrl.Process());
+        }
         if(osc.IsRising()) {
             eoc = true;
         } 
@@ -218,8 +223,8 @@ int main(void)
 
     float samplerate = hw.AudioSampleRate();
 
-    lfos[0].Init(samplerate, hw.knob[0], hw.knob[1]);
-    lfos[1].Init(samplerate, hw.knob[3], hw.knob[2]);
+    lfos[0].Init(samplerate, hw.knob[0], hw.knob[1], hw.knob[9]);
+    lfos[1].Init(samplerate, hw.knob[3], hw.knob[2], hw.knob[10]);
 
     envs[0].Init(samplerate, hw.knob[0], hw.knob[1], hw.knob[4], hw.knob[5]);
     envs[1].Init(samplerate, hw.knob[3], hw.knob[2], hw.knob[7], hw.knob[6]);
