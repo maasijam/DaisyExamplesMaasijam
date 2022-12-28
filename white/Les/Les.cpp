@@ -2,14 +2,14 @@
 
 #include "../daisy_white.h"
 #include "daisysp.h"
-
+#include "oscillator_lfo.h"
 
 
 using namespace daisy;
 using namespace daisysp;
 
 
-#define MAX_WAVE Oscillator::WAVE_POLYBLEP_TRI
+#define MAX_WAVE Oscillator_lfo::WAVE_POLYBLEP_TRI
 
 
 DaisyWhite hw;
@@ -48,7 +48,7 @@ int appMode[2];
 
 struct lfoStruct
 {
-    Oscillator osc;
+    Oscillator_lfo osc;
     Wavefolder wf;
     Parameter  freqCtrl;
     Parameter  ampCtrl;
@@ -96,16 +96,16 @@ struct lfoStruct
         if(osc.IsFalling()) {
             eoc = false;
         }
-        wf.SetGain(wfGainCtrl.Process());
-        wf.SetOffset(wfOffsetCtrl.Process());
+        //wf.SetGain(1.0f);
+        //wf.SetOffset(wfOffsetCtrl.Process());
 
         oscOut = osc.Process();
-        oscWfOut = wf.Process(oscOut);
+        //oscWfOut = wf.Process(oscOut);
 
         //write to the DAC
         hw.seed.dac.WriteValue(
             chn,
-            uint16_t((oscWfOut + 1.f) * .5f * ampCtrl.Process() * 4095.f));
+            uint16_t((oscOut + 1.f) * .5f * ampCtrl.Process() * 4095.f));
 
         ledvalue = (osc.Process() + 1.f) * .5f * ampCtrl.Process();
         

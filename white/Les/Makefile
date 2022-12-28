@@ -5,7 +5,7 @@ TARGET = Les
  #LDFLAGS += -u _printf_float
 
 # Sources
-CPP_SOURCES = Les.cpp ../daisy_white.cpp
+CPP_SOURCES = Les.cpp oscillator_lfo.cpp ../daisy_white.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy
