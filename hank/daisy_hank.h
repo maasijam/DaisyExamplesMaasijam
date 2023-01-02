@@ -1,7 +1,14 @@
 #pragma once
 
 #include "daisy_seed.h"
+
+//#define EXT_OLED
+//#define EXT_POTCVUSB
+//#define EXT_AUDIOIO
+#ifdef EXT_OLED
 #include "dev/oled_ssd130x.h"
+#endif  // EXT_OLED
+
 
 
 

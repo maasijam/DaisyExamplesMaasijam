@@ -131,3 +131,77 @@ MyProjects/
 .cortex-debug.registers.state.json
 .cortex-debug.peripherals.state.json
 
+db/daisy_db.cpp
+db/daisy_db.h
+db/test/test.cpp
+db/test/Makefile
+white/Jarp - Kopie (2)/.vscode/c_cpp_properties.json
+white/Jarp - Kopie (2)/.vscode/launch.json
+white/Jarp - Kopie (2)/.vscode/settings.json
+white/Jarp - Kopie (2)/.vscode/STM32H750x.svd
+white/Jarp - Kopie (2)/.vscode/tasks.json
+white/Jarp - Kopie (2)/Jarp.cpp
+white/Jarp - Kopie (2)/Jarp.h
+white/Jarp - Kopie (2)/lib/ev_gui/CHANGELOG.md
+white/Jarp - Kopie (2)/lib/ev_gui/gui.h
+white/Jarp - Kopie (2)/lib/ev_gui/menu.cpp
+white/Jarp - Kopie (2)/lib/ev_gui/menu.h
+white/Jarp - Kopie (2)/lib/ev_gui/menuitem.cpp
+white/Jarp - Kopie (2)/lib/ev_gui/menuitem.h
+white/Jarp - Kopie (2)/lib/ev_gui/menuItemInt.cpp
+white/Jarp - Kopie (2)/lib/ev_gui/menuItemInt.h
+white/Jarp - Kopie (2)/lib/ev_gui/patchGui.cpp
+white/Jarp - Kopie (2)/lib/ev_gui/patchGui.h
+white/Jarp - Kopie (2)/lib/ev_gui/README.md
+white/Jarp - Kopie (2)/lib/ev_sequencer/sequencer.cpp
+white/Jarp - Kopie (2)/lib/ev_sequencer/sequencer.h
+white/Jarp - Kopie (2)/lib/ev_theory/arp.cpp
+white/Jarp - Kopie (2)/lib/ev_theory/arp.h
+white/Jarp - Kopie (2)/lib/ev_theory/CHANGELOG.md
+white/Jarp - Kopie (2)/lib/ev_theory/chord.cpp
+white/Jarp - Kopie (2)/lib/ev_theory/chord.h
+white/Jarp - Kopie (2)/lib/ev_theory/README.md
+white/Jarp - Kopie (2)/lib/ev_theory/rhythm.cpp
+white/Jarp - Kopie (2)/lib/ev_theory/rhythm.h
+white/Jarp - Kopie (2)/lib/ev_theory/theory.cpp
+white/Jarp - Kopie (2)/lib/ev_theory/theory.h
+white/Jarp - Kopie (2)/Makefile
+white/Jarp - Kopie (2)/README.md
+white/Jarp - Kopie (2)/resources.h
+losp/pcm3060/Makefile
+losp/pcm3060/pcm3060.cpp
+white/Jarparp/.vscode/c_cpp_properties.json
+white/Jarparp/.vscode/launch.json
+white/Jarparp/.vscode/settings.json
+white/Jarparp/.vscode/STM32H750x.svd
+white/Jarparp/.vscode/tasks.json
+white/Jarparp/Jarp.cpp
+white/Jarparp/Jarp.h
+white/Jarparp/lib/ev_gui/CHANGELOG.md
+white/Jarparp/lib/ev_gui/gui.h
+white/Jarparp/lib/ev_gui/menu.cpp
+white/Jarparp/lib/ev_gui/menu.h
+white/Jarparp/lib/ev_gui/menuitem.cpp
+white/Jarparp/lib/ev_gui/menuitem.h
+white/Jarparp/lib/ev_gui/menuItemInt.cpp
+white/Jarparp/lib/ev_gui/menuItemInt.h
+white/Jarparp/lib/ev_gui/patchGui.cpp
+white/Jarparp/lib/ev_gui/patchGui.h
+white/Jarparp/lib/ev_gui/README.md
+white/Jarparp/lib/ev_sequencer/sequencer.cpp
+white/Jarparp/lib/ev_sequencer/sequencer.h
+white/Jarparp/lib/ev_theory/arp.cpp
+white/Jarparp/lib/ev_theory/arp.h
+white/Jarparp/lib/ev_theory/CHANGELOG.md
+white/Jarparp/lib/ev_theory/chord.cpp
+white/Jarparp/lib/ev_theory/chord.h
+white/Jarparp/lib/ev_theory/README.md
+white/Jarparp/lib/ev_theory/rhythm.cpp
+white/Jarparp/lib/ev_theory/rhythm.h
+white/Jarparp/lib/ev_theory/theory.cpp
+white/Jarparp/lib/ev_theory/theory.h
+white/Jarparp/Makefile
+white/Jarparp/README.md
+white/Jarparp/resources.h
+libDaisy
+libDaisy

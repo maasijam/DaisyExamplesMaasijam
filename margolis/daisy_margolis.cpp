@@ -3,6 +3,17 @@
 
 using namespace daisy;
 
+/** @brief global USB host handle accessor 
+ *  This is left global so that it is guaranteed to be within the AXI SRAM
+ *  with the aurora_sram.lds linker file.
+ */
+daisy::USBHostHandle usb;
+
+/** @brief global accessor to the FatFS interface. 
+ *  This is left global so that it is guaranteed to be within the AXI SRAM
+ *  with the aurora_sram.lds linker file.
+ */
+daisy::FatFSInterface fatfs_interface2;
 
 // MARGOLIS Pins
 #define PIN_S1 0
@@ -59,6 +70,8 @@ enum LedOrder
     LED_LAST = 27,
 };
 
+
+
 /** @brief const used internally within Firmware to manage buffer memory 
  *  This can be safely exceeded in custom firmware.
  */
@@ -74,6 +87,8 @@ static constexpr I2CHandle::Config margolis_led_i2c_config
 static LedDriverPca9685<2, true>::DmaBuffer DMA_BUFFER_MEM_SECTION
     margolis_led_dma_buffer_a,
     margolis_led_dma_buffer_b;
+
+
 
 
 
@@ -453,3 +468,37 @@ void DaisyMargolis::InitLeds()
     UpdateLeds();
 }
 
+
+/** @brief starts the mounting process for USB Drive use if it is present
+     *
+     *  To access files from a USB drive: the connect, class_active, and disconnect
+     *  callbacks can be used to update an external state machine that can be used 
+     *  to trigger interactions with the filesystem.
+     * 
+     *  This process should be done within the main() while loop, and `usb.Process()`
+     *  should be called once per loop.
+     */
+    void PrepareMedia(
+        daisy::USBHostHandle::ConnectCallback     connect_cb      = nullptr,
+        daisy::USBHostHandle::DisconnectCallback  disconnect_cb   = nullptr,
+        daisy::USBHostHandle::ClassActiveCallback class_active_cb = nullptr,
+        daisy::USBHostHandle::ErrorCallback       error_cb        = nullptr,
+        void                                     *userdata        = nullptr)
+    {
+        /** Initialize hardware and set user callbacks */
+        daisy::USBHostHandle::Config usbcfg;
+        usbcfg.connect_callback      = connect_cb;
+        usbcfg.disconnect_callback   = disconnect_cb;
+        usbcfg.class_active_callback = class_active_cb;
+        usbcfg.error_callback        = error_cb;
+        usbcfg.userdata              = userdata;
+        usb.Init(usbcfg);
+
+        /** Prepare FatFS -- fmount will defer until first attempt to read/write */
+        daisy::FatFSInterface::Config fsi_cfg;
+        fsi_cfg.media = daisy::FatFSInterface::Config::MEDIA_USB;
+        fatfs_interface2.Init(fsi_cfg);
+        f_mount(&fatfs_interface2.GetUSBFileSystem(),
+                fatfs_interface2.GetUSBPath(),
+                0);
+    }

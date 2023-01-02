@@ -1,12 +1,21 @@
 #pragma once
+#ifndef MARGOLIS_HW_H
+#define MARGOLIS_HW_H
 
 #include "daisy_seed.h"
 
 
 
-
 namespace daisy
 {
+
+
+
+
+
+
+
+
 class DaisyMargolis
 {
   public:
@@ -23,7 +32,7 @@ class DaisyMargolis
         KNOB_LAST 
     };
 
-    enum 
+    enum CvAdcChannel
     {
         CV_1,   
         CV_2,
@@ -89,7 +98,7 @@ class DaisyMargolis
     ~DaisyMargolis() {}
 
     /** Initializes the daisy seed, and bluemchen hardware.*/
-    void Init(bool boost = false);
+    void Init(bool boost = true);
 
     /** Audio Block size defaults to 48.
   Change it using this function before StartingAudio _\param size Audio block size.
@@ -224,6 +233,8 @@ class DaisyMargolis
 
 
     float CVKnobCombo(float CV_Val,float Pot_Val);
+
+    
     
     
 
@@ -243,3 +254,4 @@ class DaisyMargolis
 };
 
 } // namespace daisy
+#endif
