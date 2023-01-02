@@ -5,7 +5,7 @@ TARGET = hwtest
  #LDFLAGS += -u _printf_float
 
 # Sources
-CPP_SOURCES = hwtest.cpp ../daisy_margolis.cpp
+CPP_SOURCES = hwtest.cpp settings.cpp ../daisy_margolis.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy

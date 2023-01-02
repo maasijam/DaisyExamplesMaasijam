@@ -2,27 +2,38 @@
 
 #include "../daisy_margolis.h"
 #include "daisysp.h"
+#include "settings.h"
 
 
 using namespace daisy;
 using namespace daisysp;
 
 
+
+
+
+
 DaisyMargolis hw;
+Settings settings;
+
+
+
+
 
 static Oscillator osc;
 Parameter  freqctrl, wavectrl, ampctrl, finectrl;
+
+
 
 
 void Update_Digital();
 void Start_Led_Ani();
 
 
-int ledcount = 0;
-int engine = 0;
-bool led1att = false;
-bool led2att = false;
-bool led3att = false;
+bool readyToSave = false;
+bool readyToRestore = false;
+
+
 
 
 struct lfoStruct
@@ -96,12 +107,13 @@ void audio_callback(AudioHandle::InputBuffer  in,
 int main(void)
 {
     hw.Init(); 
+    settings.Init(&hw);
 
     float samplerate = hw.AudioSampleRate();
     int   num_waves = Oscillator::WAVE_LAST - 1;
             	
     
-
+    
     Start_Led_Ani();
 
     osc.Init(samplerate);
@@ -127,6 +139,24 @@ int main(void)
 	{	
 		 hw.ProcessAllControls();
          Update_Digital(); 
+         if (readyToSave) {
+            /** Collect the data from where ever in the application it is */
+            settings.SaveSettings();
+            settings.SaveStateSettings();
+
+            /** And trigger the save */
+            
+            readyToSave = false;
+        }
+        if (readyToRestore) {
+            /** Collect the data from where ever in the application it is */
+            settings.RestoreSettings();
+
+            /** And trigger the save */
+            
+            readyToRestore = false;
+        }
+        
 	}
 }
 
@@ -135,68 +165,99 @@ void Update_Digital() {
 
     hw.ClearLeds();
 
-    if(hw.GateIn1()){
+    if(!hw.Gate()){
         hw.SetRGBColor(hw.LED_RGB_8,hw.blue);
     }
 
     if(hw.s[hw.S1].RisingEdge()) {
-        engine = 0;
-        ledcount++;
+        settings.engine = 0;
+        settings.ledcount++;
     }
 
     if(hw.s[hw.S2].RisingEdge()) {
-        engine = 1;
-        ledcount++;
+        settings.engine = 1;
+        settings.ledcount++;
     }
 
     if(hw.s[hw.S3].RisingEdge()) {
-        engine = 2;
-        ledcount++;
+        settings.engine = 2;
+        settings.ledcount++;
     }
     
-    if(ledcount == 8) {
-        ledcount = 0;
+    if(settings.ledcount == 8) {
+        settings.ledcount = 0;
     }
 
-    switch (engine)
+    switch (settings.engine)
     {
     case 0:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.red);
+        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(settings.ledcount),hw.red);
         break;
     case 1:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.orange);
+        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(settings.ledcount),hw.yellow);
         break;
     case 2:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.green);
+        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(settings.ledcount),hw.green);
         break;
     }
 
     if(hw.s[hw.S4].RisingEdge()) {
-        led1att = !led1att;
+        //settings.ledatt[0] = !settings.ledatt[0];
+        settings.decay++;
         
     }
-    if(led1att) {
-            hw.SetGreenLeds(hw.LED_GREEN_1,hw.knob[hw.KNOB_5].Value());
+    if(settings.decay == 2) {
+        settings.decay = 0;
+    }
+    if(settings.decay == 1) {
+            hw.SetRGBColor(hw.LED_RGB_2,hw.darkorange);
     }
 
     if(hw.s[hw.S5].RisingEdge()) {
-        led2att = !led2att;
+        settings.ledatt[1] = !settings.ledatt[1];
         
     }
-    if(led2att) {
+    if(settings.ledatt[1]) {
             hw.SetGreenLeds(hw.LED_GREEN_2,hw.knob[hw.KNOB_6].Value());
         }
 
     if(hw.s[hw.S6].RisingEdge()) {
-        led3att = !led3att;
+        settings.ledatt[2] = !settings.ledatt[2];
         
     }
-    if(led3att) {
+    if(settings.ledatt[2]) {
             hw.SetGreenLeds(hw.LED_GREEN_3,hw.knob[hw.KNOB_7].Value());
         }
     
+    if(hw.s[hw.S6].TimeHeldMs() > 1000) {
+        hw.SetRGBColor(hw.LED_RGB_1,hw.purple);
+        hw.SetRGBColor(hw.LED_RGB_2,hw.purple);
+        hw.SetRGBColor(hw.LED_RGB_3,hw.purple);
+        hw.SetRGBColor(hw.LED_RGB_4,hw.purple);
+        hw.SetRGBColor(hw.LED_RGB_5,hw.purple);
+        hw.SetRGBColor(hw.LED_RGB_6,hw.purple);
+        hw.SetRGBColor(hw.LED_RGB_7,hw.purple);
+        hw.SetRGBColor(hw.LED_RGB_8,hw.purple);
+        readyToSave = true;
+    }
+    if(hw.s[hw.S4].TimeHeldMs() > 1000) {
+        hw.SetRGBColor(hw.LED_RGB_1,hw.red);
+        hw.SetRGBColor(hw.LED_RGB_2,hw.red);
+        hw.SetRGBColor(hw.LED_RGB_3,hw.red);
+        hw.SetRGBColor(hw.LED_RGB_4,hw.red);
+        hw.SetRGBColor(hw.LED_RGB_5,hw.red);
+        hw.SetRGBColor(hw.LED_RGB_6,hw.red);
+        hw.SetRGBColor(hw.LED_RGB_7,hw.red);
+        hw.SetRGBColor(hw.LED_RGB_8,hw.red);
+        readyToRestore = true;
+    }
+
+    
+    
     
     hw.UpdateLeds();
+
+    
 }
 
 void Update_Controls() {
@@ -246,4 +307,3 @@ void Start_Led_Ani() {
     }
     
 }
-
