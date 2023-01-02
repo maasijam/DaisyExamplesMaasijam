@@ -3,10 +3,28 @@
         {
             "name": "Daisy",
             "includePath": [
-                "${workspaceFolder}/Examples/**",
-                "${workspaceFolder}/include/**",
-                "${workspaceFolder}/libs/libDaisy//**",
-                "${workspaceFolder}/libs/DaisySP//**"
+                "${workspaceFolder}/libdaisy/src",
+                "${workspaceFolder}/libdaisy/src/sys",
+                "${workspaceFolder}/libdaisy/src/usbd",
+                "${workspaceFolder}/libdaisy/Drivers/CMSIS/Include",
+                "${workspaceFolder}/libdaisy/Drivers/CMSIS/Device/ST/STM32H7xx/Include",
+                "${workspaceFolder}/libdaisy/Drivers/STM32H7xx_HAL_Driver/Inc",
+                "${workspaceFolder}/libdaisy/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy",
+                "${workspaceFolder}/libdaisy/Middlewares/ST/STM32_USB_Device_Library/Core/Inc",
+                "${workspaceFolder}/libdaisy/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc",
+                "${workspaceFolder}/libdaisy/Middlewares/Third_Party/FatFs/src",
+                "${workspaceFolder}/libdaisy",
+                "d:/work/programming/dsp/Eigen/eigen-3.3.8",
+                "${workspaceFolder}/libdaisy/Drivers/CMSIS/DSP/Include",
+                "${workspaceFolder}/DaisySP",
+                "${workspaceFolder}/DaisySP/examples/fastconv",
+                "${workspaceFolder}/libdaisy/src/hid",
+                "D:/WORK/PROGRAMMING/DSP/_DAISY/DAISYEXAMPLES/DAISYSP/EXAMPLES/FASTCONV",
+                "${workspaceFolder}/DaisySP/tests/fastconv",
+                "${workspaceFolder}/DaisySP/tests/util",
+                "${workspaceFolder}/DaisySP/modules",
+                "${workspaceFolder}/DaisySP/Source",
+                "${workspaceFolder}/DaisySP/tests/util"
             ],
             "defines": [
                 "CORE_CM7",
@@ -36,7 +54,8 @@
                 "-mfpu=fpv5-d16",
                 "-mfloat-abi=hard",
                 "-mthumb"
-            ]
+            ],
+            "configurationProvider": "ms-vscode.makefile-tools"
         }
     ],
     "version": 4

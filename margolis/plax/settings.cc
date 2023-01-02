@@ -92,10 +92,11 @@ void Settings::LoadPersistentData(PersistentData* persistent_data)
     daisy::PersistentStorage<PersistentData> persistent_storage(hw_->seed.qspi);
     PersistentData default_settings;
     persistent_storage.Init(default_settings, FLASH_BLOCK);
-    // &persistent_data = persistent_storage.GetSettings();
+    //&persistent_data = persistent_storage.GetSettings();
     
     //SetSettingsData(settings_data.ledcount,settings_data.engine);
     //SetAttData(settings_data.ledatt);
+    
     
 }
 
