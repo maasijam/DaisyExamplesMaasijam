@@ -12,50 +12,31 @@ void Settings::Init(DaisyMargolis* hw) {
 }
 
  /** @brief Sets the cv offset from an externally array of data */
-inline void Settings::SetSettingsData(int ledcnt, int eng)
+inline void Settings::SetSettingsData(HwtestSettings hwsettings)
 {
-    ledcount = ledcnt;
-    engine = eng;
+    hwtest_settings_ = hwsettings;
     
-}
- /** @brief Sets the cv offset from an externally array of data */
-inline void Settings::SetAttData(bool *ledatts)
-{
-    
-    for(int i = 0; i < 3; i++)
-        {
-            ledatt[i] = ledatts[i];
-        }
 }
 
+
  /** @brief Sets the cv offset from an externally array of data */
-inline void Settings::SetStateSettingsData(uint8_t dec)
+inline void Settings::SetStateSettingsData(StateSettings stateset)
 {
-    decay = dec;
+    state_settings_ = stateset;
       
 }
 
 /** @brief Sets the cv offset from an externally array of data */
-inline void Settings::GetSettingsData(int &ledcnt, int &eng)
+inline void Settings::GetSettingsData(HwtestSettings &hwsettings)
 {
-    ledcnt = ledcount;
-    eng = engine;
+    hwsettings = hwtest_settings_;
     
-}
- /** @brief Sets the cv offset from an externally array of data */
-inline void Settings::GetAttData(bool *ledatts)
-{
-    
-    for(int i = 0; i < 3; i++)
-        {
-            ledatts[i] = ledatt[i];
-        }
 }
 
 /** @brief Sets the cv offset from an externally array of data */
-inline void Settings::GetStateSettingsData(uint8_t &dec)
+inline void Settings::GetStateSettingsData(StateSettings &stateset)
 {
-    dec = decay;
+    stateset = state_settings_;
        
 }
 
@@ -66,13 +47,13 @@ inline void Settings::GetStateSettingsData(uint8_t &dec)
 /** @brief Loads and sets settings data */
 void Settings::LoadSettings()
 {
-    daisy::PersistentStorage<MargolisSettings> settings_storage(hw_->seed.qspi);
-    MargolisSettings default_settings;
+    daisy::PersistentStorage<HwtestSettings> settings_storage(hw_->seed.qspi);
+    HwtestSettings default_settings;
     settings_storage.Init(default_settings, FLASH_BLOCK);
-    auto &settings_data = settings_storage.GetSettings();
+    HwtestSettings &settings_data = settings_storage.GetSettings();
     
-    SetSettingsData(settings_data.ledcount,settings_data.engine);
-    SetAttData(settings_data.ledatt);
+    SetSettingsData(settings_data);
+    //SetAttData(settings_data.ledatt);
     
 }
 
@@ -82,20 +63,20 @@ void Settings::LoadStateSettings()
     daisy::PersistentStorage<StateSettings> settings_storage(hw_->seed.qspi);
     StateSettings default_settings;
     settings_storage.Init(default_settings, FLASH_BLOCK*2);
-    auto &settings_data = settings_storage.GetSettings();
+    StateSettings &settings_data = settings_storage.GetSettings();
     
-    SetStateSettingsData(settings_data.decay);
+    SetStateSettingsData(settings_data);
         
 }
 
 void Settings::SaveSettings()
 {
-    daisy::PersistentStorage<MargolisSettings> settings_storage(hw_->seed.qspi);
-    MargolisSettings default_settings;
+    daisy::PersistentStorage<HwtestSettings> settings_storage(hw_->seed.qspi);
+    HwtestSettings default_settings;
     settings_storage.Init(default_settings, FLASH_BLOCK);
-    auto &settings_data = settings_storage.GetSettings();
-    GetSettingsData(settings_data.ledcount,settings_data.engine);
-    GetAttData(settings_data.ledatt);
+    HwtestSettings &settings_data = settings_storage.GetSettings();
+    GetSettingsData(settings_data);
+    
     settings_storage.Save();
     
 }
@@ -105,17 +86,21 @@ void Settings::SaveStateSettings()
     daisy::PersistentStorage<StateSettings> settings_storage(hw_->seed.qspi);
     StateSettings default_settings;
     settings_storage.Init(default_settings, FLASH_BLOCK*2);
-    auto &settings_data = settings_storage.GetSettings();
-    GetStateSettingsData(settings_data.decay);
+    StateSettings &settings_data = settings_storage.GetSettings();
+    GetStateSettingsData(settings_data);
     settings_storage.Save();
     
 }
 
 void Settings::RestoreSettings()
 {
-    daisy::PersistentStorage<MargolisSettings> settings_storage(hw_->seed.qspi);
-    MargolisSettings default_settings;
+    daisy::PersistentStorage<HwtestSettings> settings_storage(hw_->seed.qspi);
+    HwtestSettings default_settings;
     settings_storage.Init(default_settings, FLASH_BLOCK);
     settings_storage.RestoreDefaults();
     
 }
+
+
+//HwtestSettings hwtest_settings_;
+//StateSettings state_settings_;

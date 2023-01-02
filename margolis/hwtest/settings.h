@@ -13,15 +13,15 @@ using namespace daisy;
   *  the initialization list, or manually set before
   *  calling the "PesistentStorage::Init" function.
 */
-struct MargolisSettings 
+struct HwtestSettings 
 { 
-    MargolisSettings() : ledcount(0), engine(0), ledatt{false} {}
+    HwtestSettings() : ledcount(0), engine(0), ledatt{false} {}
     int ledcount, engine;
     bool ledatt[3];
 
 
     /** @brief checks sameness */
-    bool operator==(const MargolisSettings &rhs)
+    bool operator==(const HwtestSettings &rhs)
     {
         if(ledcount != rhs.ledcount)
         {
@@ -44,7 +44,7 @@ struct MargolisSettings
     }
 
     /** @brief Not equal operator */
-    bool operator!=(const MargolisSettings &rhs) { return !operator==(rhs); }
+    bool operator!=(const HwtestSettings &rhs) { return !operator==(rhs); }
 };
 
 struct StateSettings {
@@ -83,22 +83,40 @@ class Settings {
     uint8_t decay;
   
    /** @brief Sets the cv offset from an externally array of data */
-    inline void SetSettingsData(int ledcnt, int eng);
+    inline void SetSettingsData(HwtestSettings hwsettings);
     /** @brief Sets the cv offset from an externally array of data */
-    inline void SetAttData(bool *ledatts);
+    //inline void SetAttData(bool *ledatts);
+     /** @brief Sets the cv offset from an externally array of data */
+    inline void SetStateSettingsData(StateSettings stateset);
 
     /** @brief Sets the cv offset from an externally array of data */
-    inline void GetSettingsData(int &ledcnt, int &eng);
+    inline void GetSettingsData(HwtestSettings &hwsettings);
     /** @brief Sets the cv offset from an externally array of data */
-    inline void GetAttData(bool *ledatts);
+    //inline void GetAttData(bool *ledatts);
+    /** @brief Sets the cv offset from an externally array of data */
+    inline void GetStateSettingsData(StateSettings &stateset);
 
-    /** @brief Sets the cv offset from an externally array of data */
-    inline void GetStateSettingsData(uint8_t &dec);
-    /** @brief Sets the cv offset from an externally array of data */
-    inline void SetStateSettingsData(uint8_t dec);
+    inline const HwtestSettings& hwtestsettings() const {
+        return hwtest_settings_;
+    }
+
+    inline HwtestSettings* margolis_hwtestsettings() {
+        return &hwtest_settings_;
+    }
+    
+    inline const StateSettings& statesettings() const {
+        return state_settings_;
+    }
+
+    inline StateSettings* margolis_statesettings() {
+        return &state_settings_;
+    }
+   
   
  private:
     DaisyMargolis* hw_;
+    HwtestSettings hwtest_settings_;
+    StateSettings state_settings_;
     
 };
 

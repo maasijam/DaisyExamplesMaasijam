@@ -3,6 +3,7 @@ TARGET = hwtest
 
  #DEBUG = 1
  #LDFLAGS += -u _printf_float
+ APP_TYPE = BOOT_NONE
 
 # Sources
 CPP_SOURCES = hwtest.cpp settings.cpp ../daisy_margolis.cpp

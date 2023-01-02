@@ -37,7 +37,7 @@
                 "USE_FULL_LL_DRIVER"
             ],
             "windowsSdkVersion": "",
-            "compilerPath": "C:\\Program Files (x86)\\GNU Arm Embedded Toolchain\\9 2020-q2-update\\bin\\arm-none-eabi-g++.exe",
+            "compilerPath": "C:\\Program Files (x86)\\GNU Arm Embedded Toolchain\\10 2020-q4-major\\bin\\arm-none-eabi-g++.exe",
             "cStandard": "gnu11",
             "cppStandard": "gnu++14",
             "intelliSenseMode": "gcc-arm",
@@ -54,8 +54,7 @@
                 "-mfpu=fpv5-d16",
                 "-mfloat-abi=hard",
                 "-mthumb"
-            ],
-            "configurationProvider": "ms-vscode.makefile-tools"
+            ]
         }
     ],
     "version": 4

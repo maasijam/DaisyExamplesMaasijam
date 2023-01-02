@@ -10,12 +10,6 @@ namespace daisy
 {
 
 
-
-
-
-
-
-
 class DaisyMargolis
 {
   public:
@@ -97,7 +91,7 @@ class DaisyMargolis
     /** Destructor */
     ~DaisyMargolis() {}
 
-    /** Initializes the daisy seed, and bluemchen hardware.*/
+    /** Initializes the daisy seed.*/
     void Init(bool boost = true);
 
     /** Audio Block size defaults to 48.

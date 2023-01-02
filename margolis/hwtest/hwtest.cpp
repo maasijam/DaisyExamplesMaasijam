@@ -28,6 +28,10 @@ Parameter  freqctrl, wavectrl, ampctrl, finectrl;
 
 void Update_Digital();
 void Start_Led_Ani();
+void LoadSettings();
+void LoadState();
+void SaveSettings();
+void SaveState();
 
 
 bool readyToSave = false;
@@ -50,7 +54,7 @@ struct lfoStruct
     {
         osc_lfo.Init(samplerate);
         osc_lfo.SetAmp(1);
-        waveform = osc_lfo.WAVE_SQUARE;
+        waveform = osc_lfo.WAVE_SIN;
         rateCtrl.Init(rateKnob, .1, 35, Parameter::LOGARITHMIC);
         levelCtrl.Init(levelKnob, 0, 1, Parameter::LINEAR);
     }
@@ -69,6 +73,23 @@ struct lfoStruct
 };
 
 lfoStruct lfo;
+
+/*
+struct hwtestSettings 
+{ 
+    hwtestSettings() : ledcount(0), engine(0), ledatt{false}, decay(0) {}
+    int ledcount, engine;
+    bool ledatt[3];
+    uint8_t decay;
+    
+};
+
+hwtestSettings settings;
+*/
+
+int ledcount, engine;
+bool ledatt[3];
+uint8_t decay;
 
 void audio_callback(AudioHandle::InputBuffer  in,
                    AudioHandle::OutputBuffer out,
@@ -109,6 +130,9 @@ int main(void)
     hw.Init(); 
     settings.Init(&hw);
 
+    LoadSettings();
+    LoadState();
+
     float samplerate = hw.AudioSampleRate();
     int   num_waves = Oscillator::WAVE_LAST - 1;
             	
@@ -121,12 +145,12 @@ int main(void)
 
     // Set parameters for oscillator
     osc.SetWaveform(osc.WAVE_SAW);
-    osc.SetFreq(600);
+    osc.SetFreq(30);
     osc.SetAmp(0.75);
 
     lfo.Init(samplerate, hw.knob[4], hw.knob[5]);
 
-    freqctrl.Init(hw.cv[hw.CV_VOCT], 10.0, 110.0f, Parameter::LINEAR);
+    freqctrl.Init(hw.knob[hw.KNOB_1], 10.0, 110.0f, Parameter::LINEAR);
     finectrl.Init(hw.knob[hw.KNOB_2], 0.f, 7.f, Parameter::LINEAR);
     wavectrl.Init(hw.knob[hw.KNOB_3], 0.0, num_waves, Parameter::LINEAR);
     ampctrl.Init(hw.knob[hw.KNOB_4], 0.0, 0.5f, Parameter::LINEAR);
@@ -138,11 +162,11 @@ int main(void)
 	while(1)
 	{	
 		 hw.ProcessAllControls();
-         Update_Digital(); 
+        Update_Digital(); 
          if (readyToSave) {
             /** Collect the data from where ever in the application it is */
-            settings.SaveSettings();
-            settings.SaveStateSettings();
+            SaveSettings();
+            SaveState();
 
             /** And trigger the save */
             
@@ -170,62 +194,62 @@ void Update_Digital() {
     }
 
     if(hw.s[hw.S1].RisingEdge()) {
-        settings.engine = 0;
-        settings.ledcount++;
+        engine = 0;
+        ledcount++;
     }
 
     if(hw.s[hw.S2].RisingEdge()) {
-        settings.engine = 1;
-        settings.ledcount++;
+        engine = 1;
+        ledcount++;
     }
 
     if(hw.s[hw.S3].RisingEdge()) {
-        settings.engine = 2;
-        settings.ledcount++;
+        engine = 2;
+        ledcount++;
     }
     
-    if(settings.ledcount == 8) {
-        settings.ledcount = 0;
+    if(ledcount == 8) {
+        ledcount = 0;
     }
 
-    switch (settings.engine)
+    switch (engine)
     {
     case 0:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(settings.ledcount),hw.red);
+        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.red);
         break;
     case 1:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(settings.ledcount),hw.yellow);
+        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.yellow);
         break;
     case 2:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(settings.ledcount),hw.green);
+        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.green);
         break;
     }
 
     if(hw.s[hw.S4].RisingEdge()) {
         //settings.ledatt[0] = !settings.ledatt[0];
-        settings.decay++;
+        decay++;
         
     }
-    if(settings.decay == 2) {
-        settings.decay = 0;
+    if(decay == 2) {
+        decay = 0;
     }
-    if(settings.decay == 1) {
+    if(decay == 1) {
             hw.SetRGBColor(hw.LED_RGB_2,hw.darkorange);
     }
 
     if(hw.s[hw.S5].RisingEdge()) {
-        settings.ledatt[1] = !settings.ledatt[1];
+        ledatt[1] = !ledatt[1];
         
     }
-    if(settings.ledatt[1]) {
+    if(ledatt[1]) {
             hw.SetGreenLeds(hw.LED_GREEN_2,hw.knob[hw.KNOB_6].Value());
         }
 
     if(hw.s[hw.S6].RisingEdge()) {
-        settings.ledatt[2] = !settings.ledatt[2];
+        ledatt[2] = !ledatt[2];
         
     }
-    if(settings.ledatt[2]) {
+    if(ledatt[2]) {
             hw.SetGreenLeds(hw.LED_GREEN_3,hw.knob[hw.KNOB_7].Value());
         }
     
@@ -306,4 +330,40 @@ void Start_Led_Ani() {
         hw.DelayMs(100);
     }
     
+}
+
+void LoadSettings(){
+    const HwtestSettings& hwtestsettings = settings.hwtestsettings();
+    ledcount = hwtestsettings.ledcount;
+    engine = hwtestsettings.engine;
+    
+    for(int i = 0; i < 3; i++)
+    {
+        ledatt[i] = hwtestsettings.ledatt[i];
+    }
+}
+
+void LoadState(){
+    const StateSettings& statesettings = settings.statesettings();
+    decay = statesettings.decay;
+}
+
+void SaveSettings(){
+    HwtestSettings* hwtestsettings = settings.margolis_hwtestsettings();
+    hwtestsettings->ledcount = ledcount;
+    hwtestsettings->engine = engine;
+    
+    for(int i = 0; i < 3; i++)
+    {
+        hwtestsettings->ledatt[i] = ledatt[i];
+    }
+    
+    settings.SaveSettings();
+}
+
+void SaveState(){
+    StateSettings* statesettings = settings.margolis_statesettings();
+    statesettings->decay = decay;
+    
+    settings.SaveStateSettings();
 }
