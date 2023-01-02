@@ -8,23 +8,11 @@
 using namespace daisy;
 using namespace daisysp;
 
-
-
-
-
-
 DaisyMargolis hw;
 Settings settings;
 
-
-
-
-
 static Oscillator osc;
 Parameter  freqctrl, wavectrl, ampctrl, finectrl;
-
-
-
 
 void Update_Digital();
 void Start_Led_Ani();
@@ -36,8 +24,6 @@ void SaveState();
 
 bool readyToSave = false;
 bool readyToRestore = false;
-
-
 
 
 struct lfoStruct
@@ -74,18 +60,6 @@ struct lfoStruct
 
 lfoStruct lfo;
 
-/*
-struct hwtestSettings 
-{ 
-    hwtestSettings() : ledcount(0), engine(0), ledatt{false}, decay(0) {}
-    int ledcount, engine;
-    bool ledatt[3];
-    uint8_t decay;
-    
-};
-
-hwtestSettings settings;
-*/
 
 int ledcount, engine;
 bool ledatt[3];
