@@ -51,6 +51,39 @@ struct ChannelCalibrationData {
 };
 
 struct PersistentData {
+  
+  PersistentData() {
+  
+  channel_calibration_data[0].offset = 0.025f;
+  channel_calibration_data[0].scale = -1.03f;
+  channel_calibration_data[0].normalization_detection_threshold = 0;
+  
+  channel_calibration_data[6].offset = 25.71;
+  channel_calibration_data[6].scale = -60.0f;
+  channel_calibration_data[6].normalization_detection_threshold = 0;
+
+  channel_calibration_data[2].offset = 0.0f;
+  channel_calibration_data[2].scale = -60.0f;
+  channel_calibration_data[2].normalization_detection_threshold = -2945;
+
+  channel_calibration_data[4].offset = 0.0f;
+  channel_calibration_data[4].scale = -1.0f;
+  channel_calibration_data[4].normalization_detection_threshold = 0;
+
+  channel_calibration_data[1].offset = 0.0f;
+  channel_calibration_data[1].scale = -1.6f;
+  channel_calibration_data[1].normalization_detection_threshold = -2945;
+
+  channel_calibration_data[3].offset = 0.0f;
+  channel_calibration_data[3].scale = -1.6f;
+  channel_calibration_data[3].normalization_detection_threshold = -2945;
+
+  channel_calibration_data[5].offset = 0.49f;
+  channel_calibration_data[5].scale = -0.6f;
+  channel_calibration_data[5].normalization_detection_threshold = 21403;
+  }
+  
+  
   ChannelCalibrationData channel_calibration_data[DaisyMargolis::CV_LAST];
   uint8_t padding[16];
   enum { tag = 0x494C4143 };  // 
@@ -68,12 +101,30 @@ struct PersistentData {
 };
 
 struct State {
+
+  /*() : 
+  engine(3), 
+  lpg_colour(0), 
+  decay(128),
+  octave(255),
+  color_blind(0) {}*/
+
+  State() { 
+  engine = 7;
+  lpg_colour = 0; 
+  decay  = 128;
+  octave = 255;
+  color_blind = 0;
+  };
+
+
   uint8_t engine;
   uint8_t lpg_colour;
   uint8_t decay;
   uint8_t octave;
   uint8_t color_blind;
   uint8_t padding[3];
+
   enum { tag = 0x54415453 };  // STAT
 
   /**@brief checks sameness */
@@ -96,8 +147,22 @@ class Settings {
 
   void SavePersistentData();
   void SaveState();
-  void LoadPersistentData(PersistentData* persistent_data);
-  void LoadState(State* state_data);
+  void LoadPersistentData();
+  void LoadState();
+
+  /** @brief Sets the cv offset from an externally array of data */
+  inline void SetPersistentData(PersistentData pdata);
+  /** @brief Sets the cv offset from an externally array of data */
+  //inline void SetAttData(bool *ledatts);
+    /** @brief Sets the cv offset from an externally array of data */
+  inline void SetStateData(State statedata);
+
+  /** @brief Sets the cv offset from an externally array of data */
+  inline void GetPersistentData(PersistentData &pdata);
+  /** @brief Sets the cv offset from an externally array of data */
+  //inline void GetAttData(bool *ledatts);
+  /** @brief Sets the cv offset from an externally array of data */
+  inline void GetStateData(State &statedata);
 
   
   inline const ChannelCalibrationData& calibration_data(int channel) const {

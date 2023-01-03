@@ -55,10 +55,7 @@ enum UiMode {
   UI_MODE_ERROR
 };
 
-enum PlaitsSwitch {
-  SWITCH_1 = 0,
-  SWITCH_2 = 2
-};
+
 
 enum PlaitsPatched {
   TIMBRE_PATCHED,

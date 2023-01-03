@@ -216,19 +216,24 @@ void Ui::UpdateLEDs() {
 }
 
 void Ui::ReadSwitches() {
-  hw_->ProcessDigitalControls();
+
+  //hw_->ProcessDigitalControls();
+  //hw_->s[hw_->S1].Debounce();
+  //hw_->s[hw_->S3].Debounce();
+
+  int s_pins[2] = {hw_->S1,hw_->S3};
   
   switch (mode_) {
     case UI_MODE_NORMAL:
       {
         for (int i = 0; i < 2; ++i) {
           //if (switches_.just_pressed(Switch(i))) {
-          if (hw_->s[PlaitsSwitch(i)].RisingEdge()) {
+          if (hw_->s[s_pins[i]].RisingEdge()) {
             press_time_[i] = 0;
             ignore_release_[i] = false;
           }
           //if (switches_.pressed(Switch(i))) {
-          if (hw_->s[PlaitsSwitch(i)].Pressed()) {
+          if (hw_->s[s_pins[i]].Pressed()) {
             ++press_time_[i];
           } else {
             press_time_[i] = 0;
@@ -236,11 +241,11 @@ void Ui::ReadSwitches() {
         }
         
         //if (switches_.just_pressed(Switch(0))) {
-        if (hw_->s[PlaitsSwitch(0)].RisingEdge()) {
+        if (hw_->s[hw_->S1].RisingEdge()) {
           pots_[hw_->KNOB_3].Lock();
           pots_[hw_->KNOB_4].Lock();
         }
-        if (hw_->s[PlaitsSwitch(1)].RisingEdge()) {
+        if (hw_->s[hw_->S3].RisingEdge()) {
         //if (switches_.just_pressed(Switch(1))) {
           pots_[hw_->KNOB_2].Lock();
         }
@@ -274,7 +279,7 @@ void Ui::ReadSwitches() {
         }
         
         //if (switches_.released(Switch(0)) && !ignore_release_[0]) {
-        if (hw_->s[PlaitsSwitch(0)].FallingEdge() && !ignore_release_[0]) {
+        if (hw_->s[hw_->S1].FallingEdge() && !ignore_release_[0]) {
           RealignPots();
           if (patch_->engine >= 8) {
             patch_->engine = patch_->engine & 7;
@@ -285,7 +290,7 @@ void Ui::ReadSwitches() {
         }
   
         //if (switches_.released(Switch(1)) && !ignore_release_[1]) {
-        if (hw_->s[PlaitsSwitch(1)].FallingEdge() && !ignore_release_[1]) {
+        if (hw_->s[hw_->S3].FallingEdge() && !ignore_release_[1]) {
           RealignPots();
           if (patch_->engine < 8) {
             patch_->engine = (patch_->engine & 7) + 8;
@@ -301,7 +306,7 @@ void Ui::ReadSwitches() {
     case UI_MODE_DISPLAY_OCTAVE:
       for (int i = 0; i < 2; ++i) {
         //if (switches_.released(Switch(i))) {
-        if (hw_->s[PlaitsSwitch(i)].FallingEdge()) {
+        if (hw_->s[s_pins[i]].FallingEdge()) {
           pots_[hw_->KNOB_3].Unlock();
           pots_[hw_->KNOB_4].Unlock();
           pots_[hw_->KNOB_2].Unlock();
@@ -314,7 +319,7 @@ void Ui::ReadSwitches() {
     case UI_MODE_CALIBRATION_C1:
       for (int i = 0; i < 2; ++i) {
         //if (switches_.just_pressed(Switch(i))) {
-        if (hw_->s[PlaitsSwitch(i)].RisingEdge()) {
+        if (hw_->s[s_pins[i]].RisingEdge()) {
           press_time_[i] = 0;
           ignore_release_[i] = true;
           CalibrateC1();
@@ -326,7 +331,7 @@ void Ui::ReadSwitches() {
     case UI_MODE_CALIBRATION_C3:
       for (int i = 0; i < 2; ++i) {
         //if (switches_.just_pressed(Switch(i))) {
-        if (hw_->s[PlaitsSwitch(i)].RisingEdge()) {
+        if (hw_->s[s_pins[i]].RisingEdge()) {
           press_time_[i] = 0;
           ignore_release_[i] = true;
           CalibrateC3();
@@ -339,7 +344,7 @@ void Ui::ReadSwitches() {
     case UI_MODE_ERROR:
       for (int i = 0; i < 2; ++i) {
         //if (switches_.just_pressed(Switch(i))) {
-        if (hw_->s[PlaitsSwitch(i)].RisingEdge()) {
+        if (hw_->s[s_pins[i]].RisingEdge()) {
           press_time_[i] = 0;
           ignore_release_[i] = true;
           mode_ = UI_MODE_NORMAL;
@@ -364,6 +369,7 @@ const DaisyMargolis::CvAdcChannel Ui::normalized_channels_[] = {
 
 void Ui::DetectNormalization() {
   ////////////////////////////////// TODO //////////////////////////////////////////////////
+  //hw_->ProcessDigitalControls();
   if(hw_->s[hw_->S4].RisingEdge()) {
     isPatched[TIMBRE_PATCHED] = !isPatched[TIMBRE_PATCHED]; 
   }
@@ -388,27 +394,33 @@ void Ui::DetectNormalization() {
       modulations_->morph_patched = true;
   }
 
+  modulations_->trigger = 5.f * !hw_->gate_in.State();
   modulations_->trigger_patched = true;
-  modulations_->level_patched  = true;
+  //modulations_->level_patched  = true;
 
 }
 
 void Ui::Poll() {
+
+  //hw_->ProcessAnalogControls();
+  
+
   for (int i = 0; i < hw_->KNOB_LAST; ++i) {
-    pots_[i].ProcessControlRate(hw_->knob[i].Value());
+    pots_[i].ProcessControlRate(hw_->seed.adc.GetMuxFloat(7,i));
   }
   
   float* destination = &modulations_->engine;
   for (int i = 0; i < hw_->CV_LAST; ++i) {
     destination[i] = settings_->calibration_data(i).Transform(
         //cv_adc_.float_value(CvAdcChannel(i)));
-        hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value());
+        //hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value());
+        hw_->seed.adc.GetFloat(i));
   }
   
   ONE_POLE(pitch_lp_, modulations_->note, 0.7f);
   ONE_POLE(
       //pitch_lp_calibration_, cv_adc_.float_value(hw_->CV_VOCT), 0.1f);
-      pitch_lp_calibration_, hw_->cv[hw_->CV_VOCT].Value(), 0.1f);
+      pitch_lp_calibration_, hw_->seed.adc.GetFloat(hw_->CV_VOCT), 0.1f);
   modulations_->note = pitch_lp_;
   
   ui_task_ = (ui_task_ + 1) % 4;

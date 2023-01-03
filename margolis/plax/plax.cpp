@@ -24,6 +24,10 @@
 
 #include "../daisy_margolis.h"
 #include "daisysp.h"
+#include "dsp/dsp.h"
+#include "dsp/voice.h"
+#include "settings.h"
+#include "ui.h"
 
 
 using namespace daisy;
@@ -32,11 +36,6 @@ using namespace daisysp;
 DaisyMargolis hw;
 
 
-
-#include "dsp/dsp.h"
-#include "dsp/voice.h"
-#include "settings.h"
-#include "ui.h"
 
 using namespace plaits;
 using namespace stmlib;
@@ -55,6 +54,7 @@ Ui ui;
 Voice voice;
 
 
+
 char shared_buffer[16384] = {};
 
 #define BLOCK_SIZE 16
@@ -62,11 +62,10 @@ plaits::Voice::Frame outputPlaits[BLOCK_SIZE];
 
 void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) {
 
- 
+  hw.ProcessAllControls();
   ui.Poll();
   
-  //modulations.trigger = 5.f * hw.gate_in.State();
-  //modulations.trigger_patched = true;
+  
   voice.Render(patch, modulations, outputPlaits, BLOCK_SIZE);
 
 	for (size_t i = 0; i < size; i++) {
