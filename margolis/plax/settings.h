@@ -110,7 +110,7 @@ struct State {
   color_blind(0) {}*/
 
   State() { 
-  engine = 7;
+  engine = 0;
   lpg_colour = 0; 
   decay  = 128;
   octave = 255;

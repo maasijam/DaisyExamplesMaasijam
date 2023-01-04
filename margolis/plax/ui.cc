@@ -97,7 +97,8 @@ void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyM
 
 void Ui::LoadState() {
   const State& state = settings_->state();
-  patch_->engine = state.engine;
+  //patch_->engine = state.engine;
+  patch_->engine = 0;
   patch_->lpg_colour = static_cast<float>(state.lpg_colour) / 256.0f;
   patch_->decay = static_cast<float>(state.decay) / 256.0f;
   octave_ = static_cast<float>(state.octave) / 256.0f;
@@ -217,7 +218,7 @@ void Ui::UpdateLEDs() {
 
 void Ui::ReadSwitches() {
 
-  //hw_->ProcessDigitalControls();
+  hw_->ProcessDigitalControls();
   //hw_->s[hw_->S1].Debounce();
   //hw_->s[hw_->S3].Debounce();
 
@@ -280,24 +281,24 @@ void Ui::ReadSwitches() {
         
         //if (switches_.released(Switch(0)) && !ignore_release_[0]) {
         if (hw_->s[hw_->S1].FallingEdge() && !ignore_release_[0]) {
-          RealignPots();
+//          RealignPots();
           if (patch_->engine >= 8) {
             patch_->engine = patch_->engine & 7;
           } else {
             patch_->engine = (patch_->engine + 1) % 8;
           }
-          SaveState();
+//          SaveState();
         }
   
         //if (switches_.released(Switch(1)) && !ignore_release_[1]) {
         if (hw_->s[hw_->S3].FallingEdge() && !ignore_release_[1]) {
-          RealignPots();
+//          RealignPots();
           if (patch_->engine < 8) {
             patch_->engine = (patch_->engine & 7) + 8;
           } else {
             patch_->engine = 8 + ((patch_->engine + 1) % 8);
           }
-          SaveState();
+//          SaveState();
         }
       }
       break;
@@ -477,7 +478,8 @@ void Ui::CalibrateC1() {
     if (i != hw_->CV_VOCT) {
       ChannelCalibrationData* c = settings_->mutable_calibration_data(i);
       //c->offset = -cv_adc_.float_value(CvAdcChannel(i)) * c->scale;
-      c->offset = -hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value() * c->scale;
+      //c->offset = -hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value() * c->scale;
+      c->offset = -hw_->seed.adc.GetFloat(DaisyMargolis::CvAdcChannel(i)) * c->scale;
     }
   }
   cv_c1_ = pitch_lp_calibration_;

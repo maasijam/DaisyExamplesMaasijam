@@ -62,7 +62,7 @@ plaits::Voice::Frame outputPlaits[BLOCK_SIZE];
 
 void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) {
 
-  hw.ProcessAllControls();
+  //hw.ProcessAllControls();
   ui.Poll();
   
   
@@ -85,6 +85,10 @@ void Init() {
   hw.Init();
 	hw.SetAudioBlockSize(BLOCK_SIZE); // number of samples handled per callback
 	hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
+
+  hw.ClearLeds();
+	//hw.SetRGBColor(hw.RGB_LED_1,hw.cyan);
+	hw.UpdateLeds();
 
   stmlib::BufferAllocator allocator(shared_buffer, sizeof(shared_buffer));
 	voice.Init(&allocator);
