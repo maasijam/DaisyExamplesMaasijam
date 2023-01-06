@@ -38,7 +38,7 @@ using namespace daisy;
 
 void Settings::Init(DaisyMargolis* hw) {
   hw_ = hw;
-  /*
+  
   ChannelCalibrationData* c = persistent_data_.channel_calibration_data;
   c[hw_->CV_1].offset = 0.025f;
   c[hw_->CV_1].scale = -1.03f;
@@ -71,16 +71,17 @@ void Settings::Init(DaisyMargolis* hw) {
   c[hw_->CV_6].offset = 0.49f;
   c[hw_->CV_6].scale = -0.6f;
   c[hw_->CV_6].normalization_detection_threshold = 21403;
-  */
-  //state_.engine = 3;
-  //state_.lpg_colour = 0;
-  //state_.decay = 128;
-  //state_.octave = 255;
-  //state_.color_blind = 0;
+ 
+  state_.engine = 0;
+  state_.lpg_colour = 0;
+  state_.decay = 128;
+  state_.octave = 255;
+  state_.color_blind = 0;
   
   //bool success = chunk_storage_.Init(&persistent_data_, &state_);
-  LoadPersistentData();
-  LoadState();
+  //RestoreSettings();
+  //LoadPersistentData();
+  //LoadState();
   
   CONSTRAIN(state_.engine, 0, 15);
 
@@ -167,6 +168,18 @@ void Settings::SaveState()
     
 }
 
+void Settings::RestoreSettings()
+{
+    daisy::PersistentStorage<PersistentData> persistent_storage(hw_->seed.qspi);
+    PersistentData default_settings;
+    persistent_storage.Init(default_settings, FLASH_BLOCK);
+    persistent_storage.RestoreDefaults();
 
+    daisy::PersistentStorage<State> state_storage(hw_->seed.qspi);
+    State default_state;
+    state_storage.Init(default_state, FLASH_BLOCK*2);
+    state_storage.RestoreDefaults();
+    
+}
 
 }  // namespace plaits

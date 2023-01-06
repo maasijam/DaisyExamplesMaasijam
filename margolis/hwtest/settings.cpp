@@ -6,9 +6,9 @@ using namespace daisy;
 void Settings::Init(DaisyMargolis* hw) {
     hw_ = hw;
     LoadSettings();
-    LoadStateSettings();
-  
-    
+    //LoadStateSettings();
+    //RestoreSettings();
+    //RestoreState();
 }
 
  /** @brief Sets the cv offset from an externally array of data */
@@ -50,9 +50,9 @@ void Settings::LoadSettings()
     daisy::PersistentStorage<HwtestSettings> settings_storage(hw_->seed.qspi);
     HwtestSettings default_settings;
     settings_storage.Init(default_settings, FLASH_BLOCK);
-    HwtestSettings &settings_data = settings_storage.GetSettings();
+    //HwtestSettings &settings_data = settings_storage.GetSettings();
     
-    SetSettingsData(settings_data);
+    //SetSettingsData(settings_data);
     //SetAttData(settings_data.ledatt);
     
 }
@@ -62,7 +62,7 @@ void Settings::LoadStateSettings()
 {
     daisy::PersistentStorage<StateSettings> settings_storage(hw_->seed.qspi);
     StateSettings default_settings;
-    settings_storage.Init(default_settings, FLASH_BLOCK*2);
+    settings_storage.Init(default_settings, FLASH_BLOCK*11);
     StateSettings &settings_data = settings_storage.GetSettings();
     
     SetStateSettingsData(settings_data);
@@ -73,7 +73,7 @@ void Settings::SaveSettings()
 {
     daisy::PersistentStorage<HwtestSettings> settings_storage(hw_->seed.qspi);
     HwtestSettings default_settings;
-    settings_storage.Init(default_settings, FLASH_BLOCK);
+    settings_storage.Init(default_settings, FLASH_BLOCK*10);
     HwtestSettings &settings_data = settings_storage.GetSettings();
     GetSettingsData(settings_data);
     
@@ -85,7 +85,7 @@ void Settings::SaveStateSettings()
 {
     daisy::PersistentStorage<StateSettings> settings_storage(hw_->seed.qspi);
     StateSettings default_settings;
-    settings_storage.Init(default_settings, FLASH_BLOCK*2);
+    settings_storage.Init(default_settings, FLASH_BLOCK*11);
     StateSettings &settings_data = settings_storage.GetSettings();
     GetStateSettingsData(settings_data);
     settings_storage.Save();
@@ -96,8 +96,21 @@ void Settings::RestoreSettings()
 {
     daisy::PersistentStorage<HwtestSettings> settings_storage(hw_->seed.qspi);
     HwtestSettings default_settings;
-    settings_storage.Init(default_settings, FLASH_BLOCK);
+    settings_storage.Init(default_settings, FLASH_BLOCK*10);
     settings_storage.RestoreDefaults();
+    HwtestSettings &settings_data = settings_storage.GetSettings();
+    SetSettingsData(settings_data);
+    
+}
+
+void Settings::RestoreState()
+{
+    daisy::PersistentStorage<StateSettings> settings_storage(hw_->seed.qspi);
+    StateSettings default_settings;
+    settings_storage.Init(default_settings, FLASH_BLOCK*11);
+    settings_storage.RestoreDefaults();
+    StateSettings &settings_data = settings_storage.GetSettings();
+    GetStateSettingsData(settings_data);
     
 }
 

@@ -23,8 +23,7 @@ struct HwtestSettings
     /** @brief checks sameness */
     bool operator==(const HwtestSettings &rhs)
     {
-        if(ledcount != rhs.ledcount)
-        {
+/*        {
             return false;
         }
         else if(engine != rhs.engine)
@@ -38,7 +37,7 @@ struct HwtestSettings
                 if(ledatt[i] != rhs.ledatt[i])
                     return false;
             }
-        }
+        }*/
         
         return true;
     }
@@ -72,6 +71,7 @@ class Settings {
     void Init(DaisyMargolis* hw);
 
     void RestoreSettings();
+    void RestoreState();
     void SaveSettings();
     void LoadSettings();
     void SaveStateSettings();

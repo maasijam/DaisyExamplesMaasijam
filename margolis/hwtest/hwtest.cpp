@@ -101,11 +101,15 @@ void audio_callback(AudioHandle::InputBuffer  in,
 
 int main(void)
 {
-    hw.Init(); 
+    hw.Init();
+    //hw.seed.qspi.EraseSector(4096*0);
+    //hw.seed.qspi.EraseSector(4096*1);
+    //hw.seed.qspi.EraseSector(4096*2);
+    //hw.seed.qspi.EraseSector(4096*3);
     settings.Init(&hw);
 
-    LoadSettings();
-    LoadState();
+    //LoadSettings();
+    //LoadState();
 
     float samplerate = hw.AudioSampleRate();
     int   num_waves = Oscillator::WAVE_LAST - 1;
@@ -264,7 +268,7 @@ void Update_Controls() {
 }
 
 void Start_Led_Ani() {
-    
+    hw.ClearLeds();
     
     for(size_t i = 0; i < hw.LEDDRIVER_LAST; i++)
     {

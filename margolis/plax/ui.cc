@@ -54,6 +54,7 @@ void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyM
   mode_ = UI_MODE_NORMAL;
   
   LoadState();
+
   
   if (hw_->s[hw_->S3].RawState()) {
     State* state = settings_->mutable_state();
@@ -97,8 +98,8 @@ void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyM
 
 void Ui::LoadState() {
   const State& state = settings_->state();
-  //patch_->engine = state.engine;
-  patch_->engine = 0;
+  patch_->engine = state.engine;
+  //patch_->engine = 0;
   patch_->lpg_colour = static_cast<float>(state.lpg_colour) / 256.0f;
   patch_->decay = static_cast<float>(state.decay) / 256.0f;
   octave_ = static_cast<float>(state.octave) / 256.0f;
@@ -110,7 +111,7 @@ void Ui::SaveState() {
   state->lpg_colour = static_cast<uint8_t>(patch_->lpg_colour * 256.0f);
   state->decay = static_cast<uint8_t>(patch_->decay * 256.0f);
   state->octave = static_cast<uint8_t>(octave_ * 256.0f);
-  settings_->SaveState();
+//settings_->SaveState();
 }
 
 void Ui::UpdateLEDs() {
@@ -281,24 +282,24 @@ void Ui::ReadSwitches() {
         
         //if (switches_.released(Switch(0)) && !ignore_release_[0]) {
         if (hw_->s[hw_->S1].FallingEdge() && !ignore_release_[0]) {
-//          RealignPots();
+          RealignPots();
           if (patch_->engine >= 8) {
             patch_->engine = patch_->engine & 7;
           } else {
             patch_->engine = (patch_->engine + 1) % 8;
           }
-//          SaveState();
+         // SaveState();
         }
   
         //if (switches_.released(Switch(1)) && !ignore_release_[1]) {
         if (hw_->s[hw_->S3].FallingEdge() && !ignore_release_[1]) {
-//          RealignPots();
+          RealignPots();
           if (patch_->engine < 8) {
             patch_->engine = (patch_->engine & 7) + 8;
           } else {
             patch_->engine = 8 + ((patch_->engine + 1) % 8);
           }
-//          SaveState();
+         // SaveState();
         }
       }
       break;
@@ -371,6 +372,7 @@ const DaisyMargolis::CvAdcChannel Ui::normalized_channels_[] = {
 void Ui::DetectNormalization() {
   ////////////////////////////////// TODO //////////////////////////////////////////////////
   //hw_->ProcessDigitalControls();
+  /*
   if(hw_->s[hw_->S4].RisingEdge()) {
     isPatched[TIMBRE_PATCHED] = !isPatched[TIMBRE_PATCHED]; 
   }
@@ -394,8 +396,9 @@ void Ui::DetectNormalization() {
   if(isPatched[MORPH_PATCHED]) {
       modulations_->morph_patched = true;
   }
+  */
 
-  modulations_->trigger = 5.f * !hw_->gate_in.State();
+  modulations_->trigger = 5.f * hw_->gate_in.State();
   modulations_->trigger_patched = true;
   //modulations_->level_patched  = true;
 
@@ -403,7 +406,7 @@ void Ui::DetectNormalization() {
 
 void Ui::Poll() {
 
-  //hw_->ProcessAnalogControls();
+  hw_->ProcessAnalogControls();
   
 
   for (int i = 0; i < hw_->KNOB_LAST; ++i) {
@@ -411,12 +414,15 @@ void Ui::Poll() {
   }
   
   float* destination = &modulations_->engine;
+
+  
   for (int i = 0; i < hw_->CV_LAST; ++i) {
-    destination[i] = settings_->calibration_data(i).Transform(
-        //cv_adc_.float_value(CvAdcChannel(i)));
-        //hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value());
-        hw_->seed.adc.GetFloat(i));
+    destination[i] = settings_->calibration_data(i).Transform(hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value());
+        //hw_->seed.adc.GetFloat(i));
+        //((float)hw_->seed.adc.Get(i) / 32768.0f));
+    //destination[i] = hw_->GetCvValue(DaisyMargolis::CvAdcChannel(i));
   }
+  
   
   ONE_POLE(pitch_lp_, modulations_->note, 0.7f);
   ONE_POLE(

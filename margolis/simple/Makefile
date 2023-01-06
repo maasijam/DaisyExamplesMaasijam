@@ -1,15 +1,15 @@
 # Project Name
-TARGET = hwtest
+TARGET = simple
 
  #DEBUG = 1
  #LDFLAGS += -u _printf_float
- #APP_TYPE = BOOT_NONE
- #USE_FATFS = 1
+ APP_TYPE = BOOT_NONE
+ USE_FATFS = 1
 
 #APP_TYPE = BOOT_SRAM
 
 # Sources
-CPP_SOURCES = hwtest.cpp settings.cpp ../daisy_margolis.cpp
+CPP_SOURCES = simple.cpp ../daisy_margolis.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy

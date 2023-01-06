@@ -14,6 +14,9 @@ RESOURCES      = plax/resources
 
 USE_FATFS = 1
 
+//DEBUG = 1
+//LDFLAGS += -u _printf_float
+
 APP_TYPE = BOOT_SRAM
 
 # Library Locations
@@ -21,7 +24,7 @@ LIBDAISY_DIR = ../../libDaisy
 DAISYSP_DIR = ../../DaisySP/
 STMLIB_DIR = ../../stmlib
 
-# Sources
+# Sources 
 CPP_SOURCES = plax.cpp ../daisy_margolis.cpp
 CC_SOURCES += $(wildcard dsp/*.cc)
 CC_SOURCES += $(wildcard dsp/engine/*.cc)

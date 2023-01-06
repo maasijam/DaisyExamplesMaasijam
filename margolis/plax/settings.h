@@ -51,7 +51,7 @@ struct ChannelCalibrationData {
 };
 
 struct PersistentData {
-  
+/*
   PersistentData() {
   
   channel_calibration_data[0].offset = 0.025f;
@@ -83,7 +83,7 @@ struct PersistentData {
   channel_calibration_data[5].normalization_detection_threshold = 21403;
   }
   
-  
+  */
   ChannelCalibrationData channel_calibration_data[DaisyMargolis::CV_LAST];
   uint8_t padding[16];
   enum { tag = 0x494C4143 };  // 
@@ -109,13 +109,13 @@ struct State {
   octave(255),
   color_blind(0) {}*/
 
-  State() { 
+  /*State() { 
   engine = 0;
   lpg_colour = 0; 
   decay  = 128;
   octave = 255;
   color_blind = 0;
-  };
+  };*/
 
 
   uint8_t engine;
@@ -149,6 +149,7 @@ class Settings {
   void SaveState();
   void LoadPersistentData();
   void LoadState();
+  void RestoreSettings();
 
   /** @brief Sets the cv offset from an externally array of data */
   inline void SetPersistentData(PersistentData pdata);

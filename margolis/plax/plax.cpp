@@ -65,12 +65,27 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
   //hw.ProcessAllControls();
   ui.Poll();
   
-  
+  //modulations.engine = 0.0f;
+  //modulations.timbre = 0.0f;
+  //modulations.frequency = 0;
+  //modulations.morph = 0;
+  //modulations.harmonics = 0;
+  //modulations.frequency = hw.cv[hw.CV_3].Value();
+
+  modulations.frequency_patched = true;
+	modulations.timbre_patched = true;
+	modulations.morph_patched =  true;
+  //hw.seed.PrintLine("CV: %f", modulations.engine);
+
+
   voice.Render(patch, modulations, outputPlaits, BLOCK_SIZE);
 
 	for (size_t i = 0; i < size; i++) {
 		OUT_L[i] = outputPlaits[i].out / 32768.f;
 		OUT_R[i] = outputPlaits[i].aux / 32768.f;
+    hw.seed.dac.WriteValue(
+            DacHandle::Channel::ONE,
+            uint16_t(modulations.frequency * 4095.f));
 	}
   ui.set_active_engine(voice.active_engine());
   
@@ -87,7 +102,7 @@ void Init() {
 	hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
 
   hw.ClearLeds();
-	//hw.SetRGBColor(hw.RGB_LED_1,hw.cyan);
+	
 	hw.UpdateLeds();
 
   stmlib::BufferAllocator allocator(shared_buffer, sizeof(shared_buffer));
@@ -99,6 +114,7 @@ void Init() {
   
   
   settings.Init(&hw);
+  
   ui.Init(&patch, &modulations, &settings, &hw);
   hw.StartAdc();
 	hw.StartAudio(AudioCallback);
@@ -106,6 +122,7 @@ void Init() {
 }
 
 int main(void) {
+  //hw.seed.StartLog(false);
   Init();
   while (1) { }
 }
