@@ -6,15 +6,12 @@
 
 
 
-namespace daisy
+namespace margolis
 {
 
+using namespace daisy;
 
-class DaisyMargolis
-{
-  public:
-    
-    enum 
+enum  Pots
     {
         KNOB_1,   
         KNOB_2,
@@ -26,7 +23,7 @@ class DaisyMargolis
         KNOB_LAST 
     };
 
-    enum CvAdcChannel
+enum CvIns
     {
         CV_1,   
         CV_2,
@@ -38,26 +35,25 @@ class DaisyMargolis
         CV_LAST 
     };
 
-    enum Colors {
-      red,
-      green,
-      blue,
-      yellow,
-      cyan,
-      purple,
-      orange,
-      darkgreen,
-      darkblue,
-      darkred,
-      turq,
-      grey,
-      darkorange,
-      white,
-      off
+enum Colors {
+      RED,
+      GREEN,
+      BLUE,
+      YELLOW,
+      CYAN,
+      PURPLE,
+      ORANGE,
+      DARKGREEN,
+      DARKBLUE,
+      DARKRED,
+      TURQ,
+      GREY,
+      DARKORANGE,
+      WHITE,
+      OFF
   };
 
-
-    enum LeddriverLeds
+enum LeddriverLeds
     {
         LED_RGB_1,
         LED_RGB_2,
@@ -74,7 +70,8 @@ class DaisyMargolis
     };
 
    
-  enum {
+  enum Switches 
+  {
       S1,
       S2,
       S3,
@@ -84,8 +81,83 @@ class DaisyMargolis
       S_LAST
   };
 
+enum LedOrder
+{
+    LED_1_R = 30,
+    LED_1_G = 31,
+    LED_1_B = 0,
+    LED_2_R = 28,
+    LED_2_G = 29,
+    LED_2_B = 1,
+    LED_3_R = 26,
+    LED_3_G = 27,
+    LED_3_B = 2,
+    LED_4_R = 24,
+    LED_4_G = 25,
+    LED_4_B = 3,
+    LED_5_R = 17,
+    LED_5_G = 16,
+    LED_5_B = 4,
+    LED_6_R = 19,
+    LED_6_G = 18,
+    LED_6_B = 5,
+    LED_7_R = 21,
+    LED_7_G = 20,
+    LED_7_B = 6,
+    LED_8_R = 23,
+    LED_8_G = 22,
+    LED_8_B = 7,
+    LED_G_1 = 10,
+    LED_G_2 = 9,
+    LED_G_3 = 8,
+    LED_LAST = 27,
+};
 
+/** @brief Calibration data container for Aurora 
+ *  This data is calibrated from the Qu-Bit default Aurora firmware.
+ *  It is advised not to save over this data unless you are prepared to recalibrate.
+*/
+struct CalibrationData
+{
+    CalibrationData() : warp_scale(60.f), warp_offset(0.f), cv_offset{0.f}, ledcolor(PURPLE) {}
+    float warp_scale, warp_offset;
+    float cv_offset[CV_LAST];
+    Colors ledcolor;
 
+    /** @brief checks sameness */
+    bool operator==(const CalibrationData &rhs)
+    {
+        if(warp_scale != rhs.warp_scale)
+        {
+            return false;
+        }
+        else if(warp_offset != rhs.warp_offset)
+        {
+            return false;
+        }
+        else if(ledcolor != rhs.ledcolor)
+        {
+            return false;
+        }
+        else
+        {
+            for(int i = 0; i < CV_LAST; i++)
+            {
+                if(cv_offset[i] != rhs.cv_offset[i])
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /** @brief Not equal operator */
+    bool operator!=(const CalibrationData &rhs) { return !operator==(rhs); }
+};
+
+class DaisyMargolis
+{
+  public:
+    
     /** Constructor */
     DaisyMargolis() {}
     /** Destructor */
@@ -195,7 +267,7 @@ class DaisyMargolis
         return Random::GetFloat(min, max);
     }
 
-      
+    float GetWarpVoct();  
 
     /**
   General delay _\param del Delay time in ms.
@@ -228,7 +300,72 @@ class DaisyMargolis
 
     float CVKnobCombo(float CV_Val,float Pot_Val);
 
-    
+    /** @brief called during a customized calibration UI to record the 1V value */
+    inline void CalibrateV1(float v1) { warp_v1_ = v1; }
+
+    /** @brief called during a customized calibration UI to record the 3V value 
+     *         and set that calibraiton has completed and can be saved. 
+     */
+    inline void CalibrateV3(float v3)
+    {
+        warp_v3_ = v3;
+        voct_cal.Record(warp_v1_, warp_v3_);
+        cal_save_flag_ = true;
+    }
+
+    /** @brief Sets the calibration data for 1V/Octave over Warp CV 
+     *  typically set after reading stored data from external memory.
+     */
+    inline void SetWarpCalData(float scale, float offset)
+    {
+        voct_cal.SetData(scale, offset);
+    }
+
+    /** @brief Gets the current calibration data for 1V/Octave over Warp CV 
+     *  typically used to prepare data for storing after successful calibration
+     */
+    inline void GetWarpCalData(float &scale, float &offset)
+    {
+        voct_cal.GetData(scale, offset);
+    }
+
+    /** @brief Sets the cv offset from an externally array of data */
+    inline void SetCvOffsetData(float *data)
+    {
+        for(int i = 0; i < CV_LAST; i++)
+        {
+            cv_offsets_[i] = data[i];
+        }
+    }
+
+    /** @brief Fills an array with the offset data currently being used */
+    inline void GetCvOffsetData(float *data)
+    {
+        for(int i = 0; i < CV_LAST; i++)
+        {
+            data[i] = cv_offsets_[i];
+        }
+    }
+
+    /** @brief Checks to see if calibration has been completed and needs to be saved */
+    inline bool ReadyToSaveCal() const { return cal_save_flag_; }
+
+    /** @brief signal the cal-save flag to clear once calibration data has been written to ext. flash memory */
+    inline void ClearSaveCalFlag() { cal_save_flag_ = false; }
+
+    /** @brief Sets the calibration data for 1V/Octave over Warp CV 
+     *  typically set after reading stored data from external memory.
+     */
+    inline void SetLedcolorData(Colors lcolor)
+    {
+        ledcolor = lcolor;
+    }
+    /**
+     */
+    inline void GetLedcolorData(Colors &ledc)
+    {
+        ledc = ledcolor;
+    }
     
     
 
@@ -238,14 +375,27 @@ class DaisyMargolis
     GateIn        gate_in;
     Switch        s[S_LAST];
     
+    Colors        ledcolor;
+    int           ledcount;
     
 
   private:
     void SetHidUpdateRates();
     void InitLeds();
+    void LoadCalibrationData();
     LedDriverPca9685<2, true> led_driver_;
+
+    static constexpr uint32_t kCalibrationDataOffset = 4096;
+
+    /** Cal data */
+    float                  warp_v1_, warp_v3_;
+    daisy::VoctCalibration voct_cal;
+    float                  cv_offsets_[CV_LAST];
+    
+
+    bool cal_save_flag_;
     
 };
 
-} // namespace daisy
+} // namespace margolis
 #endif

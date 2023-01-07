@@ -2,7 +2,7 @@
 
 
 using namespace daisy;
-
+using namespace margolis;
 
 
 // MARGOLIS Pins
@@ -28,37 +28,7 @@ using namespace daisy;
 #define PIN_MUX_B 8
 #define PIN_MUX_A 7
 
-enum LedOrder
-{
-    LED_1_R = 30,
-    LED_1_G = 31,
-    LED_1_B = 0,
-    LED_2_R = 28,
-    LED_2_G = 29,
-    LED_2_B = 1,
-    LED_3_R = 26,
-    LED_3_G = 27,
-    LED_3_B = 2,
-    LED_4_R = 24,
-    LED_4_G = 25,
-    LED_4_B = 3,
-    LED_5_R = 17,
-    LED_5_G = 16,
-    LED_5_B = 4,
-    LED_6_R = 19,
-    LED_6_G = 18,
-    LED_6_B = 5,
-    LED_7_R = 21,
-    LED_7_G = 20,
-    LED_7_B = 6,
-    LED_8_R = 23,
-    LED_8_G = 22,
-    LED_8_B = 7,
-    LED_GREEN_1 = 10,
-    LED_GREEN_2 = 9,
-    LED_GREEN_3 = 8,
-    LED_LAST = 27,
-};
+
 
 
 
@@ -136,7 +106,12 @@ void DaisyMargolis::Init(bool boost)
     // init cv as bipolar analog controls
     for(size_t i = 0; i < CV_LAST; i++)
     {
-        cv[i].InitBipolarCv(seed.adc.GetPtr(i), AudioCallbackRate());
+        if(i == CV_6) {
+            cv[i].Init(seed.adc.GetPtr(i), AudioCallbackRate());
+        } else {
+            cv[i].InitBipolarCv(seed.adc.GetPtr(i), AudioCallbackRate());
+        }
+        
     }
 
     // init pots as analog controls
@@ -156,8 +131,16 @@ void DaisyMargolis::Init(bool boost)
     seed.dac.Init(cfg);
 
     
+    SetHidUpdateRates();
 
-
+    cal_save_flag_ = false;
+    for(int i = 0; i < CV_LAST; i++)
+    {
+        cv_offsets_[i] = 0.f;
+    }
+    ledcolor = PURPLE;
+    ledcount = 0;
+    LoadCalibrationData();
         
 }
 
@@ -262,10 +245,24 @@ float DaisyMargolis::GetKnobValue(int idx) const
     //return (knob[idx].Value());
     return knob[idx < KNOB_LAST ? idx : 0].Value();
 }
+
+/** @brief Return a MIDI note number value from -60 to 60 corresponding to 
+ *      the -5V to 5V input range of the Warp CV input.
+ */
+float DaisyMargolis::GetWarpVoct()
+{
+    return voct_cal.ProcessInput(cv[CV_VOCT].Value());
+}
+
 float DaisyMargolis::GetCvValue(int idx) const 
 {
     //return (cv[idx].Value());
-    return cv[idx < CV_LAST ? idx : 0].Value();
+    //return cv[idx < CV_LAST ? idx : 0].Value();
+
+    if(idx != CV_VOCT)
+        return cv[idx < CV_LAST ? idx : 0].Value() - cv_offsets_[idx < CV_LAST ? idx : 0];
+    else
+        return cv[idx < CV_LAST ? idx : 0].Value();
 }
 
 AnalogControl* DaisyMargolis::GetCv(size_t idx)
@@ -373,49 +370,49 @@ void DaisyMargolis::SetRGBColor (LeddriverLeds idx, Colors color)
     
     switch (color)
     {
-    case red:
+    case RED:
         SetRgbLeds(idx,1.f,0.f,0.f);
         break;
-    case green:
+    case GREEN:
         SetRgbLeds(idx,0.f,0.7f,0.f);
         break;
-    case blue:
+    case BLUE:
         SetRgbLeds(idx,0.f,0.f,1.f);
         break;
-    case yellow:
+    case YELLOW:
         SetRgbLeds(idx,1.f,0.7f,0.f);
         break;
-    case cyan:
+    case CYAN:
         SetRgbLeds(idx,0.f,1.f,1.f);
         break;
-    case purple:
+    case PURPLE:
         SetRgbLeds(idx,1.f,0.f,1.f);
         break;
-    case orange:
+    case ORANGE:
         SetRgbLeds(idx,1.f,0.3f,0.f);
         break;
-    case darkgreen:
+    case DARKGREEN:
         SetRgbLeds(idx,0.f,0.2f,0.f);
         break;
-    case darkblue:
+    case DARKBLUE:
         SetRgbLeds(idx,0.2f,0.2f,0.6f);
         break;
-    case darkred:
+    case DARKRED:
         SetRgbLeds(idx,0.4f,0.f,0.f);
         break;
-    case turq:
+    case TURQ:
         SetRgbLeds(idx,0.f,0.5f,0.5f);
         break;
-    case grey:
+    case GREY:
         SetRgbLeds(idx,0.75f,0.75f,0.75f);
         break;
-    case darkorange:
+    case DARKORANGE:
         SetRgbLeds(idx,0.5f,0.2f,0.f);
         break;
-    case white:
+    case WHITE:
         SetRgbLeds(idx,1.f,1.f,1.f);
         break;
-    case off:
+    case OFF:
         SetRgbLeds(idx,0.f,0.f,0.f);
         break;
     }
@@ -458,4 +455,14 @@ void DaisyMargolis::InitLeds()
     UpdateLeds();
 }
 
-
+/** @brief Loads and sets calibration data */
+void DaisyMargolis::LoadCalibrationData()
+{
+    daisy::PersistentStorage<CalibrationData> cal_storage(seed.qspi);
+    CalibrationData                           default_cal;
+    cal_storage.Init(default_cal, kCalibrationDataOffset);
+    auto &cal_data = cal_storage.GetSettings();
+    SetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
+    SetCvOffsetData(cal_data.cv_offset);
+    SetLedcolorData(cal_data.ledcolor);
+}
