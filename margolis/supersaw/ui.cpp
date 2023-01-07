@@ -7,7 +7,7 @@ namespace supersaw {
 using namespace margolis;
 using namespace daisysp;
 
-static const int32_t kLongPressTime = 1000;
+static const int32_t kLongPressTime = 2000;
 
 
 
@@ -17,17 +17,15 @@ void Ui::Init(DaisyMargolis* hw) {
 
   ui_task_ = 0;
   mode_ = UI_MODE_NORMAL;
-  
+  engine_ = 0;
 
   
   
   cv_c1_ = 0.0f;
+  LoadStateData();
 
 }
 
-void Ui::LoadState() {
-  
-}
 
 void Ui::SaveState() {
   
@@ -45,7 +43,7 @@ void Ui::UpdateLEDs() {
     case UI_MODE_NORMAL:
       {
         
-        hw_->SetRGBColor(LED_RGB_5,hw_->ledcolor);
+        hw_->SetRGBColor(static_cast<LeddriverLeds>(engine_),BLUE);
 
       }
       break;
@@ -53,15 +51,32 @@ void Ui::UpdateLEDs() {
           
     case UI_MODE_CALIBRATION_C1:
       if (pwm_counter < triangle) {
-        //leds_.set(0, LED_COLOR_GREEN);
-        hw_->SetRGBColor(LED_RGB_2,GREEN);
+        for (int i = 0; i < kNumLEDs; ++i) {
+          //leds_.set(i, LED_COLOR_RED);
+          hw_->SetRGBColor(static_cast<LeddriverLeds>(i),GREEN);
+        }
       }
       break;
 
     case UI_MODE_CALIBRATION_C3:
       if (pwm_counter < triangle) {
-        //leds_.set(0, LED_COLOR_YELLOW);
-        hw_->SetRGBColor(LED_RGB_3,PURPLE);
+        for (int i = 0; i < kNumLEDs; ++i) {
+          //leds_.set(i, LED_COLOR_RED);
+          hw_->SetRGBColor(static_cast<LeddriverLeds>(i),PURPLE);
+        }
+      }
+      break;
+
+      case UI_MODE_SAVE_STATE:
+      {
+        
+        if (pwm_counter < triangle) {
+        for (int i = 0; i < kNumLEDs; ++i) {
+          //leds_.set(i, LED_COLOR_RED);
+          hw_->SetRGBColor(static_cast<LeddriverLeds>(i),ORANGE);
+        }
+      }
+
       }
       break;
     
@@ -87,23 +102,21 @@ void Ui::ReadSwitches() {
     case UI_MODE_NORMAL:
       {
         
-        if(hw_->s[S6].TimeHeldMs() >= kLongPressTime && hw_->s[S4].TimeHeldMs() >= kLongPressTime) {
+        if(hw_->s[S2].TimeHeldMs() >= kLongPressTime) {
           StartCalibration();
         }
         
-        if(hw_->s[S2].RisingEdge()) {
-          hw_->ledcount++;
-          
-          if(hw_->ledcount == static_cast<int>(OFF)) {
-            hw_->ledcount = 0;
-          }
-          hw_->SetLedcolorData(static_cast<Colors>(hw_->ledcount));
+        if(hw_->s[S1].FallingEdge()) {
+            engine_++;
+            
         }
-
-        //if(hw_->s[S5].TimeHeldMs() >= kLongPressTime) {
-          
-        //}
-        
+        if(engine_ > 7) {
+            engine_ = 0;
+          }
+         if(hw_->s[S3].TimeHeldMs() >= kLongPressTime) {
+            readyToSaveState = true;
+            mode_ = UI_MODE_SAVE_STATE;
+        }
 
       }
       break;
@@ -113,7 +126,7 @@ void Ui::ReadSwitches() {
     case UI_MODE_CALIBRATION_C1:
       
         //if (switches_.just_pressed(Switch(i))) {
-        if (hw_->s[S1].RisingEdge()) {
+        if (hw_->s[S2].RisingEdge()) {
           
           CalibrateC1();
           
@@ -123,12 +136,20 @@ void Ui::ReadSwitches() {
       
     case UI_MODE_CALIBRATION_C3:
         //if (switches_.just_pressed(Switch(i))) {
-        if (hw_->s[S1].RisingEdge()) {
+        if (hw_->s[S2].RisingEdge()) {
          
           CalibrateC3();
           
         }
      
+      break;
+
+      case UI_MODE_SAVE_STATE:
+      {
+        
+        if(!readyToSaveState)
+          mode_ = UI_MODE_NORMAL;
+      }
       break;
 
     case UI_MODE_ERROR:
@@ -177,12 +198,22 @@ void Ui::CalibrateC1() {
 void Ui::CalibrateC3() {
     hw_->CalibrateV3(pitch_lp_calibration_);
     if(hw_->ReadyToSaveCal()) {
-       SaveCalibrationData();
+       //SaveCalibrationData();
        mode_ = UI_MODE_NORMAL;
     } else {
       mode_ = UI_MODE_ERROR;
     }
   //normalization_probe_.Init();
+}
+
+void Ui::SetStateData(int &eng)
+{
+    engine_ = eng;
+}
+
+void Ui::GetStateData(int &eng)
+{
+    eng = engine_;
 }
 
 
@@ -191,13 +222,34 @@ void Ui::SaveCalibrationData()
 {
     daisy::PersistentStorage<CalibrationData> cal_storage(hw_->seed.qspi);
     CalibrationData                           default_cal;
-    cal_storage.Init(default_cal, 4096);
+    cal_storage.Init(default_cal, FLASH_BLOCK);
     auto &cal_data = cal_storage.GetSettings();
     hw_->GetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
     hw_->GetCvOffsetData(cal_data.cv_offset);
-    hw_->GetLedcolorData(cal_data.ledcolor);
     cal_storage.Save();
+    hw_->ClearSaveCalFlag();
 }
 
+/** @brief Loads and sets state data */
+void Ui::LoadStateData()
+{
+    daisy::PersistentStorage<StateData> state_storage(hw_->seed.qspi);
+    StateData                           default_state;
+    state_storage.Init(default_state, FLASH_BLOCK*2);
+    auto &state_data = state_storage.GetSettings();
+    SetStateData(state_data.engine);
+}
+
+/** @brief Saves state data */
+void Ui::SaveStateData()
+{
+    daisy::PersistentStorage<StateData> state_storage(hw_->seed.qspi);
+    StateData                           default_state;
+    state_storage.Init(default_state, FLASH_BLOCK*2);
+    auto &state_data = state_storage.GetSettings();
+    GetStateData(state_data.engine);
+    state_storage.Save();
+    
+}
 
 }  // namespace supersaw

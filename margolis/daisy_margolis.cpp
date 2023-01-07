@@ -138,8 +138,7 @@ void DaisyMargolis::Init(bool boost)
     {
         cv_offsets_[i] = 0.f;
     }
-    ledcolor = PURPLE;
-    ledcount = 0;
+    
     LoadCalibrationData();
         
 }
@@ -460,9 +459,8 @@ void DaisyMargolis::LoadCalibrationData()
 {
     daisy::PersistentStorage<CalibrationData> cal_storage(seed.qspi);
     CalibrationData                           default_cal;
-    cal_storage.Init(default_cal, kCalibrationDataOffset);
+    cal_storage.Init(default_cal, FLASH_BLOCK);
     auto &cal_data = cal_storage.GetSettings();
     SetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
     SetCvOffsetData(cal_data.cv_offset);
-    SetLedcolorData(cal_data.ledcolor);
 }

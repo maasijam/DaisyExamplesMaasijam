@@ -45,10 +45,33 @@ enum UiMode {
   UI_MODE_NORMAL,
   UI_MODE_CALIBRATION_C1,
   UI_MODE_CALIBRATION_C3,
+  UI_MODE_SAVE_STATE,
   UI_MODE_ERROR
 };
 
+/** @brief State data container
+ * 
+*/
+struct StateData
+{
+    StateData() : engine(0) {}
+    int engine;
+        
 
+    /** @brief checks sameness */
+    bool operator==(const StateData &rhs)
+    {
+        if(engine != rhs.engine)
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    /** @brief Not equal operator */
+    bool operator!=(const StateData &rhs) { return !operator==(rhs); }
+};
 
 class Ui {
  public:
@@ -57,8 +80,13 @@ class Ui {
   
   void Init(DaisyMargolis* hw);
   void Poll();
-  
+  UiMode GetUiMode(){return mode_;};
+  int GetEngine(){return engine_;};
+  int GetTask(){return ui_task_;};
+  void SaveCalibrationData();
+  void SaveStateData();
 
+  bool readyToSaveState = false;
   
  private:
   void UpdateLEDs();
@@ -69,7 +97,13 @@ class Ui {
   void StartCalibration();
   void CalibrateC1();
   void CalibrateC3();
-  void SaveCalibrationData();
+  
+  void LoadStateData();
+  
+
+  void SetStateData(int &statedata);
+  void GetStateData(int &statedata);
+
 
     
   UiMode mode_;
@@ -77,6 +111,7 @@ class Ui {
   int pwm_counter_;
   
   int ui_task_;
+  int engine_;
 
   
   DaisyMargolis* hw_;

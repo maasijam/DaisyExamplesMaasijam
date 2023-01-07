@@ -13,7 +13,8 @@ using namespace supersaw;
 
 DaisyMargolis hw;
 Ui ui;
-//Settings settings;
+static Adsr    env[3];
+
 
 Oscillator   osc_a, osc_b, osc_c;
 
@@ -25,8 +26,9 @@ void SaveSettings();
 void SaveState();
 
 
-bool readyToSave = false;
+
 bool readyToRestore = false;
+bool              gate;
 
 
 
@@ -38,8 +40,12 @@ void audio_callback(AudioHandle::InputBuffer  in,
 
     ui.Poll();
 
-    float  cvval;
+    
+    float env_out[3];
+    bool env_state;
+   
     CvIns mycvin;
+    
 
     /** Get Coarse, Fine, and V/OCT inputs from hardware 
      *  MIDI Note number are easy to use for defining ranges */
@@ -68,21 +74,52 @@ void audio_callback(AudioHandle::InputBuffer  in,
     osc_b.SetFreq(freq_b);
     osc_c.SetFreq(freq_c);
 
+    if(hw.gate_in.State())
+            env_state = true;
+        else
+            env_state = false;
+    float knob_attack = hw.GetKnobValue(KNOB_5);
+    float knob_decay = hw.GetKnobValue(KNOB_6);
+    float knob_sustain = hw.GetKnobValue(KNOB_7);
+      float knob_release = hw.GetKnobValue(KNOB_4);
+    
+
+    for (size_t i = 0; i < 3; i++)
+    {
+        env[i].SetAttackTime(knob_attack);
+        env[i].SetDecayTime(knob_decay);
+        env[i].SetSustainLevel(knob_sustain);
+        env[i].SetReleaseTime(knob_release);
+    }
+
+    
+    
+    
+
     /** Process each sample of the oscillator and send to the hardware outputs */
     for(size_t i = 0; i < size; i++)
     {
+        
+        
+        // Use envelope to control the amplitude of the oscillator.
+        for (size_t i = 0; i < 3; i++)
+        {
+            env_out[i] = env[i].Process(env_state);
+        }
+
+        
+        
+        osc_a.SetAmp(env_out[0]);
+        osc_b.SetAmp(env_out[1]);
+        osc_c.SetAmp(env_out[2]);
+        
+        
         float sig = osc_a.Process() + osc_b.Process() + osc_c.Process();
+        
         OUT_L[i]  = sig;
         OUT_R[i]  = sig;
-        mycvin = CV_6;
-        if(hw.cv[mycvin].Value() >= 0.f) {
-            cvval = hw.cv[mycvin].Value();
-        } else {
-            cvval = hw.cv[mycvin].Value() * -1;
-        }
-        hw.seed.dac.WriteValue(
-            DacHandle::Channel::ONE,
-            uint16_t(cvval * 1023.f));
+
+        
     }
     
 }
@@ -98,7 +135,7 @@ int main(void)
     //hw.seed.qspi.EraseSector(4096*2);
     //hw.seed.qspi.EraseSector(4096*3);
     //settings.Init(&hw);
-
+    
     
     //LoadState();
 
@@ -111,6 +148,23 @@ int main(void)
     osc_b.SetWaveform(Oscillator::WAVE_POLYBLEP_SAW);
     osc_c.SetWaveform(Oscillator::WAVE_POLYBLEP_SAW);
 
+    
+
+    //Set envelope 
+    for (size_t i = 0; i < 3; i++)
+    {
+        env[i].Init(samplerate);
+        env[i].SetTime(ADSR_SEG_ATTACK, .01);
+        env[i].SetTime(ADSR_SEG_DECAY, .1);
+        env[i].SetTime(ADSR_SEG_RELEASE, .06);
+
+        env[i].SetSustainLevel(.05);
+    }
+
+    
+    
+    
+
     Start_Led_Ani();
     
     hw.StartAdc();
@@ -118,22 +172,35 @@ int main(void)
 
 	while(1)
 	{	
-         if (readyToSave) {
+         
+         float  cvval = static_cast<int>(ui.GetTask());
+        /*mycvin = CV_6;
+        if(hw.cv[mycvin].Value() >= 0.f) {
+            cvval = hw.cv[mycvin].Value();
+        } else {
+            cvval = hw.cv[mycvin].Value() * -1;
+        }*/
+        hw.seed.dac.WriteValue(
+            DacHandle::Channel::ONE,
+            uint16_t(cvval * 1024.f));
+         
+         if (hw.ReadyToSaveCal()) {
             /** Collect the data from where ever in the application it is */
             //SaveSettings();
             //SaveState();
-
+            ui.SaveCalibrationData();
+       
             /** And trigger the save */
             
-            readyToSave = false;
+            hw.ClearSaveCalFlag();
         }
-        if (readyToRestore) {
+        if (ui.readyToSaveState) {
             /** Collect the data from where ever in the application it is */
             //settings.RestoreSettings();
 
             /** And trigger the save */
-            
-            readyToRestore = false;
+            ui.SaveStateData();
+            ui.readyToSaveState = false;
         }
         
 	}

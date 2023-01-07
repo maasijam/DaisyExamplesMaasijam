@@ -11,6 +11,8 @@ namespace margolis
 
 using namespace daisy;
 
+#define FLASH_BLOCK 4096
+
 enum  Pots
     {
         KNOB_1,   
@@ -119,10 +121,10 @@ enum LedOrder
 */
 struct CalibrationData
 {
-    CalibrationData() : warp_scale(60.f), warp_offset(0.f), cv_offset{0.f}, ledcolor(PURPLE) {}
+    CalibrationData() : warp_scale(60.f), warp_offset(0.f), cv_offset{0.f} {}
     float warp_scale, warp_offset;
     float cv_offset[CV_LAST];
-    Colors ledcolor;
+    
 
     /** @brief checks sameness */
     bool operator==(const CalibrationData &rhs)
@@ -132,10 +134,6 @@ struct CalibrationData
             return false;
         }
         else if(warp_offset != rhs.warp_offset)
-        {
-            return false;
-        }
-        else if(ledcolor != rhs.ledcolor)
         {
             return false;
         }
@@ -353,19 +351,7 @@ class DaisyMargolis
     /** @brief signal the cal-save flag to clear once calibration data has been written to ext. flash memory */
     inline void ClearSaveCalFlag() { cal_save_flag_ = false; }
 
-    /** @brief Sets the calibration data for 1V/Octave over Warp CV 
-     *  typically set after reading stored data from external memory.
-     */
-    inline void SetLedcolorData(Colors lcolor)
-    {
-        ledcolor = lcolor;
-    }
-    /**
-     */
-    inline void GetLedcolorData(Colors &ledc)
-    {
-        ledc = ledcolor;
-    }
+    
     
     
 
@@ -375,8 +361,7 @@ class DaisyMargolis
     GateIn        gate_in;
     Switch        s[S_LAST];
     
-    Colors        ledcolor;
-    int           ledcount;
+    
     
 
   private:
@@ -385,7 +370,6 @@ class DaisyMargolis
     void LoadCalibrationData();
     LedDriverPca9685<2, true> led_driver_;
 
-    static constexpr uint32_t kCalibrationDataOffset = 4096;
 
     /** Cal data */
     float                  warp_v1_, warp_v3_;
