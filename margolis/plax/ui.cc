@@ -37,25 +37,33 @@ namespace plaits {
   
 using namespace std;
 using namespace stmlib;
+using namespace margolis;
 
 static const int32_t kLongPressTime = 2000;
 
 #define ENABLE_LFO_MODE
 
-void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyMargolis* hw) {
+void Ui::Init(Patch* patch, Modulations* modulations, DaisyMargolis* hw) {
   hw_ = hw;
   patch_ = patch;
   modulations_ = modulations;
-  settings_ = settings;
+  //settings_ = settings;
 
   
 
   ui_task_ = 0;
   mode_ = UI_MODE_NORMAL;
-  
-  LoadState();
 
+  plaits_cv_scale[CV_1] = -1.03f; 
+  plaits_cv_scale[CV_2] = -1.6f;
+  plaits_cv_scale[CV_3] = -60.0f;
+  plaits_cv_scale[CV_4] = -1.6f;
+  plaits_cv_scale[CV_5] = -1.0f;
+  plaits_cv_scale[CV_6] = -0.6f;     
   
+  LoadStateData();
+
+  /*
   if (hw_->s[hw_->S3].RawState()) {
     State* state = settings_->mutable_state();
     if (state->color_blind == 1) {
@@ -64,22 +72,22 @@ void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyM
       state->color_blind = 1; 
     }
     settings_->SaveState();
-  }
+  }*/
   
   // Bind pots to parameters.
-  pots_[hw_->KNOB_1].Init(
+  pots_[KNOB_1].Init(
       &transposition_, NULL, 2.0f, -1.0f);
-  pots_[hw_->KNOB_2].Init(
+  pots_[KNOB_2].Init(
       &patch->harmonics, &octave_, 1.0f, 0.0f);
-  pots_[hw_->KNOB_3].Init(
+  pots_[KNOB_3].Init(
       &patch->timbre, &patch->lpg_colour, 1.0f, 0.0f);
-  pots_[hw_->KNOB_4].Init(
+  pots_[KNOB_4].Init(
       &patch->morph, &patch->decay, 1.0f, 0.0f);
-  pots_[hw_->KNOB_5].Init(
+  pots_[KNOB_5].Init(
       &patch->timbre_modulation_amount, NULL, 2.0f, -1.0f);
-  pots_[hw_->KNOB_6].Init(
+  pots_[KNOB_6].Init(
       &patch->frequency_modulation_amount, NULL, 2.0f, -1.0f);
-  pots_[hw_->KNOB_7].Init(
+  pots_[KNOB_7].Init(
       &patch->morph_modulation_amount, NULL, 2.0f, -1.0f);
   
   // Keep track of the agreement between the random sequence sent to the 
@@ -94,25 +102,10 @@ void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyM
   cv_c1_ = 0.0f;
   pitch_lp_ = 0.0f;
   pitch_lp_calibration_ = 0.0f;
+  cblind_ = 0;
 }
 
-void Ui::LoadState() {
-  const State& state = settings_->state();
-  patch_->engine = state.engine;
-  //patch_->engine = 0;
-  patch_->lpg_colour = static_cast<float>(state.lpg_colour) / 256.0f;
-  patch_->decay = static_cast<float>(state.decay) / 256.0f;
-  octave_ = static_cast<float>(state.octave) / 256.0f;
-}
 
-void Ui::SaveState() {
-  State* state = settings_->mutable_state();
-  state->engine = patch_->engine;
-  state->lpg_colour = static_cast<uint8_t>(patch_->lpg_colour * 256.0f);
-  state->decay = static_cast<uint8_t>(patch_->decay * 256.0f);
-  state->octave = static_cast<uint8_t>(octave_ * 256.0f);
-//settings_->SaveState();
-}
 
 void Ui::UpdateLEDs() {
   hw_->ClearLeds();
@@ -126,15 +119,15 @@ void Ui::UpdateLEDs() {
     case UI_MODE_NORMAL:
       {
 
-        DaisyMargolis::Colors red = settings_->state().color_blind == 1
-            ? ((pwm_counter & 7) ? DaisyMargolis::off : DaisyMargolis::yellow)
-            : DaisyMargolis::red;
-        DaisyMargolis::Colors green = settings_->state().color_blind == 1
-            ? DaisyMargolis::yellow
-            : DaisyMargolis::green;
-        hw_->SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(active_engine_ & 7),active_engine_ & 8 ? red : green);
+        Colors red = cblind_ == 1
+            ? ((pwm_counter & 7) ? OFF : YELLOW)
+            : RED;
+        Colors green = cblind_ == 1
+            ? YELLOW
+            : GREEN;
+        hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),active_engine_ & 8 ? red : green);
         if (pwm_counter < triangle) {
-          hw_->SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(active_engine_ & 7),patch_->engine & 8 ? red : green);
+          hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),patch_->engine & 8 ? red : green);
         }
 
       }
@@ -148,7 +141,7 @@ void Ui::UpdateLEDs() {
               : patch_->decay;
           value -= 0.001f;
           for (int i = 0; i < 4; ++i) {
-            hw_->SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(parameter * 4 + 3 - i),value * 64.0f > pwm_counter ? DaisyMargolis::yellow : DaisyMargolis::off);
+            hw_->SetRGBColor(static_cast<LeddriverLeds>(parameter * 4 + 3 - i),value * 64.0f > pwm_counter ? YELLOW : OFF);
             value -= 0.25f;
           }
         }
@@ -160,20 +153,20 @@ void Ui::UpdateLEDs() {
 #ifdef ENABLE_LFO_MODE
         int octave = static_cast<float>(octave_ * 10.0f);
         for (int i = 0; i < 8; ++i) {
-          DaisyMargolis::Colors color = DaisyMargolis::off;
+          Colors color = OFF;
           if (octave == 0) {
-            color = i == (triangle >> 1) ? DaisyMargolis::off : DaisyMargolis::yellow;
+            color = i == (triangle >> 1) ? OFF : YELLOW;
           } else if (octave == 9) {
-            color = DaisyMargolis::yellow;
+            color = YELLOW;
           } else {
-            color = (octave - 1) == i ? DaisyMargolis::yellow : DaisyMargolis::off;
+            color = (octave - 1) == i ? YELLOW : OFF;
           }
-          hw_->SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(7 - i),color);
+          hw_->SetRGBColor(static_cast<LeddriverLeds>(7 - i),color);
         }
 #else
         int octave = static_cast<float>(octave_ * 9.0f);
         for (int i = 0; i < 8; ++i) {
-          hw_->SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(7 - i),octave == i || (octave == 8) ? DaisyMargolis::yellow : DaisyMargolis::off);
+          hw_->SetRGBColor(static_cast<LeddriverLeds>(7 - i),octave == i || (octave == 8) ? YELLOW : OFF);
         }
 #endif  // ENABLE_LFO_MODE
       }
@@ -182,14 +175,14 @@ void Ui::UpdateLEDs() {
     case UI_MODE_CALIBRATION_C1:
       if (pwm_counter < triangle) {
         //leds_.set(0, LED_COLOR_GREEN);
-        hw_->SetRGBColor(hw_->LED_RGB_1,DaisyMargolis::green);
+        hw_->SetRGBColor(LED_RGB_1,GREEN);
       }
       break;
 
     case UI_MODE_CALIBRATION_C3:
       if (pwm_counter < triangle) {
         //leds_.set(0, LED_COLOR_YELLOW);
-        hw_->SetRGBColor(hw_->LED_RGB_1,DaisyMargolis::yellow);
+        hw_->SetRGBColor(LED_RGB_1,YELLOW);
       }
       break;
     
@@ -197,22 +190,35 @@ void Ui::UpdateLEDs() {
       if (pwm_counter < triangle) {
         for (int i = 0; i < kNumLEDs; ++i) {
           //leds_.set(i, LED_COLOR_RED);
-          hw_->SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(i),DaisyMargolis::red);
+          hw_->SetRGBColor(static_cast<LeddriverLeds>(i),RED);
         }
       }
       break;
 
       case UI_MODE_TEST:
+      {
         int color = (pwm_counter_ >> 10) % 3;
           for (int i = 0; i < kNumLEDs; ++i) {
             
-            hw_->SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(i),pwm_counter > ((triangle + (i * 2)) & 15)
+            hw_->SetRGBColor(static_cast<LeddriverLeds>(i),pwm_counter > ((triangle + (i * 2)) & 15)
                     ? (color == 0
-                      ? DaisyMargolis::green
-                      : (color == 1 ? DaisyMargolis::yellow : DaisyMargolis::red))
-                    : DaisyMargolis::off);
+                      ? GREEN
+                      : (color == 1 ? YELLOW : RED))
+                    : OFF);
           }
+      }
         break;
+
+      case UI_MODE_RESTORE_STATE:
+      
+        if (pwm_counter < triangle) {
+          for (int i = 0; i < kNumLEDs; ++i) {
+            //leds_.set(i, LED_COLOR_RED);
+            hw_->SetRGBColor(static_cast<LeddriverLeds>(i),PURPLE);
+          }
+        }
+      
+      break;
   }
   hw_->UpdateLeds();
 }
@@ -223,7 +229,7 @@ void Ui::ReadSwitches() {
   //hw_->s[hw_->S1].Debounce();
   //hw_->s[hw_->S3].Debounce();
 
-  int s_pins[2] = {hw_->S1,hw_->S3};
+  int s_pins[2] = {S1,S3};
   
   switch (mode_) {
     case UI_MODE_NORMAL:
@@ -243,21 +249,21 @@ void Ui::ReadSwitches() {
         }
         
         //if (switches_.just_pressed(Switch(0))) {
-        if (hw_->s[hw_->S1].RisingEdge()) {
-          pots_[hw_->KNOB_3].Lock();
-          pots_[hw_->KNOB_4].Lock();
+        if (hw_->s[S1].RisingEdge()) {
+          pots_[KNOB_3].Lock();
+          pots_[KNOB_4].Lock();
         }
-        if (hw_->s[hw_->S3].RisingEdge()) {
+        if (hw_->s[S3].RisingEdge()) {
         //if (switches_.just_pressed(Switch(1))) {
-          pots_[hw_->KNOB_2].Lock();
+          pots_[KNOB_2].Lock();
         }
         
-        if (pots_[hw_->KNOB_4].editing_hidden_parameter() ||
-            pots_[hw_->KNOB_3].editing_hidden_parameter()) {
+        if (pots_[KNOB_4].editing_hidden_parameter() ||
+            pots_[KNOB_3].editing_hidden_parameter()) {
           mode_ = UI_MODE_DISPLAY_ALTERNATE_PARAMETERS;
         }
         
-        if (pots_[hw_->KNOB_2].editing_hidden_parameter()) {
+        if (pots_[KNOB_2].editing_hidden_parameter()) {
           mode_ = UI_MODE_DISPLAY_OCTAVE;
         }
         
@@ -281,25 +287,34 @@ void Ui::ReadSwitches() {
         }
         
         //if (switches_.released(Switch(0)) && !ignore_release_[0]) {
-        if (hw_->s[hw_->S1].FallingEdge() && !ignore_release_[0]) {
+        if (hw_->s[S1].FallingEdge() && !ignore_release_[0]) {
           RealignPots();
           if (patch_->engine >= 8) {
             patch_->engine = patch_->engine & 7;
           } else {
             patch_->engine = (patch_->engine + 1) % 8;
           }
-         // SaveState();
+          //SaveState();
+          //readyToSaveState = true;
+          //SaveStateData();
         }
   
         //if (switches_.released(Switch(1)) && !ignore_release_[1]) {
-        if (hw_->s[hw_->S3].FallingEdge() && !ignore_release_[1]) {
+        if (hw_->s[S3].FallingEdge() && !ignore_release_[1]) {
           RealignPots();
           if (patch_->engine < 8) {
             patch_->engine = (patch_->engine & 7) + 8;
           } else {
             patch_->engine = 8 + ((patch_->engine + 1) % 8);
           }
-         // SaveState();
+         //SaveState();
+         //readyToSaveState = true;
+         //SaveStateData();
+        }
+
+        if(hw_->s[S2].TimeHeldMs() > kLongPressTime) {
+            readyToRestore = true;
+              mode_ = UI_MODE_RESTORE_STATE;
         }
       }
       break;
@@ -309,9 +324,9 @@ void Ui::ReadSwitches() {
       for (int i = 0; i < 2; ++i) {
         //if (switches_.released(Switch(i))) {
         if (hw_->s[s_pins[i]].FallingEdge()) {
-          pots_[hw_->KNOB_3].Unlock();
-          pots_[hw_->KNOB_4].Unlock();
-          pots_[hw_->KNOB_2].Unlock();
+          pots_[KNOB_3].Unlock();
+          pots_[KNOB_4].Unlock();
+          pots_[KNOB_2].Unlock();
           press_time_[i] = 0;
           mode_ = UI_MODE_NORMAL;
         }
@@ -344,6 +359,7 @@ void Ui::ReadSwitches() {
 
     case UI_MODE_TEST:
     case UI_MODE_ERROR:
+    case UI_MODE_RESTORE_STATE:
       for (int i = 0; i < 2; ++i) {
         //if (switches_.just_pressed(Switch(i))) {
         if (hw_->s[s_pins[i]].RisingEdge()) {
@@ -353,21 +369,18 @@ void Ui::ReadSwitches() {
         }
       }
       break;
+
+
   }
 }
 
 void Ui::ProcessPotsHiddenParameters() {
-  for (int i = 0; i < hw_->KNOB_LAST; ++i) {
+  for (int i = 0; i < KNOB_LAST; ++i) {
     pots_[i].ProcessUIRate();
   }
 }
 
-/* static */
-const DaisyMargolis::CvAdcChannel Ui::normalized_channels_[] = {
-  DaisyMargolis::CV_3,
-  DaisyMargolis::CV_2,
-  DaisyMargolis::CV_4,
-};
+
 
 void Ui::DetectNormalization() {
   ////////////////////////////////// TODO //////////////////////////////////////////////////
@@ -398,7 +411,7 @@ void Ui::DetectNormalization() {
   }
   */
 
-  modulations_->trigger = 5.f * hw_->gate_in.State();
+  modulations_->trigger = 5.f * (hw_->gate_in.State() ? 1.f : 0.f);
   modulations_->trigger_patched = true;
   //modulations_->level_patched  = true;
 
@@ -409,25 +422,32 @@ void Ui::Poll() {
   hw_->ProcessAnalogControls();
   
 
-  for (int i = 0; i < hw_->KNOB_LAST; ++i) {
-    pots_[i].ProcessControlRate(hw_->seed.adc.GetMuxFloat(7,i));
+  for (int i = 0; i < KNOB_LAST; ++i) {
+    pots_[i].ProcessControlRate(hw_->knob[i].Value());
   }
   
-  float* destination = &modulations_->engine;
+  //float* destination = &modulations_->engine;
 
+  //float* off_data = nullptr;
+  //hw_->GetCvOffsetData(off_data);
   
-  for (int i = 0; i < hw_->CV_LAST; ++i) {
-    destination[i] = settings_->calibration_data(i).Transform(hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value());
+  //for (int i = 0; i < CV_LAST; ++i) {
+    //destination[i] = settings_->calibration_data(i).Transform(hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value());
+    
+   // if(i != CV_VOCT){
+    //  destination[i] = hw_->GetCvValue(i);
+      //* plaits_cv_scale[i] + off_data[i];
         //hw_->seed.adc.GetFloat(i));
         //((float)hw_->seed.adc.Get(i) / 32768.0f));
     //destination[i] = hw_->GetCvValue(DaisyMargolis::CvAdcChannel(i));
-  }
+    //}
+  //}
   
   
-  ONE_POLE(pitch_lp_, modulations_->note, 0.7f);
+  ONE_POLE(pitch_lp_, hw_->GetWarpVoct(), 0.7f);
   ONE_POLE(
       //pitch_lp_calibration_, cv_adc_.float_value(hw_->CV_VOCT), 0.1f);
-      pitch_lp_calibration_, hw_->seed.adc.GetFloat(hw_->CV_VOCT), 0.1f);
+      pitch_lp_calibration_, hw_->cv[CV_VOCT].Value(), 0.1f);
   modulations_->note = pitch_lp_;
   
   ui_task_ = (ui_task_ + 1) % 4;
@@ -480,39 +500,112 @@ void Ui::StartCalibration() {
 
 void Ui::CalibrateC1() {
   // Acquire offsets for all channels.
-  for (int i = 0; i < hw_->CV_LAST; ++i) {
-    if (i != hw_->CV_VOCT) {
+  /*
+  for (int i = 0; i < CV_LAST; ++i) {
+    if (i != CV_VOCT) {
       ChannelCalibrationData* c = settings_->mutable_calibration_data(i);
-      //c->offset = -cv_adc_.float_value(CvAdcChannel(i)) * c->scale;
-      //c->offset = -hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value() * c->scale;
-      c->offset = -hw_->seed.adc.GetFloat(DaisyMargolis::CvAdcChannel(i)) * c->scale;
+     
+      c->offset = -hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value() * c->scale;
     }
   }
   cv_c1_ = pitch_lp_calibration_;
+*/
+  float co[CV_LAST];
+  for (int i = 0; i < CV_LAST; ++i) {
+    if (i != CV_VOCT) {
+      co[i] = hw_->cv[i].Value();
+    } else {
+      co[i] = 0.f;
+    }
+  }
+  auto &current_offset_data = co;
+  hw_->SetCvOffsetData(current_offset_data);
+
+  hw_->CalibrateV1(pitch_lp_calibration_);
+
   mode_ = UI_MODE_CALIBRATION_C3;
 }
 
 void Ui::CalibrateC3() {
-  // (-33/100.0*1 + -33/140.0 * -10.0) / 3.3 * 2.0 - 1 = 0.228
-  float c1 = cv_c1_;
+  hw_->CalibrateV3(pitch_lp_calibration_);
+    if(hw_->ReadyToSaveCal()) {
+       //SaveCalibrationData();
+       mode_ = UI_MODE_NORMAL;
+    } else {
+      mode_ = UI_MODE_ERROR;
+    }
+}
 
-  // (-33/100.0*1 + -33/140.0 * -10.0) / 3.3 * 2.0 - 1 = -0.171
-  float c3 = pitch_lp_calibration_;
-  float delta = c3 - c1;
+void Ui::SetStateData(PlaitsState &state)
+{
+    //engine_ = eng;
+    // const State& state = settings_->state();
+    CONSTRAIN(state.engine, 0, 15);
+    patch_->engine = state.engine;
+    //patch_->engine = 0;
+    patch_->lpg_colour = static_cast<float>(state.lpg_colour) / 256.0f;
+    patch_->decay = static_cast<float>(state.decay) / 256.0f;
+    octave_ = static_cast<float>(state.octave) / 256.0f;
+    cblind_ = state.color_blind;
+}
+
+void Ui::GetStateData(PlaitsState &state)
+{
+   // eng = engine_;
+    //State* state = settings_->mutable_state();
+  state.engine = static_cast<uint8_t>(patch_->engine);
+  state.lpg_colour = static_cast<uint8_t>(patch_->lpg_colour * 256.0f);
+  state.decay = static_cast<uint8_t>(patch_->decay * 256.0f);
+  state.octave = static_cast<uint8_t>(octave_ * 256.0f);
+  state.color_blind = cblind_;
   
-  if (delta > -0.6f && delta < -0.2f) {
-    ChannelCalibrationData* c = settings_->mutable_calibration_data(
-        hw_->CV_VOCT);
-    c->scale = 24.0f / delta;
-    c->offset = 12.0f - c->scale * c1;
-    settings_->SavePersistentData();
-    mode_ = UI_MODE_NORMAL;
-  } else {
-    mode_ = UI_MODE_ERROR;
-  }
-  //normalization_probe_.Init();
 }
 
 
+/** @brief Loads and sets calibration data */
+void Ui::SaveCalibrationData()
+{
+    daisy::PersistentStorage<CalibrationData> cal_storage(hw_->seed.qspi);
+    CalibrationData                           default_cal;
+    cal_storage.Init(default_cal, FLASH_BLOCK);
+    auto &cal_data = cal_storage.GetSettings();
+    hw_->GetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
+    hw_->GetCvOffsetData(cal_data.cv_offset);
+    cal_storage.Save();
+    hw_->ClearSaveCalFlag();
+}
+
+/** @brief Loads and sets state data */
+void Ui::LoadStateData()
+{
+    daisy::PersistentStorage<PlaitsState> state_storage(hw_->seed.qspi);
+    PlaitsState                          default_state;
+    state_storage.Init(default_state, FLASH_BLOCK*10);
+    PlaitsState &state_data = state_storage.GetSettings();
+    SetStateData(state_data);
+}
+
+/** @brief Saves state data */
+void Ui::SaveStateData()
+{
+    daisy::PersistentStorage<PlaitsState> state_storage(hw_->seed.qspi);
+    PlaitsState                           default_state;
+    state_storage.Init(default_state, FLASH_BLOCK*10);
+    PlaitsState &state_data = state_storage.GetSettings();
+    GetStateData(state_data);
+    state_storage.Save();
+    
+}
+
+void Ui::RestoreState()
+{
+    daisy::PersistentStorage<PlaitsState> state_storage(hw_->seed.qspi);
+    PlaitsState default_state;
+    state_storage.Init(default_state, FLASH_BLOCK*10);
+    state_storage.RestoreDefaults();
+    PlaitsState &state_data = state_storage.GetSettings();
+    SetStateData(state_data);
+    
+}
 
 }  // namespace plaits

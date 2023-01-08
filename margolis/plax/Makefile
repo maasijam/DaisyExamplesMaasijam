@@ -1,21 +1,12 @@
 # Project Name
 TARGET = plax
-PACKAGES       = plax \
-		plax/dsp \
-		plax/dsp/fx \
-		plax/dsp/drum_modelling \
-		plax/dsp/engine \
-		plax/dsp/physical_modelling \
-		plax/dsp/speech \
-		stmlib/dsp \
-		stmlib/utils \
-		stmlib/system
+
 RESOURCES      = plax/resources
 
 USE_FATFS = 1
 
-//DEBUG = 1
-//LDFLAGS += -u _printf_float
+#DEBUG = 1
+#LDFLAGS += -u _printf_float
 
 APP_TYPE = BOOT_SRAM
 
@@ -32,7 +23,7 @@ CC_SOURCES += $(wildcard dsp/speech/*.cc)
 CC_SOURCES += $(wildcard dsp/physical_modelling/*.cc)
 CC_SOURCES += resources.cc
 CC_SOURCES += ui.cc
-CC_SOURCES += settings.cc
+#CC_SOURCES += settings.cc
 
 
 CC_SOURCES += $(STMLIB_DIR)/dsp/units.cc \

@@ -163,7 +163,7 @@ class PotController {
   float scale_;
   float offset_;
   
-  DISALLOW_COPY_AND_ASSIGN(PotController);
+  //DISALLOW_COPY_AND_ASSIGN(PotController);
 };
 
 }  // namespace plaits

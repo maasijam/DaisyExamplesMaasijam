@@ -64,10 +64,6 @@ void Settings::Init(DaisyMargolis* hw) {
   c[hw_->CV_4].scale = -1.6f;
   c[hw_->CV_4].normalization_detection_threshold = -2945;
 
-  //c[CV_ADC_CHANNEL_TRIGGER].offset = 0.4f;
-  //c[CV_ADC_CHANNEL_TRIGGER].scale = -0.6f;
-  //c[CV_ADC_CHANNEL_TRIGGER].normalization_detection_threshold = 13663;
-
   c[hw_->CV_6].offset = 0.49f;
   c[hw_->CV_6].scale = -0.6f;
   c[hw_->CV_6].normalization_detection_threshold = 21403;
@@ -82,7 +78,8 @@ void Settings::Init(DaisyMargolis* hw) {
   //RestoreSettings();
   //LoadPersistentData();
   //LoadState();
-  
+
+    
   CONSTRAIN(state_.engine, 0, 15);
 
   //return success;
@@ -122,7 +119,7 @@ void Settings::LoadPersistentData()
 {
     daisy::PersistentStorage<PersistentData> persistent_storage(hw_->seed.qspi);
     PersistentData default_settings;
-    persistent_storage.Init(default_settings, FLASH_BLOCK);
+    persistent_storage.Init(default_settings, FLASH_BLOCK*2);
     PersistentData &p_data = persistent_storage.GetSettings();
     
     SetPersistentData(p_data);
@@ -135,7 +132,7 @@ void Settings::LoadState()
 {
     daisy::PersistentStorage<State> state_storage(hw_->seed.qspi);
     State default_state;
-    state_storage.Init(default_state, FLASH_BLOCK*2);
+    state_storage.Init(default_state, FLASH_BLOCK);
     State &state_data = state_storage.GetSettings();
     
     SetStateData(state_data);
@@ -146,7 +143,7 @@ void Settings::SavePersistentData()
 {
     daisy::PersistentStorage<PersistentData> persistent_storage(hw_->seed.qspi);
     PersistentData default_settings;
-    persistent_storage.Init(default_settings, FLASH_BLOCK);
+    persistent_storage.Init(default_settings, FLASH_BLOCK*2);
     PersistentData &p_data = persistent_storage.GetSettings();
 
     GetPersistentData(p_data);
@@ -159,7 +156,7 @@ void Settings::SaveState()
 {
     daisy::PersistentStorage<State> state_storage(hw_->seed.qspi);
     State default_settings;
-    state_storage.Init(default_settings, FLASH_BLOCK*2);
+    state_storage.Init(default_settings, FLASH_BLOCK);
     State &state_data = state_storage.GetSettings();
     
     GetStateData(state_data);
@@ -172,12 +169,12 @@ void Settings::RestoreSettings()
 {
     daisy::PersistentStorage<PersistentData> persistent_storage(hw_->seed.qspi);
     PersistentData default_settings;
-    persistent_storage.Init(default_settings, FLASH_BLOCK);
+    persistent_storage.Init(default_settings, FLASH_BLOCK*2);
     persistent_storage.RestoreDefaults();
 
     daisy::PersistentStorage<State> state_storage(hw_->seed.qspi);
     State default_state;
-    state_storage.Init(default_state, FLASH_BLOCK*2);
+    state_storage.Init(default_state, FLASH_BLOCK);
     state_storage.RestoreDefaults();
     
 }

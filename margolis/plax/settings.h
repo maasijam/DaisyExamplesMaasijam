@@ -85,8 +85,8 @@ struct PersistentData {
   
   */
   ChannelCalibrationData channel_calibration_data[DaisyMargolis::CV_LAST];
-  uint8_t padding[16];
-  enum { tag = 0x494C4143 };  // 
+  //uint8_t padding[16];
+  //enum { tag = 0x494C4143 };  // 
   
   /**@brief checks sameness */
     bool operator==(const PersistentData &rhs)
@@ -102,12 +102,12 @@ struct PersistentData {
 
 struct State {
 
-  /*() : 
-  engine(3), 
+  State() : 
+  engine(0), 
   lpg_colour(0), 
   decay(128),
   octave(255),
-  color_blind(0) {}*/
+  color_blind(0) {}
 
   /*State() { 
   engine = 0;
@@ -190,7 +190,7 @@ class Settings {
   
  
   
-  DISALLOW_COPY_AND_ASSIGN(Settings);
+  //DISALLOW_COPY_AND_ASSIGN(Settings);
 };
 
 }  // namespace plaits

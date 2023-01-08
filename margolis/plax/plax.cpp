@@ -26,12 +26,13 @@
 #include "daisysp.h"
 #include "dsp/dsp.h"
 #include "dsp/voice.h"
-#include "settings.h"
+//#include "settings.h"
 #include "ui.h"
 
 
 using namespace daisy;
 using namespace daisysp;
+using namespace margolis;
 
 DaisyMargolis hw;
 
@@ -49,7 +50,7 @@ const bool test_adc_noise = false;
 
 Modulations modulations;
 Patch patch;
-Settings settings;
+//Settings settings;
 Ui ui;
 Voice voice;
 
@@ -76,6 +77,11 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	modulations.timbre_patched = true;
 	modulations.morph_patched =  true;
   //hw.seed.PrintLine("CV: %f", modulations.engine);
+  modulations.frequency = hw.GetCvValue(CV_3);
+	modulations.harmonics = hw.GetCvValue(CV_5);
+	modulations.timbre = hw.GetCvValue(CV_2);
+	modulations.morph = hw.GetCvValue(CV_4);
+	modulations.engine = hw.GetCvValue(CV_1);
 
 
   voice.Render(patch, modulations, outputPlaits, BLOCK_SIZE);
@@ -83,9 +89,8 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	for (size_t i = 0; i < size; i++) {
 		OUT_L[i] = outputPlaits[i].out / 32768.f;
 		OUT_R[i] = outputPlaits[i].aux / 32768.f;
-    hw.seed.dac.WriteValue(
-            DacHandle::Channel::ONE,
-            uint16_t(modulations.frequency * 4095.f));
+/*            DacHandle::Channel::ONE,
+            uint16_t(modulations.frequency * 4095.f));*/
 	}
   ui.set_active_engine(voice.active_engine());
   
@@ -113,9 +118,9 @@ void Init() {
   while (counter--);
   
   
-  settings.Init(&hw);
+  //settings.Init(&hw);
   
-  ui.Init(&patch, &modulations, &settings, &hw);
+  ui.Init(&patch, &modulations, &hw);
   hw.StartAdc();
 	hw.StartAudio(AudioCallback);
   
@@ -124,5 +129,49 @@ void Init() {
 int main(void) {
   //hw.seed.StartLog(false);
   Init();
-  while (1) { }
+  CvIns mycvin;
+  float  cvval;
+  uint32_t last_save_time = System::GetNow(); 
+
+  while (1) {
+    //cvval = patch.engine;
+    /*mycvin = CV_VOCT;
+        if(hw.cv[mycvin].Value() >= 0.f) {
+            //cvval = hw.cv[mycvin].Value();
+            cvval = hw.cv[mycvin].Value();
+        } else {
+            //cvval = hw.cv[mycvin].Value() * -1;
+            cvval = hw.cv[mycvin].Value() * -1;
+        }
+        hw.seed.dac.WriteValue(
+            DacHandle::Channel::ONE,
+            uint16_t(cvval * 128.f));*/
+    if (hw.ReadyToSaveCal()) {
+            /** Collect the data from where ever in the application it is */
+            //SaveSettings();
+            //SaveState();
+            ui.SaveCalibrationData();
+       
+            /** And trigger the save */
+            
+            hw.ClearSaveCalFlag();
+        }
+        if (System::GetNow() - last_save_time > 10000 && ui.readyToSaveState)
+        {
+          ui.SaveStateData();
+          last_save_time = System::GetNow();
+          ui.readyToSaveState = false;
+        }
+    if (ui.readyToRestore) {
+            /** Collect the data from where ever in the application it is */
+            
+            
+            ui.RestoreState();
+
+            /** And trigger the save */
+            ui.readyToRestore = false;
+            
+        }
+  }
+  
 }

@@ -35,11 +35,12 @@
 #include "../daisy_margolis.h"
 #include "dsp/voice.h"
 #include "pot_controller.h"
-#include "settings.h"
+//#include "settings.h"
 
 namespace plaits {
 
 using namespace daisy;
+using namespace margolis;
 
 const int kNumNormalizedChannels = 3;
 const int kProbeSequenceDuration = 32;
@@ -52,7 +53,8 @@ enum UiMode {
   UI_MODE_CALIBRATION_C1,
   UI_MODE_CALIBRATION_C3,
   UI_MODE_TEST,
-  UI_MODE_ERROR
+  UI_MODE_ERROR,
+  UI_MODE_RESTORE_STATE,
 };
 
 
@@ -64,6 +66,55 @@ enum PlaitsPatched {
   PATCHED_LAST
 };
 
+struct PlaitsState {
+
+  PlaitsState() : 
+  engine(0), 
+  lpg_colour(0), 
+  decay(128),
+  octave(255),
+  color_blind(0) {}
+
+
+  uint8_t engine;
+  uint8_t lpg_colour;
+  uint8_t decay;
+  uint8_t octave;
+  uint8_t color_blind;
+  
+  /**@brief checks sameness */
+    bool operator==(const PlaitsState &rhs)
+    {
+        
+        return true;
+        if(engine != rhs.engine)
+        {
+            return false;
+        }
+        else if(lpg_colour != rhs.lpg_colour)
+        {
+            return false;
+        }
+        else if(decay != rhs.decay)
+        {
+            return false;
+        }
+        else if(octave != rhs.octave)
+        {
+            return false;
+        }
+        else if(color_blind != rhs.color_blind)
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    /** @brief Not equal operator */
+    bool operator!=(const PlaitsState &rhs) { return !operator==(rhs); }
+};
+
 
 
 class Ui {
@@ -71,15 +122,19 @@ class Ui {
   Ui() { }
   ~Ui() { }
   
-  void Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyMargolis* hw);
+  void Init(Patch* patch, Modulations* modulations, DaisyMargolis* hw);
   
   void Poll();
   
   void set_active_engine(int active_engine) {
     active_engine_ = active_engine;
   }
-  
-  
+  void SaveCalibrationData();
+  void SaveStateData();
+  void RestoreState();
+
+  bool readyToSaveState = false;
+  bool readyToRestore = false;
 
 
   
@@ -89,6 +144,7 @@ class Ui {
   void ProcessPotsHiddenParameters();
   void LoadState();
   void SaveState();
+  
   void DetectNormalization();
   
   void StartCalibration();
@@ -96,10 +152,16 @@ class Ui {
   void CalibrateC3();
 
   void RealignPots() {
-    pots_[hw_->KNOB_3].Realign();
-    pots_[hw_->KNOB_4].Realign();
-    pots_[hw_->KNOB_2].Realign();
+    pots_[KNOB_3].Realign();
+    pots_[KNOB_4].Realign();
+    pots_[KNOB_2].Realign();
   }
+
+  void LoadStateData();
+  
+
+  void SetStateData(PlaitsState &statedata);
+  void GetStateData(PlaitsState &statedata);
   
   UiMode mode_;
   
@@ -109,19 +171,17 @@ class Ui {
 
   float transposition_;
   float octave_;
+  uint8_t cblind_;
   DaisyMargolis* hw_;
   Patch* patch_;
   Modulations* modulations_;
   //NormalizationProbe normalization_probe_;
-  PotController pots_[DaisyMargolis::KNOB_LAST];
+  PotController pots_[KNOB_LAST];
   float pitch_lp_;
   float pitch_lp_calibration_;
   
-  Settings* settings_;
+  //Settings* settings_;
   
-  int normalization_detection_count_;
-  int normalization_detection_mismatches_[kNumNormalizedChannels];
-  uint32_t normalization_probe_state_;
 
   bool isPatched[3] = {false};
 
@@ -132,10 +192,10 @@ class Ui {
   int active_engine_;
   
   float cv_c1_;  // For calibration
-  
-  static const DaisyMargolis::CvAdcChannel normalized_channels_[kNumNormalizedChannels];
-    
-  DISALLOW_COPY_AND_ASSIGN(Ui);
+  float plaits_cv_scale[CV_LAST];
+
+   
+  //DISALLOW_COPY_AND_ASSIGN(Ui);
 };
 
 }  // namespace plaits
