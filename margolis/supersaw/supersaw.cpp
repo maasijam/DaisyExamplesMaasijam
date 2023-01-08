@@ -44,15 +44,15 @@ void audio_callback(AudioHandle::InputBuffer  in,
     float env_out[3];
     bool env_state;
    
-    CvIns mycvin;
+   
     
 
     /** Get Coarse, Fine, and V/OCT inputs from hardware 
      *  MIDI Note number are easy to use for defining ranges */
-    float knob_coarse = hw.GetKnobValue(CV_1);
+    float knob_coarse = hw.GetKnobValue(KNOB_1);
     float coarse_tune = fmap(knob_coarse, 12, 84);
 
-    float knob_fine = hw.GetKnobValue(CV_2);
+    float knob_fine = hw.GetKnobValue(KNOB_2);
     float fine_tune = fmap(knob_fine, 0, 10);
 
     //float cv_voct = hw.GetCvValue(CV_VOCT);
@@ -170,16 +170,21 @@ int main(void)
     hw.StartAdc();
 	hw.StartAudio(audio_callback);
 
+    CvIns mycvin;
+    float  cvval;
+
 	while(1)
 	{	
          
-         float  cvval = static_cast<int>(ui.GetTask());
-        /*mycvin = CV_6;
+        //float  cvval = static_cast<int>(ui.GetTask());
+        mycvin = CV_6;
         if(hw.cv[mycvin].Value() >= 0.f) {
-            cvval = hw.cv[mycvin].Value();
+            //cvval = hw.cv[mycvin].Value();
+            cvval = hw.GetCvValue(mycvin);
         } else {
-            cvval = hw.cv[mycvin].Value() * -1;
-        }*/
+            //cvval = hw.cv[mycvin].Value() * -1;
+            cvval = hw.GetCvValue(mycvin) * -1;
+        }
         hw.seed.dac.WriteValue(
             DacHandle::Channel::ONE,
             uint16_t(cvval * 1024.f));

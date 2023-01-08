@@ -107,7 +107,7 @@ void DaisyMargolis::Init(bool boost)
     for(size_t i = 0; i < CV_LAST; i++)
     {
         if(i == CV_6) {
-            cv[i].Init(seed.adc.GetPtr(i), AudioCallbackRate());
+            cv[i].Init(seed.adc.GetPtr(i), AudioCallbackRate(),true);
         } else {
             cv[i].InitBipolarCv(seed.adc.GetPtr(i), AudioCallbackRate());
         }

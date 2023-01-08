@@ -191,6 +191,18 @@ void Ui::StartCalibration() {
 
 void Ui::CalibrateC1() {
   // Acquire offsets for all channels.
+  //hw_->GetCvOffsetData(float *data);
+  float co[CV_LAST];
+  for (int i = 0; i < CV_LAST; ++i) {
+    if (i != CV_VOCT) {
+      co[i] = hw_->cv[i].Value();
+    } else {
+      co[i] = 0.f;
+    }
+  }
+  auto &current_offset_data = co;
+  hw_->SetCvOffsetData(current_offset_data);
+
   hw_->CalibrateV1(pitch_lp_calibration_);
   mode_ = UI_MODE_CALIBRATION_C3;
 }
