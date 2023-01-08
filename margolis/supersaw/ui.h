@@ -67,6 +67,7 @@ struct StateData
         }
         
         return true;
+        
     }
 
     /** @brief Not equal operator */
