@@ -7,6 +7,7 @@
 
 using namespace daisy;
 using namespace daisysp;
+using namespace margolis;
 
 DaisyMargolis hw;
 Settings settings;
@@ -108,8 +109,8 @@ int main(void)
     //hw.seed.qspi.EraseSector(4096*3);
     settings.Init(&hw);
 
-    //LoadSettings();
-    //LoadState();
+    LoadSettings();
+    LoadState();
 
     float samplerate = hw.AudioSampleRate();
     int   num_waves = Oscillator::WAVE_LAST - 1;
@@ -128,10 +129,10 @@ int main(void)
 
     lfo.Init(samplerate, hw.knob[4], hw.knob[5]);
 
-    freqctrl.Init(hw.knob[hw.KNOB_1], 10.0, 110.0f, Parameter::LINEAR);
-    finectrl.Init(hw.knob[hw.KNOB_2], 0.f, 7.f, Parameter::LINEAR);
-    wavectrl.Init(hw.knob[hw.KNOB_3], 0.0, num_waves, Parameter::LINEAR);
-    ampctrl.Init(hw.knob[hw.KNOB_4], 0.0, 0.5f, Parameter::LINEAR);
+    freqctrl.Init(hw.knob[KNOB_1], 10.0, 110.0f, Parameter::LINEAR);
+    finectrl.Init(hw.knob[KNOB_2], 0.f, 7.f, Parameter::LINEAR);
+    wavectrl.Init(hw.knob[KNOB_3], 0.0, num_waves, Parameter::LINEAR);
+    ampctrl.Init(hw.knob[KNOB_4], 0.0, 0.5f, Parameter::LINEAR);
 
     
     hw.StartAdc();
@@ -168,20 +169,20 @@ void Update_Digital() {
     hw.ClearLeds();
 
     if(!hw.Gate()){
-        hw.SetRGBColor(hw.LED_RGB_8,hw.blue);
+        hw.SetRGBColor(LED_RGB_8,BLUE);
     }
 
-    if(hw.s[hw.S1].RisingEdge()) {
+    if(hw.s[S1].RisingEdge()) {
         engine = 0;
         ledcount++;
     }
 
-    if(hw.s[hw.S2].RisingEdge()) {
+    if(hw.s[S2].RisingEdge()) {
         engine = 1;
         ledcount++;
     }
 
-    if(hw.s[hw.S3].RisingEdge()) {
+    if(hw.s[S3].RisingEdge()) {
         engine = 2;
         ledcount++;
     }
@@ -193,17 +194,17 @@ void Update_Digital() {
     switch (engine)
     {
     case 0:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.red);
+        hw.SetRGBColor(static_cast<LeddriverLeds>(ledcount),RED);
         break;
     case 1:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.yellow);
+        hw.SetRGBColor(static_cast<LeddriverLeds>(ledcount),YELLOW);
         break;
     case 2:
-        hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(ledcount),hw.green);
+        hw.SetRGBColor(static_cast<LeddriverLeds>(ledcount),GREEN);
         break;
     }
 
-    if(hw.s[hw.S4].RisingEdge()) {
+    if(hw.s[S4].RisingEdge()) {
         //settings.ledatt[0] = !settings.ledatt[0];
         decay++;
         
@@ -212,45 +213,45 @@ void Update_Digital() {
         decay = 0;
     }
     if(decay == 1) {
-            hw.SetRGBColor(hw.LED_RGB_2,hw.darkorange);
+            hw.SetRGBColor(LED_RGB_2,DARKORANGE);
     }
 
-    if(hw.s[hw.S5].RisingEdge()) {
+    if(hw.s[S5].RisingEdge()) {
         ledatt[1] = !ledatt[1];
         
     }
     if(ledatt[1]) {
-            hw.SetGreenLeds(hw.LED_GREEN_2,hw.knob[hw.KNOB_6].Value());
+            hw.SetGreenLeds(LED_GREEN_2,hw.knob[KNOB_6].Value());
         }
 
-    if(hw.s[hw.S6].RisingEdge()) {
+    if(hw.s[S6].RisingEdge()) {
         ledatt[2] = !ledatt[2];
         
     }
     if(ledatt[2]) {
-            hw.SetGreenLeds(hw.LED_GREEN_3,hw.knob[hw.KNOB_7].Value());
+            hw.SetGreenLeds(LED_GREEN_3,hw.knob[KNOB_7].Value());
         }
     
-    if(hw.s[hw.S6].TimeHeldMs() > 1000) {
-        hw.SetRGBColor(hw.LED_RGB_1,hw.purple);
-        hw.SetRGBColor(hw.LED_RGB_2,hw.purple);
-        hw.SetRGBColor(hw.LED_RGB_3,hw.purple);
-        hw.SetRGBColor(hw.LED_RGB_4,hw.purple);
-        hw.SetRGBColor(hw.LED_RGB_5,hw.purple);
-        hw.SetRGBColor(hw.LED_RGB_6,hw.purple);
-        hw.SetRGBColor(hw.LED_RGB_7,hw.purple);
-        hw.SetRGBColor(hw.LED_RGB_8,hw.purple);
+    if(hw.s[S6].TimeHeldMs() > 1000) {
+        hw.SetRGBColor(LED_RGB_1,PURPLE);
+        hw.SetRGBColor(LED_RGB_2,PURPLE);
+        hw.SetRGBColor(LED_RGB_3,PURPLE);
+        hw.SetRGBColor(LED_RGB_4,PURPLE);
+        hw.SetRGBColor(LED_RGB_5,PURPLE);
+        hw.SetRGBColor(LED_RGB_6,PURPLE);
+        hw.SetRGBColor(LED_RGB_7,PURPLE);
+        hw.SetRGBColor(LED_RGB_8,PURPLE);
         readyToSave = true;
     }
-    if(hw.s[hw.S4].TimeHeldMs() > 1000) {
-        hw.SetRGBColor(hw.LED_RGB_1,hw.red);
-        hw.SetRGBColor(hw.LED_RGB_2,hw.red);
-        hw.SetRGBColor(hw.LED_RGB_3,hw.red);
-        hw.SetRGBColor(hw.LED_RGB_4,hw.red);
-        hw.SetRGBColor(hw.LED_RGB_5,hw.red);
-        hw.SetRGBColor(hw.LED_RGB_6,hw.red);
-        hw.SetRGBColor(hw.LED_RGB_7,hw.red);
-        hw.SetRGBColor(hw.LED_RGB_8,hw.red);
+    if(hw.s[S4].TimeHeldMs() > 1000) {
+        hw.SetRGBColor(LED_RGB_1,RED);
+        hw.SetRGBColor(LED_RGB_2,RED);
+        hw.SetRGBColor(LED_RGB_3,RED);
+        hw.SetRGBColor(LED_RGB_4,RED);
+        hw.SetRGBColor(LED_RGB_5,RED);
+        hw.SetRGBColor(LED_RGB_6,RED);
+        hw.SetRGBColor(LED_RGB_7,RED);
+        hw.SetRGBColor(LED_RGB_8,RED);
         readyToRestore = true;
     }
 
@@ -270,30 +271,30 @@ void Update_Controls() {
 void Start_Led_Ani() {
     hw.ClearLeds();
     
-    for(size_t i = 0; i < hw.LEDDRIVER_LAST; i++)
+    for(size_t i = 0; i < LEDDRIVER_LAST; i++)
     {
         if(i < 8) {
-            hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(i),hw.red);
+            hw.SetRGBColor(static_cast<LeddriverLeds>(i),RED);
         }
         
         hw.UpdateLeds();
         hw.DelayMs(50);
     }
 
-    for(size_t i = 0; i < hw.LEDDRIVER_LAST; i++)
+    for(size_t i = 0; i < LEDDRIVER_LAST; i++)
     {
         if(i < 8) {
-            hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(i),hw.green);
+            hw.SetRGBColor(static_cast<LeddriverLeds>(i),GREEN);
         }
         
         hw.UpdateLeds();
         hw.DelayMs(50);
     }
 
-    for(size_t i = 0; i < hw.LEDDRIVER_LAST; i++)
+    for(size_t i = 0; i < LEDDRIVER_LAST; i++)
     {
         if(i < 8) {
-            hw.SetRGBColor(static_cast<DaisyMargolis::LeddriverLeds>(i),hw.blue);
+            hw.SetRGBColor(static_cast<LeddriverLeds>(i),BLUE);
         }
         
         hw.UpdateLeds();
@@ -302,7 +303,7 @@ void Start_Led_Ani() {
 
     for(size_t i = 0; i < 3; i++)
     {
-        hw.SetGreenLeds(static_cast<DaisyMargolis::LeddriverLeds>(hw.LEDDRIVER_LAST - (i + 1)),1.0f);
+        hw.SetGreenLeds(static_cast<LeddriverLeds>(LEDDRIVER_LAST - (i + 1)),1.0f);
                 
         hw.UpdateLeds();
         hw.DelayMs(100);
