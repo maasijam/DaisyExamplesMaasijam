@@ -35,7 +35,7 @@
 #include "../daisy_margolis.h"
 #include "dsp/voice.h"
 #include "pot_controller.h"
-//#include "settings.h"
+#include "settings.h"
 
 namespace plaits {
 
@@ -66,63 +66,13 @@ enum PlaitsPatched {
   PATCHED_LAST
 };
 
-struct PlaitsState {
-
-  PlaitsState() : 
-  engine(0), 
-  lpg_colour(0), 
-  decay(128),
-  octave(255),
-  color_blind(0) {}
-
-
-  uint8_t engine;
-  uint8_t lpg_colour;
-  uint8_t decay;
-  uint8_t octave;
-  uint8_t color_blind;
-  
-  /**@brief checks sameness */
-    bool operator==(const PlaitsState &rhs)
-    {
-        
-        return true;
-        if(engine != rhs.engine)
-        {
-            return false;
-        }
-        else if(lpg_colour != rhs.lpg_colour)
-        {
-            return false;
-        }
-        else if(decay != rhs.decay)
-        {
-            return false;
-        }
-        else if(octave != rhs.octave)
-        {
-            return false;
-        }
-        else if(color_blind != rhs.color_blind)
-        {
-            return false;
-        }
-        
-        return true;
-    }
-
-    /** @brief Not equal operator */
-    bool operator!=(const PlaitsState &rhs) { return !operator==(rhs); }
-};
-
-
 
 class Ui {
  public:
   Ui() { }
   ~Ui() { }
   
-  void Init(Patch* patch, Modulations* modulations, DaisyMargolis* hw);
+  void Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyMargolis* hw);
   
   void Poll();
   
@@ -131,7 +81,8 @@ class Ui {
   }
   void SaveCalibrationData();
   void SaveStateData();
-  void RestoreState();
+  void SaveState();
+  
 
   bool readyToSaveState = false;
   bool readyToRestore = false;
@@ -143,7 +94,7 @@ class Ui {
   void ReadSwitches();
   void ProcessPotsHiddenParameters();
   void LoadState();
-  void SaveState();
+  
   
   void DetectNormalization();
   
@@ -158,11 +109,7 @@ class Ui {
   }
 
   void LoadStateData();
-  
-
-  void SetStateData(PlaitsState &statedata);
-  void GetStateData(PlaitsState &statedata);
-  
+    
   UiMode mode_;
   
   
@@ -180,7 +127,7 @@ class Ui {
   float pitch_lp_;
   float pitch_lp_calibration_;
   
-  //Settings* settings_;
+  Settings* settings_;
   
 
   bool isPatched[3] = {false};

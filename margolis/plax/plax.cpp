@@ -26,7 +26,7 @@
 #include "daisysp.h"
 #include "dsp/dsp.h"
 #include "dsp/voice.h"
-//#include "settings.h"
+#include "settings.h"
 #include "ui.h"
 
 
@@ -50,7 +50,7 @@ const bool test_adc_noise = false;
 
 Modulations modulations;
 Patch patch;
-//Settings settings;
+Settings settings;
 Ui ui;
 Voice voice;
 
@@ -118,9 +118,9 @@ void Init() {
   while (counter--);
   
   
-  //settings.Init(&hw);
+  settings.Init(&hw);
   
-  ui.Init(&patch, &modulations, &hw);
+  ui.Init(&patch, &modulations, &settings, &hw);
   hw.StartAdc();
 	hw.StartAudio(AudioCallback);
   
@@ -146,31 +146,19 @@ int main(void) {
         hw.seed.dac.WriteValue(
             DacHandle::Channel::ONE,
             uint16_t(cvval * 128.f));*/
-    if (hw.ReadyToSaveCal()) {
-            /** Collect the data from where ever in the application it is */
-            //SaveSettings();
-            //SaveState();
+        if (hw.ReadyToSaveCal()) {
             ui.SaveCalibrationData();
-       
-            /** And trigger the save */
-            
-            hw.ClearSaveCalFlag();
         }
-        if (System::GetNow() - last_save_time > 10000 && ui.readyToSaveState)
+        if (System::GetNow() - last_save_time > 100 && ui.readyToSaveState)
         {
-          ui.SaveStateData();
+          ui.SaveState();
           last_save_time = System::GetNow();
           ui.readyToSaveState = false;
         }
-    if (ui.readyToRestore) {
+        if (ui.readyToRestore) {
             /** Collect the data from where ever in the application it is */
-            
-            
-            ui.RestoreState();
-
-            /** And trigger the save */
+            settings.RestoreState();
             ui.readyToRestore = false;
-            
         }
   }
   

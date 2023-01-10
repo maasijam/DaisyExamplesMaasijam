@@ -23,7 +23,7 @@ CC_SOURCES += $(wildcard dsp/speech/*.cc)
 CC_SOURCES += $(wildcard dsp/physical_modelling/*.cc)
 CC_SOURCES += resources.cc
 CC_SOURCES += ui.cc
-#CC_SOURCES += settings.cc
+CC_SOURCES += settings.cc
 
 
 CC_SOURCES += $(STMLIB_DIR)/dsp/units.cc \

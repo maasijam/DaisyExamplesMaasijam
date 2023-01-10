@@ -43,11 +43,11 @@ static const int32_t kLongPressTime = 2000;
 
 #define ENABLE_LFO_MODE
 
-void Ui::Init(Patch* patch, Modulations* modulations, DaisyMargolis* hw) {
+void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyMargolis* hw) {
   hw_ = hw;
   patch_ = patch;
   modulations_ = modulations;
-  //settings_ = settings;
+  settings_ = settings;
 
   
 
@@ -61,7 +61,7 @@ void Ui::Init(Patch* patch, Modulations* modulations, DaisyMargolis* hw) {
   plaits_cv_scale[CV_5] = -1.0f;
   plaits_cv_scale[CV_6] = -0.6f;     
   
-  LoadStateData();
+  LoadState();
 
   /*
   if (hw_->s[hw_->S3].RawState()) {
@@ -105,7 +105,24 @@ void Ui::Init(Patch* patch, Modulations* modulations, DaisyMargolis* hw) {
   cblind_ = 0;
 }
 
+void Ui::LoadState() {
+  const State& state = settings_->state();
+  patch_->engine = state.engine;
+  patch_->lpg_colour = static_cast<float>(state.lpg_colour) / 256.0f;
+  patch_->decay = static_cast<float>(state.decay) / 256.0f;
+  octave_ = static_cast<float>(state.octave) / 256.0f;
+  
+}
 
+
+void Ui::SaveState() {
+  State* state = settings_->mutable_state();
+  state->engine = patch_->engine;
+  state->lpg_colour = static_cast<uint8_t>(patch_->lpg_colour * 256.0f);
+  state->decay = static_cast<uint8_t>(patch_->decay * 256.0f);
+  state->octave = static_cast<uint8_t>(octave_ * 256.0f);
+  settings_->SaveState();
+}
 
 void Ui::UpdateLEDs() {
   hw_->ClearLeds();
@@ -295,7 +312,7 @@ void Ui::ReadSwitches() {
             patch_->engine = (patch_->engine + 1) % 8;
           }
           //SaveState();
-          //readyToSaveState = true;
+          readyToSaveState = true;
           //SaveStateData();
         }
   
@@ -308,7 +325,7 @@ void Ui::ReadSwitches() {
             patch_->engine = 8 + ((patch_->engine + 1) % 8);
           }
          //SaveState();
-         //readyToSaveState = true;
+         readyToSaveState = true;
          //SaveStateData();
         }
 
@@ -536,30 +553,6 @@ void Ui::CalibrateC3() {
     }
 }
 
-void Ui::SetStateData(PlaitsState &state)
-{
-    //engine_ = eng;
-    // const State& state = settings_->state();
-    CONSTRAIN(state.engine, 0, 15);
-    patch_->engine = state.engine;
-    //patch_->engine = 0;
-    patch_->lpg_colour = static_cast<float>(state.lpg_colour) / 256.0f;
-    patch_->decay = static_cast<float>(state.decay) / 256.0f;
-    octave_ = static_cast<float>(state.octave) / 256.0f;
-    cblind_ = state.color_blind;
-}
-
-void Ui::GetStateData(PlaitsState &state)
-{
-   // eng = engine_;
-    //State* state = settings_->mutable_state();
-  state.engine = static_cast<uint8_t>(patch_->engine);
-  state.lpg_colour = static_cast<uint8_t>(patch_->lpg_colour * 256.0f);
-  state.decay = static_cast<uint8_t>(patch_->decay * 256.0f);
-  state.octave = static_cast<uint8_t>(octave_ * 256.0f);
-  state.color_blind = cblind_;
-  
-}
 
 
 /** @brief Loads and sets calibration data */
@@ -573,39 +566,6 @@ void Ui::SaveCalibrationData()
     hw_->GetCvOffsetData(cal_data.cv_offset);
     cal_storage.Save();
     hw_->ClearSaveCalFlag();
-}
-
-/** @brief Loads and sets state data */
-void Ui::LoadStateData()
-{
-    daisy::PersistentStorage<PlaitsState> state_storage(hw_->seed.qspi);
-    PlaitsState                          default_state;
-    state_storage.Init(default_state, FLASH_BLOCK*10);
-    PlaitsState &state_data = state_storage.GetSettings();
-    SetStateData(state_data);
-}
-
-/** @brief Saves state data */
-void Ui::SaveStateData()
-{
-    daisy::PersistentStorage<PlaitsState> state_storage(hw_->seed.qspi);
-    PlaitsState                           default_state;
-    state_storage.Init(default_state, FLASH_BLOCK*10);
-    PlaitsState &state_data = state_storage.GetSettings();
-    GetStateData(state_data);
-    state_storage.Save();
-    
-}
-
-void Ui::RestoreState()
-{
-    daisy::PersistentStorage<PlaitsState> state_storage(hw_->seed.qspi);
-    PlaitsState default_state;
-    state_storage.Init(default_state, FLASH_BLOCK*10);
-    state_storage.RestoreDefaults();
-    PlaitsState &state_data = state_storage.GetSettings();
-    SetStateData(state_data);
-    
 }
 
 }  // namespace plaits
