@@ -39,11 +39,11 @@ using namespace daisy;
 void Settings::Init(DaisyMargolis* hw) {
   hw_ = hw;
  
-  state_.engine = 0;
-  state_.lpg_colour = 0;
-  state_.decay = 128;
-  state_.octave = 255;
-  state_.color_blind = 0;
+  //state_.engine = 0;
+  //state_.lpg_colour = 0;
+  //state_.decay = 128;
+  //state_.octave = 255;
+  //state_.color_blind = 0;
   
   //bool success = chunk_storage_.Init(&persistent_data_, &state_);
   //RestoreSettings();
@@ -51,7 +51,7 @@ void Settings::Init(DaisyMargolis* hw) {
   LoadState();
   
     
-  CONSTRAIN(state_.engine, 0, 7);
+  //CONSTRAIN(state_.engine, 0, 7);
 
   //return success;
 }

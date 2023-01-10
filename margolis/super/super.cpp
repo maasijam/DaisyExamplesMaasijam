@@ -12,8 +12,8 @@ using namespace margolis;
 using namespace super;
 
 DaisyMargolis hw;
-Ui ui;
 Settings settings;
+Ui ui;
 static Adsr    env[3];
 
 
@@ -130,8 +130,9 @@ void audio_callback(AudioHandle::InputBuffer  in,
 int main(void)
 {
     hw.Init();
-    ui.Init(&hw, &settings);
     settings.Init(&hw);
+    ui.Init(&hw, &settings);
+    
     
     
     //LoadState();
@@ -197,7 +198,7 @@ int main(void)
             
            ui.readyToRestoreState = false;
         }
-        if (System::GetNow() - last_save_time > 10000 && ui.readyToSaveState)
+        if (System::GetNow() - last_save_time > 100 && ui.readyToSaveState)
         {
           ui.SaveState();
           last_save_time = System::GetNow();
