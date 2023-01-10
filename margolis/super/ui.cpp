@@ -159,8 +159,11 @@ void Ui::ReadSwitches() {
       case UI_MODE_SAVE_STATE:
       {
         
-        if(!readyToSaveState)
+        if(!readyToSaveState) {
+          LoadState();
           mode_ = UI_MODE_NORMAL;
+        }
+          
       }
       break;
 
@@ -198,12 +201,10 @@ fonepole(pitch_lp_calibration_, hw_->cv[CV_VOCT].Value(), 0.1f);
 
 void Ui::StartCalibration() {
   mode_ = UI_MODE_CALIBRATION_C1;
-  //normalization_probe_.Disable();
 }
 
 void Ui::CalibrateC1() {
   // Acquire offsets for all channels.
-  //hw_->GetCvOffsetData(float *data);
   float co[CV_LAST];
   for (int i = 0; i < CV_LAST; ++i) {
     if (i != CV_VOCT) {
@@ -222,14 +223,23 @@ void Ui::CalibrateC1() {
 void Ui::CalibrateC3() {
     hw_->CalibrateV3(pitch_lp_calibration_);
     if(hw_->ReadyToSaveCal()) {
-       //SaveCalibrationData();
        mode_ = UI_MODE_NORMAL;
     } else {
       mode_ = UI_MODE_ERROR;
     }
-  //normalization_probe_.Init();
 }
 
-
+/** @brief Loads and sets calibration data */
+void Ui::SaveCalibrationData()
+{
+    daisy::PersistentStorage<CalibrationData> cal_storage(hw_->seed.qspi);
+    CalibrationData                           default_cal;
+    cal_storage.Init(default_cal, FLASH_BLOCK);
+    auto &cal_data = cal_storage.GetSettings();
+    hw_->GetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
+    hw_->GetCvOffsetData(cal_data.cv_offset);
+    cal_storage.Save();
+    hw_->ClearSaveCalFlag();
+}
 
 }  // namespace super

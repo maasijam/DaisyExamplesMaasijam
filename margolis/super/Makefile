@@ -4,9 +4,9 @@ TARGET = super
  #DEBUG = 1
  #LDFLAGS += -u _printf_float
  #APP_TYPE = BOOT_NONE
-#USE_FATFS = 1
+USE_FATFS = 1
 
-APP_TYPE = BOOT_NONE
+APP_TYPE = BOOT_SRAM
 
 # Sources
 CPP_SOURCES = super.cpp ui.cpp settings.cpp ../daisy_margolis.cpp 

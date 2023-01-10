@@ -14,9 +14,9 @@ using namespace super;
 DaisyMargolis hw;
 Settings settings;
 Ui ui;
+
+
 static Adsr    env[3];
-
-
 Oscillator   osc_a, osc_b, osc_c;
 
 
@@ -29,7 +29,7 @@ void SaveState();
 
 
 bool readyToRestore = false;
-bool              gate;
+bool gate;
 
 
 
@@ -204,7 +204,11 @@ int main(void)
           last_save_time = System::GetNow();
           ui.readyToSaveState = false;
         }
-        
+        if (hw.ReadyToSaveCal()) {
+            
+            ui.SaveCalibrationData();            
+            
+        }
         
 	}
 }

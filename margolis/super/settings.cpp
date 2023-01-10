@@ -38,22 +38,9 @@ using namespace daisy;
 
 void Settings::Init(DaisyMargolis* hw) {
   hw_ = hw;
- 
-  //state_.engine = 0;
-  //state_.lpg_colour = 0;
-  //state_.decay = 128;
-  //state_.octave = 255;
-  //state_.color_blind = 0;
-  
-  //bool success = chunk_storage_.Init(&persistent_data_, &state_);
-  //RestoreSettings();
-  //LoadPersistentData();
-  LoadState();
-  
-    
-  //CONSTRAIN(state_.engine, 0, 7);
 
-  //return success;
+  LoadState();
+
 }
 
 
@@ -63,6 +50,7 @@ void Settings::Init(DaisyMargolis* hw) {
 inline void Settings::SetStateData(State state_data)
 {
     state_ = state_data;
+    CONSTRAIN(state_.engine, 0, 7);
       
 }
 
@@ -110,7 +98,7 @@ void Settings::RestoreState()
     settings_storage.Init(default_settings, FLASH_BLOCK*2);
     settings_storage.RestoreDefaults();
     State &settings_data = settings_storage.GetSettings();
-    GetStateData(settings_data);
+    SetStateData(settings_data);
     
 }
 
