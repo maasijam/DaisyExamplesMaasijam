@@ -55,16 +55,12 @@ enum UiMode {
   UI_MODE_TEST,
   UI_MODE_ERROR,
   UI_MODE_RESTORE_STATE,
+  UI_MODE_HIDDEN_PATCHED,
 };
 
 
 
-enum PlaitsPatched {
-  TIMBRE_PATCHED,
-  FM_PATCHED,
-  MORPH_PATCHED,
-  PATCHED_LAST
-};
+
 
 
 class Ui {
@@ -130,7 +126,7 @@ class Ui {
   Settings* settings_;
   
 
-  bool isPatched[3] = {false};
+  bool isPatched[PATCHED_LAST] = {false};
 
   int pwm_counter_;
   int press_time_[2];

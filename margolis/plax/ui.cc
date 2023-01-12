@@ -111,6 +111,10 @@ void Ui::LoadState() {
   patch_->lpg_colour = static_cast<float>(state.lpg_colour) / 256.0f;
   patch_->decay = static_cast<float>(state.decay) / 256.0f;
   octave_ = static_cast<float>(state.octave) / 256.0f;
+  for(int i = 0; i < PATCHED_LAST; i++)
+        {
+            isPatched[i] = state.is_patched[i];
+        }
   
 }
 
@@ -121,6 +125,10 @@ void Ui::SaveState() {
   state->lpg_colour = static_cast<uint8_t>(patch_->lpg_colour * 256.0f);
   state->decay = static_cast<uint8_t>(patch_->decay * 256.0f);
   state->octave = static_cast<uint8_t>(octave_ * 256.0f);
+  for(int i = 0; i < PATCHED_LAST; i++)
+        {
+            state->is_patched[i] = isPatched[i];
+        }
   settings_->SaveState();
 }
 
@@ -146,6 +154,10 @@ void Ui::UpdateLEDs() {
         if (pwm_counter < triangle) {
           hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),patch_->engine & 8 ? red : green);
         }
+
+        hw_->SetGreenLeds(LED_GREEN_1,isPatched[TIMBRE_PATCHED] ? 1.f : 0.f);
+        hw_->SetGreenLeds(LED_GREEN_2,isPatched[FM_PATCHED] ? 1.f : 0.f);
+        hw_->SetGreenLeds(LED_GREEN_3,isPatched[MORPH_PATCHED] ? 1.f : 0.f);
 
       }
       break;
@@ -230,12 +242,22 @@ void Ui::UpdateLEDs() {
       
         if (pwm_counter < triangle) {
           for (int i = 0; i < kNumLEDs; ++i) {
-            //leds_.set(i, LED_COLOR_RED);
+            ///leds_.set(i, LED_COLOR_RED);
             hw_->SetRGBColor(static_cast<LeddriverLeds>(i),PURPLE);
           }
         }
       
       break;
+
+      case UI_MODE_HIDDEN_PATCHED:
+      {
+                    
+          hw_->SetGreenLeds(LED_GREEN_1,isPatched[TRIG_PATCHED] ? 1.f : 0.f);
+          hw_->SetGreenLeds(LED_GREEN_2,isPatched[LEVEL_PATCHED] ? 1.f : 0.f);
+          
+          
+      }
+        break;
   }
   hw_->UpdateLeds();
 }
@@ -252,12 +274,10 @@ void Ui::ReadSwitches() {
     case UI_MODE_NORMAL:
       {
         for (int i = 0; i < 2; ++i) {
-          //if (switches_.just_pressed(Switch(i))) {
           if (hw_->s[s_pins[i]].RisingEdge()) {
             press_time_[i] = 0;
             ignore_release_[i] = false;
           }
-          //if (switches_.pressed(Switch(i))) {
           if (hw_->s[s_pins[i]].Pressed()) {
             ++press_time_[i];
           } else {
@@ -265,13 +285,11 @@ void Ui::ReadSwitches() {
           }
         }
         
-        //if (switches_.just_pressed(Switch(0))) {
         if (hw_->s[S1].RisingEdge()) {
           pots_[KNOB_3].Lock();
           pots_[KNOB_4].Lock();
         }
         if (hw_->s[S3].RisingEdge()) {
-        //if (switches_.just_pressed(Switch(1))) {
           pots_[KNOB_2].Lock();
         }
         
@@ -303,7 +321,6 @@ void Ui::ReadSwitches() {
           mode_ = UI_MODE_DISPLAY_OCTAVE;
         }
         
-        //if (switches_.released(Switch(0)) && !ignore_release_[0]) {
         if (hw_->s[S1].FallingEdge() && !ignore_release_[0]) {
           RealignPots();
           if (patch_->engine >= 8) {
@@ -311,12 +328,9 @@ void Ui::ReadSwitches() {
           } else {
             patch_->engine = (patch_->engine + 1) % 8;
           }
-          //SaveState();
           readyToSaveState = true;
-          //SaveStateData();
         }
-  
-        //if (switches_.released(Switch(1)) && !ignore_release_[1]) {
+
         if (hw_->s[S3].FallingEdge() && !ignore_release_[1]) {
           RealignPots();
           if (patch_->engine < 8) {
@@ -324,15 +338,32 @@ void Ui::ReadSwitches() {
           } else {
             patch_->engine = 8 + ((patch_->engine + 1) % 8);
           }
-         //SaveState();
          readyToSaveState = true;
-         //SaveStateData();
+        }
+
+        if(hw_->s[S4].RisingEdge()) {
+          isPatched[TIMBRE_PATCHED] = !isPatched[TIMBRE_PATCHED]; 
+          readyToSaveState = true;
+        }
+
+        if(hw_->s[S5].RisingEdge()) {
+          isPatched[FM_PATCHED] = !isPatched[FM_PATCHED]; 
+          readyToSaveState = true;
+        }
+
+        if(hw_->s[S6].RisingEdge()) {
+          isPatched[MORPH_PATCHED] = !isPatched[MORPH_PATCHED]; 
+          readyToSaveState = true;
         }
 
         if(hw_->s[S2].TimeHeldMs() > kLongPressTime) {
-            readyToRestore = true;
-              mode_ = UI_MODE_RESTORE_STATE;
+            mode_ = UI_MODE_HIDDEN_PATCHED;
         }
+        if(hw_->s[S4].TimeHeldMs() > kLongPressTime && hw_->s[S6].TimeHeldMs() > kLongPressTime) {
+            readyToRestore = true;
+            mode_ = UI_MODE_RESTORE_STATE;
+        }
+        
       }
       break;
       
@@ -386,7 +417,23 @@ void Ui::ReadSwitches() {
         }
       }
       break;
+      case UI_MODE_HIDDEN_PATCHED:
+      {
+          if(hw_->s[S4].RisingEdge()) {
+            isPatched[TRIG_PATCHED] = !isPatched[TRIG_PATCHED]; 
+            //isPatched[TRIG_PATCHED] = false; 
+          }
 
+          if(hw_->s[S5].RisingEdge()) {
+            isPatched[LEVEL_PATCHED] = !isPatched[LEVEL_PATCHED]; 
+            //isPatched[LEVEL_PATCHED] = false; 
+          }
+          if(hw_->s[S2].RisingEdge()) {
+            readyToSaveState = true;
+            mode_ = UI_MODE_NORMAL;
+          }
+      }
+      break;
 
   }
 }

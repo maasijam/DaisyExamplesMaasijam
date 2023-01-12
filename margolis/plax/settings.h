@@ -34,13 +34,23 @@
 
 
 
+
 namespace plaits {
 
 using namespace daisy;
 using namespace margolis;
 
+
 #define FLASH_BLOCK 4096
 
+enum PlaitsPatched {
+  TIMBRE_PATCHED,
+  FM_PATCHED,
+  MORPH_PATCHED,
+  TRIG_PATCHED,
+  LEVEL_PATCHED,
+  PATCHED_LAST
+};
 
 struct State {
 
@@ -49,7 +59,8 @@ struct State {
   lpg_colour(0), 
   decay(128),
   octave(255),
-  color_blind(0) {}
+  color_blind(0),
+  is_patched{false}  {}
 
   
   uint8_t engine;
@@ -57,6 +68,7 @@ struct State {
   uint8_t decay;
   uint8_t octave;
   uint8_t color_blind;
+  bool is_patched[PATCHED_LAST];
 
 
   /**@brief checks sameness */
@@ -77,6 +89,13 @@ struct State {
         } else if(color_blind != rhs.color_blind)
         {
             return false;
+        } else
+        {
+            for(int i = 0; i < PATCHED_LAST; i++)
+            {
+                if(is_patched[i] != rhs.is_patched[i])
+                    return false;
+            }
         }
         return true;
     }
