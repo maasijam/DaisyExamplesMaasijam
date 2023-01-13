@@ -63,20 +63,9 @@ plaits::Voice::Frame outputPlaits[BLOCK_SIZE];
 
 void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) {
 
-  //hw.ProcessAllControls();
   ui.Poll();
   
-  //modulations.engine = 0.0f;
-  //modulations.timbre = 0.0f;
-  //modulations.frequency = 0;
-  //modulations.morph = 0;
-  //modulations.harmonics = 0;
-  //modulations.frequency = hw.cv[hw.CV_3].Value();
-
-  modulations.frequency_patched = true;
-	modulations.timbre_patched = true;
-	modulations.morph_patched =  true;
-  //hw.seed.PrintLine("CV: %f", modulations.engine);
+  
   modulations.frequency = hw.GetCvValue(CV_3);
 	modulations.harmonics = hw.GetCvValue(CV_5);
 	modulations.timbre = hw.GetCvValue(CV_2);
@@ -89,8 +78,6 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	for (size_t i = 0; i < size; i++) {
 		OUT_L[i] = outputPlaits[i].out / 32768.f;
 		OUT_R[i] = outputPlaits[i].aux / 32768.f;
-/*            DacHandle::Channel::ONE,
-            uint16_t(modulations.frequency * 4095.f));*/
 	}
   ui.set_active_engine(voice.active_engine());
   
@@ -107,7 +94,6 @@ void Init() {
 	hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
 
   hw.ClearLeds();
-	
 	hw.UpdateLeds();
 
   stmlib::BufferAllocator allocator(shared_buffer, sizeof(shared_buffer));
@@ -129,12 +115,12 @@ void Init() {
 int main(void) {
   //hw.seed.StartLog(false);
   Init();
-  CvIns mycvin;
-  float  cvval;
+  //CvIns mycvin;
+  //float  cvval;
   uint32_t last_save_time = System::GetNow(); 
 
   while (1) {
-    //cvval = patch.engine;
+    //cvval = modulations.trigger_patched ? 1.0f : 0.f;
     /*mycvin = CV_VOCT;
         if(hw.cv[mycvin].Value() >= 0.f) {
             //cvval = hw.cv[mycvin].Value();
@@ -145,7 +131,7 @@ int main(void) {
         }
         hw.seed.dac.WriteValue(
             DacHandle::Channel::ONE,
-            uint16_t(cvval * 128.f));*/
+            uint16_t(cvval * 1024.f));*/
         if (hw.ReadyToSaveCal()) {
             ui.SaveCalibrationData();
         }

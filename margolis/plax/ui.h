@@ -118,7 +118,6 @@ class Ui {
   DaisyMargolis* hw_;
   Patch* patch_;
   Modulations* modulations_;
-  //NormalizationProbe normalization_probe_;
   PotController pots_[KNOB_LAST];
   float pitch_lp_;
   float pitch_lp_calibration_;
@@ -137,8 +136,6 @@ class Ui {
   float cv_c1_;  // For calibration
   float plaits_cv_scale[CV_LAST];
 
-   
-  //DISALLOW_COPY_AND_ASSIGN(Ui);
 };
 
 }  // namespace plaits

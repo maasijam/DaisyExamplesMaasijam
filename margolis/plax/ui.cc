@@ -60,11 +60,13 @@ void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyM
   plaits_cv_scale[CV_4] = -1.6f;
   plaits_cv_scale[CV_5] = -1.0f;
   plaits_cv_scale[CV_6] = -0.6f;     
+
+  
   
   LoadState();
 
-  /*
-  if (hw_->s[hw_->S3].RawState()) {
+  
+  if (hw_->s[S3].RawState()) {
     State* state = settings_->mutable_state();
     if (state->color_blind == 1) {
       state->color_blind = 0; 
@@ -72,7 +74,7 @@ void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyM
       state->color_blind = 1; 
     }
     settings_->SaveState();
-  }*/
+  }
   
   // Bind pots to parameters.
   pots_[KNOB_1].Init(
@@ -113,7 +115,24 @@ void Ui::LoadState() {
   octave_ = static_cast<float>(state.octave) / 256.0f;
   for(int i = 0; i < PATCHED_LAST; i++)
         {
-            isPatched[i] = state.is_patched[i];
+            switch (i)
+            {
+            case TIMBRE_PATCHED:
+              modulations_->timbre_patched = state.is_patched[TIMBRE_PATCHED];
+              break;
+            case FM_PATCHED:
+              modulations_->frequency_patched = state.is_patched[FM_PATCHED];
+              break;
+            case MORPH_PATCHED:
+              modulations_->morph_patched = state.is_patched[MORPH_PATCHED];
+              break;
+            case TRIG_PATCHED:
+              modulations_->trigger_patched = state.is_patched[TRIG_PATCHED];
+              break;
+            case LEVEL_PATCHED:
+              modulations_->level_patched = state.is_patched[LEVEL_PATCHED];
+              break;
+            }
         }
   
 }
@@ -127,7 +146,24 @@ void Ui::SaveState() {
   state->octave = static_cast<uint8_t>(octave_ * 256.0f);
   for(int i = 0; i < PATCHED_LAST; i++)
         {
-            state->is_patched[i] = isPatched[i];
+            switch (i)
+            {
+            case TIMBRE_PATCHED:
+               state->is_patched[TIMBRE_PATCHED] = modulations_->timbre_patched;
+              break;
+            case FM_PATCHED:
+               state->is_patched[FM_PATCHED] = modulations_->frequency_patched;
+              break;
+            case MORPH_PATCHED:
+              state->is_patched[MORPH_PATCHED] = modulations_->morph_patched;
+              break;
+            case TRIG_PATCHED:
+              state->is_patched[TRIG_PATCHED] = modulations_->trigger_patched;
+              break;
+            case LEVEL_PATCHED:
+              state->is_patched[LEVEL_PATCHED] = modulations_->level_patched;
+              break;
+            }
         }
   settings_->SaveState();
 }
@@ -155,9 +191,9 @@ void Ui::UpdateLEDs() {
           hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),patch_->engine & 8 ? red : green);
         }
 
-        hw_->SetGreenLeds(LED_GREEN_1,isPatched[TIMBRE_PATCHED] ? 1.f : 0.f);
-        hw_->SetGreenLeds(LED_GREEN_2,isPatched[FM_PATCHED] ? 1.f : 0.f);
-        hw_->SetGreenLeds(LED_GREEN_3,isPatched[MORPH_PATCHED] ? 1.f : 0.f);
+        hw_->SetGreenLeds(LED_GREEN_1,modulations_->timbre_patched ? 1.f : 0.f);
+        hw_->SetGreenLeds(LED_GREEN_2,modulations_->frequency_patched ? 1.f : 0.f);
+        hw_->SetGreenLeds(LED_GREEN_3,modulations_->morph_patched ? 1.f : 0.f);
 
       }
       break;
@@ -203,14 +239,12 @@ void Ui::UpdateLEDs() {
       
     case UI_MODE_CALIBRATION_C1:
       if (pwm_counter < triangle) {
-        //leds_.set(0, LED_COLOR_GREEN);
         hw_->SetRGBColor(LED_RGB_1,GREEN);
       }
       break;
 
     case UI_MODE_CALIBRATION_C3:
       if (pwm_counter < triangle) {
-        //leds_.set(0, LED_COLOR_YELLOW);
         hw_->SetRGBColor(LED_RGB_1,YELLOW);
       }
       break;
@@ -218,7 +252,6 @@ void Ui::UpdateLEDs() {
     case UI_MODE_ERROR:
       if (pwm_counter < triangle) {
         for (int i = 0; i < kNumLEDs; ++i) {
-          //leds_.set(i, LED_COLOR_RED);
           hw_->SetRGBColor(static_cast<LeddriverLeds>(i),RED);
         }
       }
@@ -242,7 +275,6 @@ void Ui::UpdateLEDs() {
       
         if (pwm_counter < triangle) {
           for (int i = 0; i < kNumLEDs; ++i) {
-            ///leds_.set(i, LED_COLOR_RED);
             hw_->SetRGBColor(static_cast<LeddriverLeds>(i),PURPLE);
           }
         }
@@ -252,8 +284,8 @@ void Ui::UpdateLEDs() {
       case UI_MODE_HIDDEN_PATCHED:
       {
                     
-          hw_->SetGreenLeds(LED_GREEN_1,isPatched[TRIG_PATCHED] ? 1.f : 0.f);
-          hw_->SetGreenLeds(LED_GREEN_2,isPatched[LEVEL_PATCHED] ? 1.f : 0.f);
+          hw_->SetGreenLeds(LED_GREEN_1,modulations_->trigger_patched ? 1.f : 0.f);
+          hw_->SetGreenLeds(LED_GREEN_2,modulations_->level_patched ? 1.f : 0.f);
           
           
       }
@@ -265,8 +297,6 @@ void Ui::UpdateLEDs() {
 void Ui::ReadSwitches() {
 
   hw_->ProcessDigitalControls();
-  //hw_->s[hw_->S1].Debounce();
-  //hw_->s[hw_->S3].Debounce();
 
   int s_pins[2] = {S1,S3};
   
@@ -342,17 +372,17 @@ void Ui::ReadSwitches() {
         }
 
         if(hw_->s[S4].RisingEdge()) {
-          isPatched[TIMBRE_PATCHED] = !isPatched[TIMBRE_PATCHED]; 
+          modulations_->timbre_patched = !modulations_->timbre_patched;
           readyToSaveState = true;
         }
 
         if(hw_->s[S5].RisingEdge()) {
-          isPatched[FM_PATCHED] = !isPatched[FM_PATCHED]; 
+          modulations_->frequency_patched = !modulations_->frequency_patched;
           readyToSaveState = true;
         }
 
         if(hw_->s[S6].RisingEdge()) {
-          isPatched[MORPH_PATCHED] = !isPatched[MORPH_PATCHED]; 
+          modulations_->morph_patched = !modulations_->morph_patched;
           readyToSaveState = true;
         }
 
@@ -370,7 +400,6 @@ void Ui::ReadSwitches() {
     case UI_MODE_DISPLAY_ALTERNATE_PARAMETERS:
     case UI_MODE_DISPLAY_OCTAVE:
       for (int i = 0; i < 2; ++i) {
-        //if (switches_.released(Switch(i))) {
         if (hw_->s[s_pins[i]].FallingEdge()) {
           pots_[KNOB_3].Unlock();
           pots_[KNOB_4].Unlock();
@@ -383,7 +412,6 @@ void Ui::ReadSwitches() {
     
     case UI_MODE_CALIBRATION_C1:
       for (int i = 0; i < 2; ++i) {
-        //if (switches_.just_pressed(Switch(i))) {
         if (hw_->s[s_pins[i]].RisingEdge()) {
           press_time_[i] = 0;
           ignore_release_[i] = true;
@@ -395,7 +423,6 @@ void Ui::ReadSwitches() {
       
     case UI_MODE_CALIBRATION_C3:
       for (int i = 0; i < 2; ++i) {
-        //if (switches_.just_pressed(Switch(i))) {
         if (hw_->s[s_pins[i]].RisingEdge()) {
           press_time_[i] = 0;
           ignore_release_[i] = true;
@@ -409,7 +436,6 @@ void Ui::ReadSwitches() {
     case UI_MODE_ERROR:
     case UI_MODE_RESTORE_STATE:
       for (int i = 0; i < 2; ++i) {
-        //if (switches_.just_pressed(Switch(i))) {
         if (hw_->s[s_pins[i]].RisingEdge()) {
           press_time_[i] = 0;
           ignore_release_[i] = true;
@@ -420,13 +446,11 @@ void Ui::ReadSwitches() {
       case UI_MODE_HIDDEN_PATCHED:
       {
           if(hw_->s[S4].RisingEdge()) {
-            isPatched[TRIG_PATCHED] = !isPatched[TRIG_PATCHED]; 
-            //isPatched[TRIG_PATCHED] = false; 
+            modulations_->trigger_patched = !modulations_->trigger_patched;
           }
 
           if(hw_->s[S5].RisingEdge()) {
-            isPatched[LEVEL_PATCHED] = !isPatched[LEVEL_PATCHED]; 
-            //isPatched[LEVEL_PATCHED] = false; 
+            modulations_->level_patched = !modulations_->level_patched;
           }
           if(hw_->s[S2].RisingEdge()) {
             readyToSaveState = true;
@@ -447,37 +471,8 @@ void Ui::ProcessPotsHiddenParameters() {
 
 
 void Ui::DetectNormalization() {
-  ////////////////////////////////// TODO //////////////////////////////////////////////////
-  //hw_->ProcessDigitalControls();
-  /*
-  if(hw_->s[hw_->S4].RisingEdge()) {
-    isPatched[TIMBRE_PATCHED] = !isPatched[TIMBRE_PATCHED]; 
-  }
-
-  if(hw_->s[hw_->S5].RisingEdge()) {
-    isPatched[FM_PATCHED] = !isPatched[FM_PATCHED]; 
-  }
-
-  if(hw_->s[hw_->S6].RisingEdge()) {
-    isPatched[MORPH_PATCHED] = !isPatched[MORPH_PATCHED]; 
-  }
-
-  if(isPatched[TIMBRE_PATCHED]) {
-      modulations_->timbre_patched = true;
-  }
-
-  if(isPatched[FM_PATCHED]) {
-      modulations_->frequency_patched = true;
-  }
-
-  if(isPatched[MORPH_PATCHED]) {
-      modulations_->morph_patched = true;
-  }
-  */
 
   modulations_->trigger = 5.f * (hw_->gate_in.State() ? 1.f : 0.f);
-  modulations_->trigger_patched = true;
-  //modulations_->level_patched  = true;
 
 }
 
@@ -490,28 +485,9 @@ void Ui::Poll() {
     pots_[i].ProcessControlRate(hw_->knob[i].Value());
   }
   
-  //float* destination = &modulations_->engine;
-
-  //float* off_data = nullptr;
-  //hw_->GetCvOffsetData(off_data);
-  
-  //for (int i = 0; i < CV_LAST; ++i) {
-    //destination[i] = settings_->calibration_data(i).Transform(hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value());
-    
-   // if(i != CV_VOCT){
-    //  destination[i] = hw_->GetCvValue(i);
-      //* plaits_cv_scale[i] + off_data[i];
-        //hw_->seed.adc.GetFloat(i));
-        //((float)hw_->seed.adc.Get(i) / 32768.0f));
-    //destination[i] = hw_->GetCvValue(DaisyMargolis::CvAdcChannel(i));
-    //}
-  //}
-  
   
   ONE_POLE(pitch_lp_, hw_->GetWarpVoct(), 0.7f);
-  ONE_POLE(
-      //pitch_lp_calibration_, cv_adc_.float_value(hw_->CV_VOCT), 0.1f);
-      pitch_lp_calibration_, hw_->cv[CV_VOCT].Value(), 0.1f);
+  ONE_POLE(pitch_lp_calibration_, hw_->cv[CV_VOCT].Value(), 0.1f);
   modulations_->note = pitch_lp_;
   
   ui_task_ = (ui_task_ + 1) % 4;
@@ -533,8 +509,6 @@ void Ui::Poll() {
       break;
   }
   
-  //cv_adc_.Convert();
-  //pots_adc_.Convert();
 
 #ifdef ENABLE_LFO_MODE
   int octave = static_cast<int>(octave_ * 10.0f);
@@ -559,21 +533,10 @@ void Ui::Poll() {
 
 void Ui::StartCalibration() {
   mode_ = UI_MODE_CALIBRATION_C1;
-  //normalization_probe_.Disable();
 }
 
 void Ui::CalibrateC1() {
   // Acquire offsets for all channels.
-  /*
-  for (int i = 0; i < CV_LAST; ++i) {
-    if (i != CV_VOCT) {
-      ChannelCalibrationData* c = settings_->mutable_calibration_data(i);
-     
-      c->offset = -hw_->cv[DaisyMargolis::CvAdcChannel(i)].Value() * c->scale;
-    }
-  }
-  cv_c1_ = pitch_lp_calibration_;
-*/
   float co[CV_LAST];
   for (int i = 0; i < CV_LAST; ++i) {
     if (i != CV_VOCT) {
@@ -593,7 +556,6 @@ void Ui::CalibrateC1() {
 void Ui::CalibrateC3() {
   hw_->CalibrateV3(pitch_lp_calibration_);
     if(hw_->ReadyToSaveCal()) {
-       //SaveCalibrationData();
        mode_ = UI_MODE_NORMAL;
     } else {
       mode_ = UI_MODE_ERROR;

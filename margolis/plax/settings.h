@@ -60,7 +60,7 @@ struct State {
   decay(128),
   octave(255),
   color_blind(0),
-  is_patched{false}  {}
+  is_patched{false,false,false,true,false}  {}
 
   
   uint8_t engine;
