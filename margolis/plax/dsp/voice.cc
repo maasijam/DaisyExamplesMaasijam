@@ -27,11 +27,13 @@
 // Main synthesis voice.
 
 #include "voice.h"
+#include "daisysp.h"
 
 namespace plaits {
 
 using namespace std;
 using namespace stmlib;
+using namespace daisysp;
 
 void Voice::Init(BufferAllocator* allocator) {
   engines_.Init();
@@ -148,11 +150,15 @@ void Voice::Render(
   
   p.harmonics = patch.harmonics + modulations.harmonics;
   CONSTRAIN(p.harmonics, 0.0f, 1.0f);
+  //fmap(p.harmonics, 0.0f, 1.0f);
+  lfoval = p.harmonics;
 
   float internal_envelope_amplitude = 1.0f;
   if (engine_index == 7) {
     internal_envelope_amplitude = 2.0f - p.harmonics * 6.0f;
     CONSTRAIN(internal_envelope_amplitude, 0.0f, 1.0f);
+    //fmap(internal_envelope_amplitude, 0.0f, 1.0f);
+    //lfoval = patch.morph_modulation_amount;
     speech_engine_.set_prosody_amount(
         !modulations.trigger_patched || modulations.frequency_patched ?
             0.0f : patch.frequency_modulation_amount);

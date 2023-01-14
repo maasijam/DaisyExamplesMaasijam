@@ -56,21 +56,38 @@ Voice voice;
 
 
 
+float plaits_cv_scale[CV_LAST-1] = {1.03,1.6,60.0,1.6,1,0.6};
+
+
+
 char shared_buffer[16384] = {};
+
 
 #define BLOCK_SIZE 16
 plaits::Voice::Frame outputPlaits[BLOCK_SIZE];
 
 void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) {
 
+
+  hw.ProcessAnalogControls();
   ui.Poll();
   
   
-  modulations.frequency = hw.GetCvValue(CV_3);
+  /*modulations.frequency = hw.GetCvValue(CV_3);
 	modulations.harmonics = hw.GetCvValue(CV_5);
 	modulations.timbre = hw.GetCvValue(CV_2);
 	modulations.morph = hw.GetCvValue(CV_4);
 	modulations.engine = hw.GetCvValue(CV_1);
+  modulations.level = hw.GetCvValue(CV_6);*/
+
+  modulations.frequency = hw.cv[CV_3].Value() * plaits_cv_scale[CV_3];
+	modulations.harmonics = hw.cv[CV_5].Value() * plaits_cv_scale[CV_5];
+	modulations.timbre = hw.cv[CV_2].Value() * plaits_cv_scale[CV_2];
+	modulations.morph = hw.cv[CV_4].Value() * plaits_cv_scale[CV_4];
+	modulations.engine = hw.cv[CV_1].Value() * plaits_cv_scale[CV_1];
+  modulations.level = hw.cv[CV_6].Value() * plaits_cv_scale[CV_6];
+
+  modulations.trigger = 5.f * (hw.gate_in.State() ? 1.f : 0.f);
 
 
   voice.Render(patch, modulations, outputPlaits, BLOCK_SIZE);
@@ -81,7 +98,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	}
   ui.set_active_engine(voice.active_engine());
   
-  
+
   
 }
 
@@ -89,7 +106,8 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 
 void Init() {
 
-  hw.Init();
+
+  hw.Init(false);
 	hw.SetAudioBlockSize(BLOCK_SIZE); // number of samples handled per callback
 	hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
 
@@ -100,8 +118,7 @@ void Init() {
 	voice.Init(&allocator);
     
   
-  volatile size_t counter = 1000000;
-  while (counter--);
+  
   
   
   settings.Init(&hw);
@@ -115,12 +132,15 @@ void Init() {
 int main(void) {
   //hw.seed.StartLog(false);
   Init();
-  //CvIns mycvin;
-  //float  cvval;
+  ///CvIns mycvin;
+  float  cvval;
   uint32_t last_save_time = System::GetNow(); 
+  //float cvoff[CV_LAST];
 
   while (1) {
-    //cvval = modulations.trigger_patched ? 1.0f : 0.f;
+    //hw.GetCvOffsetData(cvoff);
+    cvval = voice.lfoval;
+    //cvval = cvval * 0.66f;
     /*mycvin = CV_VOCT;
         if(hw.cv[mycvin].Value() >= 0.f) {
             //cvval = hw.cv[mycvin].Value();
@@ -128,10 +148,10 @@ int main(void) {
         } else {
             //cvval = hw.cv[mycvin].Value() * -1;
             cvval = hw.cv[mycvin].Value() * -1;
-        }
+        }*/
         hw.seed.dac.WriteValue(
             DacHandle::Channel::ONE,
-            uint16_t(cvval * 1024.f));*/
+            uint16_t(cvval * 1023.f));
         if (hw.ReadyToSaveCal()) {
             ui.SaveCalibrationData();
         }

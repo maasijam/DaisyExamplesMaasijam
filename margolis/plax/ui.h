@@ -83,6 +83,7 @@ class Ui {
   bool readyToSaveState = false;
   bool readyToRestore = false;
 
+  float lfovalue;
 
   
  private:
@@ -134,8 +135,7 @@ class Ui {
   int active_engine_;
   
   float cv_c1_;  // For calibration
-  float plaits_cv_scale[CV_LAST];
-
+  
 };
 
 }  // namespace plaits

@@ -54,12 +54,7 @@ void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyM
   ui_task_ = 0;
   mode_ = UI_MODE_NORMAL;
 
-  plaits_cv_scale[CV_1] = -1.03f; 
-  plaits_cv_scale[CV_2] = -1.6f;
-  plaits_cv_scale[CV_3] = -60.0f;
-  plaits_cv_scale[CV_4] = -1.6f;
-  plaits_cv_scale[CV_5] = -1.0f;
-  plaits_cv_scale[CV_6] = -0.6f;     
+       
 
   
   
@@ -180,15 +175,15 @@ void Ui::UpdateLEDs() {
     case UI_MODE_NORMAL:
       {
 
-        Colors red = cblind_ == 1
+        Colors red = settings_->state().color_blind == 1
             ? ((pwm_counter & 7) ? OFF : YELLOW)
             : RED;
-        Colors green = cblind_ == 1
+        Colors green = settings_->state().color_blind == 1
             ? YELLOW
             : GREEN;
         hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),active_engine_ & 8 ? red : green);
         if (pwm_counter < triangle) {
-          hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),patch_->engine & 8 ? red : green);
+          hw_->SetRGBColor(static_cast<LeddriverLeds>(patch_->engine & 7),patch_->engine & 8 ? red : green);
         }
 
         hw_->SetGreenLeds(LED_GREEN_1,modulations_->timbre_patched ? 1.f : 0.f);
@@ -472,18 +467,20 @@ void Ui::ProcessPotsHiddenParameters() {
 
 void Ui::DetectNormalization() {
 
-  modulations_->trigger = 5.f * (hw_->gate_in.State() ? 1.f : 0.f);
+  
 
 }
 
 void Ui::Poll() {
 
-  hw_->ProcessAnalogControls();
+  
   
 
   for (int i = 0; i < KNOB_LAST; ++i) {
     pots_[i].ProcessControlRate(hw_->knob[i].Value());
   }
+
+  
   
   
   ONE_POLE(pitch_lp_, hw_->GetWarpVoct(), 0.7f);

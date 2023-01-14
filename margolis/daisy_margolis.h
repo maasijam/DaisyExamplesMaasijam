@@ -115,9 +115,7 @@ enum LedOrder
     LED_LAST = 27,
 };
 
-/** @brief Calibration data container for Aurora 
- *  This data is calibrated from the Qu-Bit default Aurora firmware.
- *  It is advised not to save over this data unless you are prepared to recalibrate.
+/** @brief Calibration data container for Margolis 
 */
 struct CalibrationData
 {

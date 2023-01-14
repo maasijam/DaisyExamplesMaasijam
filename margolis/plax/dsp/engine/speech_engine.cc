@@ -64,7 +64,7 @@ void SpeechEngine::Render(
     bool* already_enveloped) {
   const float f0 = NoteToFrequency(parameters.note);
   
-  const float group = parameters.harmonics * 6.0f;
+  const float group = parameters.harmonics * 6.f;
   
   // Interpolates between the 3 models: naive, SAM, LPC.
   if (group <= 2.0f) {
