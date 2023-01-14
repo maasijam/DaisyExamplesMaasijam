@@ -1,9 +1,7 @@
 #include "daisy_varga.h"
-#ifndef SAMPLE_RATE
-#define SAMPLE_RATE DSY_AUDIO_SAMPLE_RATE /**< & */
-#endif
 
 using namespace daisy;
+using namespace varga;
 
 
 // VARGA Pins
@@ -93,6 +91,8 @@ void DaisyVarga::Init(bool boost)
         dsy_gpio_pin b = seed.GetPin(ledb_pin[i]);
         leds[i].Init(r, g, b, true);
     }
+
+    LoadCalibrationData();
     
 
 }
@@ -198,18 +198,27 @@ float DaisyVarga::GetKnobValue(int idx) const
 }
 float DaisyVarga::GetCvValue(int idx) const 
 {
-    //return (cv[idx].Value());
-    return cv[idx < CV_LAST ? idx : 0].Value();
+    if(idx != CV_VOCT)
+        return cv[idx < CV_LAST ? idx : 0].Value() - cv_offsets_[idx < CV_LAST ? idx : 0];
+    else
+        return cv[idx < CV_LAST ? idx : 0].Value();
 }
 
 AnalogControl* DaisyVarga::GetCv(size_t idx)
 {
     return &cv[idx < CV_LAST ? idx : 0];
 }
-
 AnalogControl* DaisyVarga::GetKnob(size_t idx)
 {
     return &knob[idx < KNOB_LAST ? idx : 0];
+}
+
+/** @brief Return a MIDI note number value from -60 to 60 corresponding to 
+ *      the -5V to 5V input range of the Warp CV input.
+ */
+float DaisyVarga::GetWarpVoct()
+{
+    return voct_cal.ProcessInput(cv[CV_VOCT].Value());
 }
 
 void DaisyVarga::DelayMs(size_t del)
@@ -226,6 +235,10 @@ void DaisyVarga::SetHidUpdateRates()
     for(size_t i = 0; i < CV_LAST; i++)
     {
         cv[i].SetSampleRate(AudioCallbackRate());
+    }
+    for(int i = 0; i < S_LAST; i++)
+    {
+        s[i].SetUpdateRate(AudioCallbackRate());
     }
 }
 
@@ -257,51 +270,80 @@ void DaisyVarga::SetRGBColor (size_t idx, Colors color)
     
     switch (color)
     {
-    case red:
+    case RED:
         SetLed(idx,1.f,0.f,0.f);
         break;
-    case green:
+    case GREEN:
         SetLed(idx,0.f,0.7f,0.f);
         break;
-    case blue:
+    case BLUE:
         SetLed(idx,0.f,0.f,1.f);
         break;
-    case yellow:
+    case YELLOW:
         SetLed(idx,1.f,0.7f,0.f);
         break;
-    case cyan:
+    case CYAN:
         SetLed(idx,0.f,1.f,1.f);
         break;
-    case purple:
+    case PURPLE:
         SetLed(idx,1.f,0.f,1.f);
         break;
-    case orange:
+    case ORANGE:
         SetLed(idx,1.f,0.3f,0.f);
         break;
-    case darkgreen:
+    case DARKGREEN:
         SetLed(idx,0.f,0.2f,0.f);
         break;
-    case darkblue:
+    case DARKBLUE:
         SetLed(idx,0.2f,0.2f,0.6f);
         break;
-    case darkred:
+    case DARKRED:
         SetLed(idx,0.4f,0.f,0.f);
         break;
-    case turq:
+    case TURQ:
         SetLed(idx,0.f,0.5f,0.5f);
         break;
-    case grey:
+    case GREY:
         SetLed(idx,0.75f,0.75f,0.75f);
         break;
-    case darkorange:
+    case DARKORANGE:
         SetLed(idx,0.5f,0.2f,0.f);
         break;
-    case white:
+    case WHITE:
         SetLed(idx,1.f,1.f,1.f);
         break;
-    case off:
+    case OFF:
         SetLed(idx,0.f,0.f,0.f);
         break;
     }
     
+}
+
+float DaisyVarga::CVKnobCombo(float CV_Val,float Pot_Val)
+{
+    float output{};
+    output = CV_Val + Pot_Val;
+
+    if(output < 0.0f)
+    {
+        output = 0.0f;
+    }
+
+    if(output > 1.0f)
+    {
+        output = 1.0f;
+    }
+
+    return output;
+}
+
+/** @brief Loads and sets calibration data */
+void DaisyVarga::LoadCalibrationData()
+{
+    daisy::PersistentStorage<CalibrationData> cal_storage(seed.qspi);
+    CalibrationData                           default_cal;
+    cal_storage.Init(default_cal, FLASH_BLOCK);
+    auto &cal_data = cal_storage.GetSettings();
+    SetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
+    SetCvOffsetData(cal_data.cv_offset);
 }

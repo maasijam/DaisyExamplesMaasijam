@@ -1,66 +1,111 @@
 #pragma once
+#ifndef VARGA_HW_H
+#define VARGA_HW_H
 
 #include "daisy_seed.h"
 
 
-namespace daisy
+namespace varga
 {
-class DaisyVarga
-{
-  public:
-    
-    enum 
+
+using namespace daisy;
+
+
+#define FLASH_BLOCK 4096
+
+enum Pots
     {
-        KNOB_0,   /**< */
         KNOB_1,   /**< */
         KNOB_2,   /**< */
         KNOB_3,   /**< */
+        KNOB_4,   /**< */
         KNOB_LAST /**< */
     };
 
-    enum 
+    enum CvIns
     {
-        CV_0,   /**< */
         CV_1,   /**< */
         CV_2,   /**< */
         CV_3,   /**< */
+        CV_VOCT,   /**< */
         CV_4,   /**< */
-        CV_5,   /**< */
+        CV_5,
         CV_LAST /**< */
     };
 
 
-    enum 
+    enum Switches
     {
-        S_0,
         S_1,
+        S_2,
         S_LAST
     };
 
-    enum 
+    enum Leds
     {
-        LED_0,
         LED_1,
+        LED_2,
         LED_LAST
     };
 
     enum Colors {  
-      red,
-      green,
-      blue,
-      yellow,
-      cyan,
-      purple,
-      orange,
-      darkgreen,
-      darkblue,
-      darkred,
-      turq,
-      grey,
-      darkorange,
-      white,
-      off
+      RED,
+      GREEN,
+      BLUE,
+      YELLOW,
+      CYAN,
+      PURPLE,
+      ORANGE,
+      DARKGREEN,
+      DARKBLUE,
+      DARKRED,
+      TURQ,
+      GREY,
+      DARKORANGE,
+      WHITE,
+      OFF
   };
+
+/** @brief Calibration data container for Margolis 
+*/
+struct CalibrationData
+{
+    CalibrationData() : warp_scale(60.f), warp_offset(0.f), cv_offset{0.f} {}
+    float warp_scale, warp_offset;
+    float cv_offset[CV_LAST];
+    
+
+    /** @brief checks sameness */
+    bool operator==(const CalibrationData &rhs)
+    {
+        if(warp_scale != rhs.warp_scale)
+        {
+            return false;
+        }
+        else if(warp_offset != rhs.warp_offset)
+        {
+            return false;
+        }
+        else
+        {
+            for(int i = 0; i < CV_LAST; i++)
+            {
+                if(cv_offset[i] != rhs.cv_offset[i])
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /** @brief Not equal operator */
+    bool operator!=(const CalibrationData &rhs) { return !operator==(rhs); }
+};
+
+class DaisyVarga
+{
+  public:
+    
+    
 
 
     /** Constructor */
@@ -174,7 +219,63 @@ class DaisyVarga
     {
         return Random::GetFloat(min, max);
     }
+
+    float CVKnobCombo(float CV_Val,float Pot_Val);
     
+    float GetWarpVoct();  
+
+    /** @brief called during a customized calibration UI to record the 1V value */
+    inline void CalibrateV1(float v1) { warp_v1_ = v1; }
+
+    /** @brief called during a customized calibration UI to record the 3V value 
+     *         and set that calibraiton has completed and can be saved. 
+     */
+    inline void CalibrateV3(float v3)
+    {
+        warp_v3_ = v3;
+        voct_cal.Record(warp_v1_, warp_v3_);
+        cal_save_flag_ = true;
+    }
+
+    /** @brief Sets the calibration data for 1V/Octave over Warp CV 
+     *  typically set after reading stored data from external memory.
+     */
+    inline void SetWarpCalData(float scale, float offset)
+    {
+        voct_cal.SetData(scale, offset);
+    }
+
+    /** @brief Gets the current calibration data for 1V/Octave over Warp CV 
+     *  typically used to prepare data for storing after successful calibration
+     */
+    inline void GetWarpCalData(float &scale, float &offset)
+    {
+        voct_cal.GetData(scale, offset);
+    }
+
+    /** @brief Sets the cv offset from an externally array of data */
+    inline void SetCvOffsetData(float *data)
+    {
+        for(int i = 0; i < CV_LAST; i++)
+        {
+            cv_offsets_[i] = data[i];
+        }
+    }
+
+    /** @brief Fills an array with the offset data currently being used */
+    inline void GetCvOffsetData(float *data)
+    {
+        for(int i = 0; i < CV_LAST; i++)
+        {
+            data[i] = cv_offsets_[i];
+        }
+    }
+
+    /** @brief Checks to see if calibration has been completed and needs to be saved */
+    inline bool ReadyToSaveCal() const { return cal_save_flag_; }
+
+    /** @brief signal the cal-save flag to clear once calibration data has been written to ext. flash memory */
+    inline void ClearSaveCalFlag() { cal_save_flag_ = false; }
 
     /**
   General delay _\param del Delay time in ms.
@@ -192,8 +293,17 @@ class DaisyVarga
 
   private:
     void SetHidUpdateRates();
+    void LoadCalibrationData();
+
+    /** Cal data */
+    float                  warp_v1_, warp_v3_;
+    daisy::VoctCalibration voct_cal;
+    float                  cv_offsets_[CV_LAST];
     
+
+    bool cal_save_flag_;
     
 };
 
-} // namespace daisy
+} // namespace varga
+#endif
