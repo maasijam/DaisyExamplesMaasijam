@@ -5,13 +5,14 @@
 
 
 
-namespace daisy
+namespace white
 {
-class DaisyWhite
-{
-  public:
-    
-    enum 
+
+using namespace daisy;
+
+#define FLASH_BLOCK 4096
+
+enum Pots
     {
         KNOB_0,   /**< */
         KNOB_1,   /**< */
@@ -28,7 +29,7 @@ class DaisyWhite
         KNOB_LAST /**< */
     };
 
-    enum 
+    enum CvIns
     {
         CV_0,   /**< */
         CV_1,   /**< */
@@ -69,42 +70,25 @@ class DaisyWhite
         LED_LAST
     };
 
-    enum Colors {
-      red,
-      green,
-      blue,
-      yellow,
-      cyan,
-      purple,
-      orange,
-      darkgreen,
-      darkblue,
-      darkred,
-      turq,
-      grey,
-      darkorange,
-      white,
-      off
+  enum Colors {
+      RED,
+      GREEN,
+      BLUE,
+      YELLOW,
+      CYAN,
+      PURPLE,
+      ORANGE,
+      DARKGREEN,
+      DARKBLUE,
+      DARKRED,
+      TURQ,
+      GREY,
+      DARKORANGE,
+      WHITE,
+      OFF
   };
 
-  enum {
-      LED_KNOB_1,
-      LED_KNOB_2,
-      LED_KNOB_3,
-      LED_KNOB_4,
-      LED_KNOB_5,
-      LED_KNOB_6,
-      LED_KNOB_7,
-      LED_KNOB_8,
-      LED_S1,
-      LED_S2,
-      LED_S3,
-      LED_S4,
-      LED_S5,
-      LED_S6,
-      LED_S7,
-      LED_S8
-  };
+  
 
 
   enum LeddriverLeds
@@ -131,18 +115,60 @@ class DaisyWhite
         DIRECT_LEDS_LAST
     };
 
+  enum LedOrder
+{
+    LED_1_R,
+    LED_1_G,
+    LED_1_B,
+    LED_2_R,
+    LED_2_G,
+    LED_2_B,
+    LED_3_R,
+    LED_3_G,
+    LED_3_B,
+    LED_4_R,
+    LED_4_G,
+    LED_4_B,
+    LED_GREEN_1,
+    LED_GREEN_2,
+    LED_GREEN_3,
+    LED_GREEN_4,
+    LED_GREEN_5,
+    LED_GREEN_6,
+    LED_GREEN_7,
+    LED_GREEN_8,
+    LED_GREEN_9,
+    LED_GREEN_10,
+    LED_ORDER_LAST,
+};
+
+enum Switches
+{
+    S1      = 15,
+    S2      = 14,
+    S3      = 13,
+    S4      = 12,
+    S5      = 11,
+    S6      = 10,
+    S7      = 9,
+    S8      = 8,
+    S0A     = 7,
+    S0B     = 6,
+    S1A     = 5,
+    S1B     = 4,
+};
+
+class DaisyWhite
+{
+  public:
     
-
-
-
-
     /** Constructor */
     DaisyWhite() {}
     /** Destructor */
     ~DaisyWhite() {}
 
     /** Initializes the daisy seed, and bluemchen hardware.*/
-    void Init(bool boost = false);
+    void Init(bool boost = true);
 
     /** Audio Block size defaults to 48.
   Change it using this function before StartingAudio _\param size Audio block size.
@@ -315,4 +341,4 @@ class DaisyWhite
     
 };
 
-} // namespace daisy
+} // namespace white

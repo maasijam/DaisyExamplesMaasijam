@@ -4,6 +4,7 @@
 #endif
 
 using namespace daisy;
+using namespace white;
 
 
 // WHITE Pins
@@ -25,32 +26,7 @@ using namespace daisy;
 #define PIN_CD4021_CS 27
 #define PIN_CD4021_CLK 28
 
-enum LedOrder
-{
-    LED_1_R,
-    LED_1_G,
-    LED_1_B,
-    LED_2_R,
-    LED_2_G,
-    LED_2_B,
-    LED_3_R,
-    LED_3_G,
-    LED_3_B,
-    LED_4_R,
-    LED_4_G,
-    LED_4_B,
-    LED_GREEN_1,
-    LED_GREEN_2,
-    LED_GREEN_3,
-    LED_GREEN_4,
-    LED_GREEN_5,
-    LED_GREEN_6,
-    LED_GREEN_7,
-    LED_GREEN_8,
-    LED_GREEN_9,
-    LED_GREEN_10,
-    LED_LAST,
-};
+
 
 
 static constexpr I2CHandle::Config field_led_i2c_config
@@ -133,7 +109,7 @@ void DaisyWhite::Init(bool boost)
     cfg.chn        = DacHandle::Channel::BOTH;
     seed.dac.Init(cfg);
 
-    int direct_led_pins[6] = {25,24,21,20,19,18};
+    int direct_led_pins[6] = {18,19,20,24,21,25};
     for(size_t i = 0; i < DIRECT_LEDS_LAST; i++)
     {
         green_direct_leds[i].Init(seed.GetPin(direct_led_pins[i]),true);
@@ -403,49 +379,49 @@ void DaisyWhite::SetRGBColor (LeddriverLeds idx, Colors color)
     
     switch (color)
     {
-    case red:
+    case RED:
         SetRgbLeds(idx,1.f,0.f,0.f);
         break;
-    case green:
+    case GREEN:
         SetRgbLeds(idx,0.f,0.7f,0.f);
         break;
-    case blue:
+    case BLUE:
         SetRgbLeds(idx,0.f,0.f,1.f);
         break;
-    case yellow:
+    case YELLOW:
         SetRgbLeds(idx,1.f,0.7f,0.f);
         break;
-    case cyan:
+    case CYAN:
         SetRgbLeds(idx,0.f,1.f,1.f);
         break;
-    case purple:
+    case PURPLE:
         SetRgbLeds(idx,1.f,0.f,1.f);
         break;
-    case orange:
+    case ORANGE:
         SetRgbLeds(idx,1.f,0.3f,0.f);
         break;
-    case darkgreen:
+    case DARKGREEN:
         SetRgbLeds(idx,0.f,0.2f,0.f);
         break;
-    case darkblue:
+    case DARKBLUE:
         SetRgbLeds(idx,0.2f,0.2f,0.6f);
         break;
-    case darkred:
+    case DARKRED:
         SetRgbLeds(idx,0.4f,0.f,0.f);
         break;
-    case turq:
+    case TURQ:
         SetRgbLeds(idx,0.f,0.5f,0.5f);
         break;
-    case grey:
+    case GREY:
         SetRgbLeds(idx,0.75f,0.75f,0.75f);
         break;
-    case darkorange:
+    case DARKORANGE:
         SetRgbLeds(idx,0.5f,0.2f,0.f);
         break;
-    case white:
+    case WHITE:
         SetRgbLeds(idx,1.f,1.f,1.f);
         break;
-    case off:
+    case OFF:
         SetRgbLeds(idx,0.f,0.f,0.f);
         break;
     }
