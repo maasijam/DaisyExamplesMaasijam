@@ -1,9 +1,8 @@
 #include "daisy_saul.h"
-#ifndef SAMPLE_RATE
-#define SAMPLE_RATE DSY_AUDIO_SAMPLE_RATE /**< & */
-#endif
+
 
 using namespace daisy;
+using namespace saul;
 
 
 // SAUL Pins
@@ -34,10 +33,10 @@ using namespace daisy;
 #define PIN_HC595_CLK 11
 
 const int _rgbLedPins[4][3] = {
-    {DaisySaul::LED_8,DaisySaul::LED_9,DaisySaul::LED_10}, 
-    {DaisySaul::LED_11,DaisySaul::LED_12,DaisySaul::LED_13}, 
-    {DaisySaul::LED_14,DaisySaul::LED_15,DaisySaul::LED_16}, 
-    {DaisySaul::LED_17,DaisySaul::LED_18,DaisySaul::LED_19}
+    {LED_8,LED_9,LED_10}, 
+    {LED_11,LED_12,LED_13}, 
+    {LED_14,LED_15,LED_16}, 
+    {LED_17,LED_18,LED_19}
 };
 
 
@@ -128,7 +127,9 @@ void DaisySaul::Init(bool boost)
         SetLed(i, true);
     }
     
-    //all_leds.Write();
+    SetHidUpdateRates();
+    
+    
 }
 
 void DaisySaul::SetAudioSampleRate(daisy::SaiHandle::Config::SampleRate sr)

@@ -3,13 +3,14 @@
 #include "daisy_seed.h"
 
 
-namespace daisy
+namespace saul
 {
-class DaisySaul
-{
-  public:
-    
-    enum 
+
+using namespace daisy;
+
+#define FLASH_BLOCK 4096
+
+enum Pots
     {
         KNOB_0,   /**< */
         KNOB_1,   /**< */
@@ -25,7 +26,7 @@ class DaisySaul
         KNOB_LAST /**< */
     };
 
-    enum 
+    enum CvIns
     {
         CV_0,   /**< */
         CV_1,   /**< */
@@ -41,14 +42,14 @@ class DaisySaul
         CV_LAST /**< */
     };
 
-    enum 
+    enum OnOffOns
     {
         SW_0,
         SW_1,
         SW_LAST
     };
 
-    enum 
+    enum Switches
     {
         S_0,
         S_1,
@@ -88,17 +89,22 @@ class DaisySaul
     };
 
     enum Colors {
-      red,
-      green,
-      blue,
-      yellow,
-      purple,
-      aqua,
-      off,
-      white
+      RED,
+      GREEN,
+      BLUE,
+      YELLOW,
+      PURPLE,
+      AQUA,
+      OFF,
+      WHITE
   };
 
+  
 
+class DaisySaul
+{
+  public:
+  
     /** Constructor */
     DaisySaul() {}
     /** Destructor */
@@ -199,7 +205,8 @@ class DaisySaul
     {
         return Random::GetFloat(min, max);
     }
-    
+
+        
 
     /**
   General delay _\param del Delay time in ms.
@@ -223,6 +230,8 @@ class DaisySaul
     void InitControls();
     void SetHidUpdateRates();
     void SetRGBColor(uint8_t ridx,uint8_t gidx,uint8_t bidx, uint8_t color);
+
+    
     
 };
 
