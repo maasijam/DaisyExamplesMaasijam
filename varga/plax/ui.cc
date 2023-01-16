@@ -145,45 +145,25 @@ void Ui::UpdateLEDs() {
         hw_->SetGreenLeds(LED_GREEN_2,modulations_->frequency_patched ? 1.f : 0.f);
         hw_->SetGreenLeds(LED_GREEN_3,modulations_->morph_patched ? 1.f : 0.f);*/
         hw_->SetRGBColor((patch_->engine & 8 ? LED_2 : LED_1),Colors (patch_->engine & 7));
+        //hw_->SetRGBColor((active_engine_ & 8 ? LED_2 : LED_1),Colors (active_engine_ & 7));
 
       }
       break;
     
     case UI_MODE_DISPLAY_ALTERNATE_PARAMETERS:
       {
-        for (int parameter = 0; parameter < 2; ++parameter) {
-          float value = parameter == 0
-              ? patch_->lpg_colour
-              : patch_->decay;
-          value -= 0.001f;
-          for (int i = 0; i < 4; ++i) {
-            //hw_->SetRGBColor(static_cast<LeddriverLeds>(parameter * 4 + 3 - i),value * 64.0f > pwm_counter ? YELLOW : OFF);
-            value -= 0.25f;
-          }
-        }
+       
       }
       break;
     
     case UI_MODE_DISPLAY_OCTAVE:
       {
 #ifdef ENABLE_LFO_MODE
-        //int octave = static_cast<float>(octave_ * 10.0f);
-        /*
-        for (int i = 0; i < 8; ++i) {
-          Colors color = OFF;
-          if (octave == 0) {
-            color = i == (triangle >> 1) ? OFF : YELLOW;
-          } else if (octave == 9) {
-            color = YELLOW;
-          } else {
-            color = (octave - 1) == i ? YELLOW : OFF;
-          }*/
-          //hw_->SetRGBColor(static_cast<LeddriverLeds>(7 - i),color);
-        //}
+
 #else
         int octave = static_cast<float>(octave_ * 9.0f);
         for (int i = 0; i < 8; ++i) {
-          hw_->SetRGBColor(static_cast<LeddriverLeds>(7 - i),octave == i || (octave == 8) ? YELLOW : OFF);
+         // hw_->SetRGBColor(static_cast<LeddriverLeds>(7 - i),octave == i || (octave == 8) ? YELLOW : OFF);
         }
 #endif  // ENABLE_LFO_MODE
       }
@@ -212,15 +192,7 @@ void Ui::UpdateLEDs() {
 
       case UI_MODE_TEST:
       {
-        //int color = (pwm_counter_ >> 10) % 3;
-          for (int i = 0; i < kNumLEDs; ++i) {
-            
-           //hw_->SetRGBColor(static_cast<LeddriverLeds>(i),pwm_counter > ((triangle + (i * 2)) & 15)
-                   /* ? (color == 0
-                      ? GREEN
-                      : (color == 1 ? YELLOW : RED))
-                    : OFF);*/
-          }
+        
       }
         break;
 
@@ -357,6 +329,7 @@ void Ui::ReadSwitches() {
 
     case UI_MODE_TEST:
     case UI_MODE_ERROR:
+    case UI_MODE_RESTORE_STATE:
       for (int i = 0; i < 2; ++i) {
         if (hw_->s[s_pins[i]].RisingEdge()) {
           press_time_[i] = 0;

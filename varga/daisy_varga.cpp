@@ -8,12 +8,12 @@ using namespace varga;
 #define PIN_CLOCK_IN 26
 #define PIN_SW_MODEL 14
 #define PIN_SW_EVIL 13
-#define PIN_LED1_R 27
-#define PIN_LED1_G 28
-#define PIN_LED1_B 15
-#define PIN_LED2_R 10
-#define PIN_LED2_G 9
-#define PIN_LED2_B 8
+#define PIN_LED2_R 27
+#define PIN_LED2_G 28
+#define PIN_LED2_B 15
+#define PIN_LED1_R 10
+#define PIN_LED1_G 9
+#define PIN_LED1_B 8
 #define PIN_POT_FREQ 16
 #define PIN_POT_HARM 17
 #define PIN_POT_TIMBRE 18
@@ -36,8 +36,7 @@ void DaisyVarga::Init(bool boost)
 
     
     // Push Buttons
-    uint8_t s_pin[] = {PIN_SW_MODEL,
-                         PIN_SW_EVIL};
+    uint8_t s_pin[] = {PIN_SW_EVIL,PIN_SW_MODEL};
    
     uint8_t ledr_pin[]    = {PIN_LED1_R, PIN_LED2_R};
     uint8_t ledg_pin[]    = {PIN_LED1_G, PIN_LED2_G};
