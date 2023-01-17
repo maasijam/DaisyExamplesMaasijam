@@ -73,50 +73,15 @@ enum Channels
 struct Patch;
 struct PerformanceState;
 
-class NormalizationDetector {
- public:
-  NormalizationDetector() { }
-  ~NormalizationDetector() { } 
-
-  void Init(float lp_coefficient, float threshold) {
-    score_ = 0.0f;
-    state_ = false;
-    threshold_ = threshold;
-    lp_coefficient_ = lp_coefficient;
-  }
-  
-  void Process(float x, float y) {
-    // x is supposed to be centered!
-    score_ += lp_coefficient_ * (x * y - score_);
-    
-    float hysteresis = state_ ? -0.05f * threshold_ : 0.0f;
-    state_ = score_ >= (threshold_ + hysteresis);
-  }
-  
-  inline bool normalized() const { return state_; }
-  inline float score() const { return score_; }
-
- private:
-  float score_;
-  float lp_coefficient_;
-  float threshold_;
-  
-  bool state_;
-
-  DISALLOW_COPY_AND_ASSIGN(NormalizationDetector);
-};
-
-
 class CvScaler {
  public:
   CvScaler() { }
   ~CvScaler() { }
   
-  void Init(CalibrationData* calibration_data);
+  void Init();
   void Read(Patch* patch, PerformanceState* performance_state);
 
-  void DetectAudioNormalization(AudioHandle::InputBuffer* in, size_t size);
-
+  
   inline bool ready_for_calibration() const {
     return true;
   }
@@ -243,19 +208,12 @@ class CvScaler {
 
   
  private:
-  void DetectNormalization();
   
   //Adc adc_;
   CalibrationData* calibration_data_;
   //TriggerInput trigger_input_;
   
-  //NormalizationProbe normalization_probe_;
-  
-  NormalizationDetector normalization_detector_trigger_;
-  NormalizationDetector normalization_detector_v_oct_;
-  NormalizationDetector normalization_detector_exciter_;
-  
-  bool normalization_probe_value_[2];
+
   int32_t inhibit_strum_;
   
   float adc_lp_[CV_LAST];
@@ -265,8 +223,6 @@ class CvScaler {
   float cv_low_;
   int32_t chord_;
   
-  bool normalization_probe_enabled_;
-  bool normalization_probe_forced_state_;
   
   static ChannelSettings channel_settings_[CHAN_LAST];
   

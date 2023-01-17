@@ -69,8 +69,8 @@ ChannelSettings CvScaler::channel_settings_[CHAN_LAST] = {
   { LAW_QUADRATIC_BIPOLAR, false, 0.005f },  // ADC_CHANNEL_ATTENUVERTER_POSITION,
 };
 
-void CvScaler::Init(CalibrationData* calibration_data) {
-  calibration_data_ = calibration_data;
+void CvScaler::Init() {
+  //calibration_data_ = calibration_data;
 
   //adc_.Init();
   //trigger_input_.Init();
@@ -86,56 +86,9 @@ void CvScaler::Init(CalibrationData* calibration_data) {
   
   inhibit_strum_ = 0;
   fm_cv_ = 0.0f;
-  
-  normalization_probe_enabled_ = true;
-  normalization_probe_forced_state_ = false;
+
 }
 
-/*void CvScaler::DetectAudioNormalization(Codec::Frame* in, size_t size) {
-  int32_t count = 0;
-  short* input_samples = &in->r;
-  for (size_t i = 0; i < size; i += 8) {
-    short s = input_samples[i * 2];
-    if (s > 50 && s < 1500) {
-      ++count;
-    } else if (s > -1500 && s < -50) {
-      --count;
-    }
-  }
-  float y = static_cast<float>(count) / static_cast<float>(size >> 3);
-  float x = normalization_probe_value_[1] ? -1.0f : 1.0f;
-  
-  normalization_detector_exciter_.Process(x, y);
-  if (normalization_detector_exciter_.normalized()) {
-    for (size_t i = 0; i < size; ++i) {
-      input_samples[i * 2] = 0;
-    }
-  }
-}*/
-
-/*void CvScaler::DetectNormalization() {
-  if (normalization_probe_value_[0] == trigger_input_.DummyRead()) {
-    normalization_detector_trigger_.Process(1.0f, 1.0f);
-  } else {
-    normalization_detector_trigger_.Process(1.0f, -1.0f);
-  }
-  
-  float x = adc_.float_value(ADC_CHANNEL_CV_V_OCT) - calibration_data_->normalization_detection_threshold;
-  float y = normalization_probe_value_[0] ? -1.0f : 1.0f;
-  if (x > -0.5f && x < 0.5f) {
-    x = x < 0.0f ? -1.0f : 1.0f;
-    normalization_detector_v_oct_.Process(x, y);
-  } else {
-    normalization_detector_v_oct_.Process(0.0f, y);
-  }
-  
-  normalization_probe_value_[1] = normalization_probe_value_[0];
-  normalization_probe_value_[0] = Random::GetWord() >> 31;
-  bool new_state = normalization_probe_enabled_
-      ? normalization_probe_value_[0]
-      : normalization_probe_forced_state_;
-  normalization_probe_.Write(new_state);
-}*/
 
 #define ATTENUVERT(destination, NAME, min, max) \
   { \

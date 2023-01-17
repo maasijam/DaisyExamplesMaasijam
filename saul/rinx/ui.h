@@ -91,6 +91,9 @@ class Ui {
       strumming_flag_interval_ = 0;
     }
   }
+
+  bool readyToSaveState = false;
+  bool readyToRestore = false;
   
   uint8_t HandleFactoryTestingRequest(uint8_t command);
   
@@ -104,7 +107,11 @@ class Ui {
   void CalibrateLow();
   void CalibrateHigh();
   void SaveState();
+  void LoadState();
   void AnimateEasterEggLeds();
+  void Update_Buttons();
+  void UpdateLEDs();
+  void ReadSwitches();
 
   stmlib::EventQueue<16> queue_;
   
@@ -114,7 +121,14 @@ class Ui {
   UiMode mode_;
   int32_t strumming_flag_counter_;
   int32_t strumming_flag_interval_;
-  
+
+  size_t noteStrumState_;
+  size_t exciterState_;
+  bool easterEggOn_;
+  int ui_task_;
+  size_t eggFxState_;
+
+
   Settings* settings_;
   CvScaler* cv_scaler_;
   Part* part_;

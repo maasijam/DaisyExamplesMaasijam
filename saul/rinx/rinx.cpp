@@ -49,11 +49,37 @@ Ui ui;
 
 
 
+//easter egg toggle
+bool easterEggOn;
 
-void ProcessControls(Patch* patch, PerformanceState* state)
+//int oldModel = 0;
+//int old_poly = 0;
+
+
+void ProcessControls(Patch* patch, PerformanceState* state, Settings* settings)
 {
+    //polyphony setting
+    //int poly = settings->state().polyphony;
+    //if(old_poly != poly)
+    //{
+    //    part.set_polyphony(0x01 << poly);
+    //    string_synth.set_polyphony(0x01 << poly);
+    //}
+    //old_poly = poly;
+
+    //model settings
+    //part.set_model((ResonatorModel)settings->state().model);
+    //string_synth.set_fx((FxType)settings->state().eggFxState);
+    
+    // normalization settings
+    state->internal_note    = settings->state().noteStrumState == 1 || settings->state().noteStrumState == 3 ? false : true;
+    state->internal_exciter = settings->state().exciterState == 1 ? false : true;
+    state->internal_strum   = settings->state().noteStrumState == 2 || settings->state().noteStrumState == 3 ? false : true;
+    
+    //state->internal_note    = true;
+    //state->internal_exciter = false;
     //strum
-    state->internal_strum = true;
+    //state->internal_strum = true;
     state->strum = hw.gate.Trig();
 }
 
@@ -79,7 +105,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
     //cv_scaler.DetectAudioNormalization(in, size);
     //cv_scaler.Read(&patch, &performance_state);
 
-    ProcessControls(&patch, &performance_state);
+    ProcessControls(&patch, &performance_state, &settings);
     cv_scaler.Read(&patch, &performance_state);
 
     if(settings.state().easter_egg)
@@ -116,7 +142,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
         out[0][i] = output[i];
         out[1][i] = aux[i];
     }
-    ui.set_strumming_flag(performance_state.strum);
+    //ui.set_strumming_flag(performance_state.strum);
 }
 
 void Init() {
@@ -132,7 +158,7 @@ void Init() {
     string_synth.Init(reverb_buffer);
 
     settings.Init(&hw);
-    //cv_scaler.Init(settings.mutable_calibration_data());
+    cv_scaler.Init();
     ui.Init(&settings, &cv_scaler, &part, &string_synth, &hw);
 
     
@@ -144,7 +170,7 @@ void Init() {
 int main(void) {
   Init();
   while (1) {
-    ui.DoEvents();
+    //ui.DoEvents();
   }
 }
 

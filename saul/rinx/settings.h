@@ -77,16 +77,22 @@ struct CalibrationData
 struct State {
 
   State() : 
-  polyphony(1), 
-  model(0), 
+  polyphony(2), 
+  model(2), 
   easter_egg(0),
-  color_blind(0)  {}
+  color_blind(0),
+  noteStrumState(0),
+  exciterState(0),
+  eggFxState(0)  {}
 
   
   uint8_t polyphony;
   uint8_t model;
   uint8_t easter_egg;
   uint8_t color_blind;
+  size_t noteStrumState;
+  size_t exciterState;
+  size_t eggFxState;
 
 
   /**@brief checks sameness */
@@ -104,7 +110,16 @@ struct State {
         } else if(color_blind != rhs.color_blind)
         {
             return false;
-        } 
+        } else if(noteStrumState != rhs.noteStrumState)
+        {
+            return false;
+        } else if(exciterState != rhs.exciterState)
+        {
+            return false;
+        } else if(eggFxState != rhs.eggFxState)
+        {
+            return false;
+        }
         return true;
     }
 
@@ -122,6 +137,7 @@ class Settings {
   void SaveState();
   void LoadState();
   void RestoreState();
+  void LoadCalibrationData();
   //void Save();
 
    /** @brief Sets the cv offset from an externally array of data */
