@@ -37,7 +37,7 @@ using namespace rinx;
 using namespace stmlib;
 using namespace daisy;
 
-uint16_t  DSY_SDRAM_BSS reverb_buffer[32768];
+uint16_t   reverb_buffer[32768];
 
 DaisySaul hw;
 CvScaler cv_scaler;
@@ -52,24 +52,24 @@ Ui ui;
 //easter egg toggle
 bool easterEggOn;
 
-//int oldModel = 0;
-//int old_poly = 0;
+int oldModel = 0;
+int old_poly = 0;
 
 
 void ProcessControls(Patch* patch, PerformanceState* state, Settings* settings)
 {
     //polyphony setting
-    //int poly = settings->state().polyphony;
-    //if(old_poly != poly)
-    //{
-    //    part.set_polyphony(0x01 << poly);
-    //    string_synth.set_polyphony(0x01 << poly);
-    //}
-    //old_poly = poly;
+    int poly = settings->state().polyphony;
+    if(old_poly != poly)
+    {
+        part.set_polyphony(0x01 << poly);
+        string_synth.set_polyphony(0x01 << poly);
+    }
+    old_poly = poly;
 
     //model settings
-    //part.set_model((ResonatorModel)settings->state().model);
-    //string_synth.set_fx((FxType)settings->state().eggFxState);
+    part.set_model((ResonatorModel)settings->state().model);
+    string_synth.set_fx((FxType)settings->state().eggFxState);
     
     // normalization settings
     state->internal_note    = settings->state().noteStrumState == 1 || settings->state().noteStrumState == 3 ? false : true;
@@ -81,6 +81,7 @@ void ProcessControls(Patch* patch, PerformanceState* state, Settings* settings)
     //strum
     //state->internal_strum = true;
     state->strum = hw.gate.Trig();
+    //state->strum = hw.s[S_6].RisingEdge();
 }
 
 float input[kMaxBlockSize];
@@ -142,7 +143,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
         out[0][i] = output[i];
         out[1][i] = aux[i];
     }
-    //ui.set_strumming_flag(performance_state.strum);
+    ui.set_strumming_flag(performance_state.strum);
 }
 
 void Init() {

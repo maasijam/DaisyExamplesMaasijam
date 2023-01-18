@@ -150,8 +150,8 @@ void Ui::UpdateLEDs() {
               break;
           }
 
-          hw_->SetRGBLed(1,eggFxState_);
-          hw_->SetRGBLed(4,part_->model());
+          hw_->SetRGBLed(1,static_cast<u_int8_t>(eggFxState_));
+          hw_->SetRGBLed(4,static_cast<u_int8_t>(part_->model()));
 
           if(readyToSaveState) {
                   //hw_->SetRGBLed(1,RED);
@@ -230,7 +230,7 @@ void Ui::ReadSwitches() {
     switch (mode_) {
     case UI_MODE_NORMAL:
       {
-        int32_t polyphony = part_->polyphony();
+       
 
     if(hw_->s[BTN_NOTE_STRUM].RisingEdge()){
         noteStrumState_ += 1;
@@ -258,10 +258,10 @@ void Ui::ReadSwitches() {
               SaveState(); 
     }
     if(hw_->s[BTN_EGG_FX].RisingEdge()){
-        //eggFxState += 1;
-        //if(eggFxState > 5) {
-        //   eggFxState = 0;     
-        //} 
+        eggFxState_ += 1;
+        if(eggFxState_ > 5) {
+           eggFxState_ = 0;     
+        } 
     }
     if(hw_->s[BTN_MODEL].RisingEdge()){
         int32_t model = part_->model();
