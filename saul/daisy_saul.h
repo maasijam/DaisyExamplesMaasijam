@@ -214,7 +214,7 @@ class DaisySaul
     void DelayMs(size_t del);
 
 
-    ShiftRegister595 all_leds; /**LFO Leds */
+    ShiftRegister595 all_leds; 
     
 
     DaisySeed       seed;                /**< Seed object */
