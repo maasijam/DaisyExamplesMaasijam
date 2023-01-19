@@ -29,6 +29,7 @@
 
 #include "../daisy_saul.h"
 using namespace daisy;
+using namespace saul;
 
 static DaisySaul hw;
 

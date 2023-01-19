@@ -1759,15 +1759,15 @@ void Update_Leds()
     hw.SetLed(tempoLED_BASE.GetLedIdx(),tempoLED_BASE.GetLedOn());
 
     if(saveSt) {
-            hw.SetRGBLed(1,DaisySaul::red);
-            hw.SetRGBLed(2,DaisySaul::red);
-            hw.SetRGBLed(3,DaisySaul::red);
-            hw.SetRGBLed(4,DaisySaul::red);
+            hw.SetRGBLed(1,RED);
+            hw.SetRGBLed(2,RED);
+            hw.SetRGBLed(3,RED);
+            hw.SetRGBLed(4,RED);
     } else {
-        hw.SetRGBLed(1,DaisySaul::off);
-        hw.SetRGBLed(2,DaisySaul::off);
-        hw.SetRGBLed(3,DaisySaul::off);
-        hw.SetRGBLed(4,DaisySaul::off);
+        hw.SetRGBLed(1,OFF);
+        hw.SetRGBLed(2,OFF);
+        hw.SetRGBLed(3,OFF);
+        hw.SetRGBLed(4,OFF);
     }
     
 }

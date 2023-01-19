@@ -1,8 +1,9 @@
 # Project Name
 TARGET = Ecco
 
-DEBUG = 1
-LDFLAGS += -u _printf_float
+#DEBUG = 1
+#LDFLAGS += -u _printf_float
+APP_TYPE = BOOT_SRAM
 
 # Sources
 CPP_SOURCES = Ecco.cpp scale.cpp taptempo.cpp DelayMulti.cpp LEDs.cpp oscillator_p.cpp ../daisy_saul.cpp
