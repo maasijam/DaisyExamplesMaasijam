@@ -33,6 +33,7 @@
 
 using namespace daisy;
 using namespace torus;
+using namespace saul;
 
 DaisySaul         hw;
 
@@ -257,10 +258,10 @@ void Update_Buttons()
     if (hw.s[BTN_TAP].FallingEdge())    //when button is let go shift is off
     {
         saveState = false;
-        hw.SetRGBLed(1,DaisySaul::off);
-        hw.SetRGBLed(2,DaisySaul::off);
-        hw.SetRGBLed(3,DaisySaul::off);
-        hw.SetRGBLed(4,DaisySaul::off);
+        hw.SetRGBLed(1,OFF);
+        hw.SetRGBLed(2,OFF);
+        hw.SetRGBLed(3,OFF);
+        hw.SetRGBLed(4,OFF);
     }
 
     if (hw.s[BTN_TAP].Pressed())
@@ -322,10 +323,10 @@ void Update_Leds()
     hw.SetRGBLed(4,modelState);
 
     if(saveState) {
-            hw.SetRGBLed(1,DaisySaul::red);
-            hw.SetRGBLed(2,DaisySaul::red);
-            hw.SetRGBLed(3,DaisySaul::red);
-            hw.SetRGBLed(4,DaisySaul::red);
+            hw.SetRGBLed(1,RED);
+            hw.SetRGBLed(2,RED);
+            hw.SetRGBLed(3,RED);
+            hw.SetRGBLed(4,RED);
     } 
     
 }

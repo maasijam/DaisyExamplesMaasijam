@@ -1,7 +1,8 @@
 # Project Name
 TARGET = ringo
 
-LDFLAGS += -u _printf_float
+#LDFLAGS += -u _printf_float
+APP_TYPE = BOOT_QSPI
 
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy

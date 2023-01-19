@@ -41,7 +41,7 @@
 
 
 
-extern daisy::DaisySaul hw;
+extern saul::DaisySaul hw;
 
 namespace torus {
   
