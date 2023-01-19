@@ -335,3 +335,21 @@ void DaisySaul::SetRGBColor(uint8_t ridx,uint8_t gidx,uint8_t bidx, uint8_t colo
               break;
           }  
 }
+
+float DaisySaul::CVKnobCombo(float CV_Val,float Pot_Val)
+{
+    float output{};
+    output = CV_Val + Pot_Val;
+
+    if(output < 0.0f)
+    {
+        output = 0.0f;
+    }
+
+    if(output > 1.0f)
+    {
+        output = 1.0f;
+    }
+
+    return output;
+}

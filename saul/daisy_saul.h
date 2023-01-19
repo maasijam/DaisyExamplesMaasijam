@@ -206,7 +206,7 @@ class DaisySaul
         return Random::GetFloat(min, max);
     }
 
-        
+   float CVKnobCombo(float CV_Val,float Pot_Val);     
 
     /**
   General delay _\param del Delay time in ms.
