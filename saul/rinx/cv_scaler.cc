@@ -77,7 +77,7 @@ void CvScaler::Init() {
 
   transpose_ = 0.0f;
   
-  fill(&adc_lp_[0], &adc_lp_[CHAN_LAST], 0.0f);
+  //fill(&adc_lp_[0], &adc_lp_[CHAN_LAST], 0.0f);
   
   //normalization_probe_.Init();
   //normalization_detector_exciter_.Init(0.01f, 0.5f);

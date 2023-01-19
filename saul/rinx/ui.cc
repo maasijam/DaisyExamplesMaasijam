@@ -222,7 +222,7 @@ void Ui::UpdateLEDs() {
 
 void Ui::ReadSwitches() {
     hw_->ProcessDigitalControls();
-  int s_pins[2] = {S_2,S_3};
+  //int s_pins[2] = {S_2,S_3};
   
   
   static uint32_t shiftTime{};
