@@ -11,7 +11,7 @@
 using namespace daisy;
 using namespace daisysp;
 using namespace clouds_reverb;
-
+using namespace saul;
 
 DaisySaul hw;
 
@@ -314,19 +314,19 @@ void Update_Leds() {
     switch (waveformState)
     {
     case 1:
-        hw.SetRGBLed(1, hw.blue);
+        hw.SetRGBLed(1, BLUE);
         
         break;
     case 2:
-        hw.SetRGBLed(1, hw.yellow);
+        hw.SetRGBLed(1, YELLOW);
        
         break;
     case 3:
-        hw.SetRGBLed(1, hw.purple);
+        hw.SetRGBLed(1, PURPLE);
        
         break;
     default:
-        hw.SetRGBLed(1, hw.green);
+        hw.SetRGBLed(1, GREEN);
        
         break;
     }
@@ -334,11 +334,11 @@ void Update_Leds() {
     switch (intervalSetState)
     {
     case 1:
-        hw.SetRGBLed(4, hw.blue);
+        hw.SetRGBLed(4, BLUE);
         
         break;
     default:
-        hw.SetRGBLed(4, hw.green);
+        hw.SetRGBLed(4, GREEN);
        
         break;
     }

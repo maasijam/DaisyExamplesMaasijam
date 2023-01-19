@@ -1,8 +1,10 @@
 # Project Name
 TARGET = Drama
 
-DEBUG = 1
-LDFLAGS += -u _printf_float
+#DEBUG = 1
+#LDFLAGS += -u _printf_float
+APP_TYPE = BOOT_QSPI
+
 
 # Sources
 CPP_SOURCES = Drama.cpp ../daisy_saul.cpp
