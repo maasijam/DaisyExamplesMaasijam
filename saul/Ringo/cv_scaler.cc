@@ -68,11 +68,13 @@ ChannelSettings CvScaler::channel_settings_[CHAN_LAST] = {
   { LAW_QUADRATIC_BIPOLAR, false, 0.005f },  //ADC_CHANNEL_ATTENUVERTER_STRUCTURE,
   { LAW_QUADRATIC_BIPOLAR, false, 0.005f },  // ADC_CHANNEL_ATTENUVERTER_BRIGHTNESS,
   { LAW_QUADRATIC_BIPOLAR, false, 0.005f },  // ADC_CHANNEL_ATTENUVERTER_DAMPING,
-  { LAW_QUADRATIC_BIPOLAR, false, 0.005f },  // ADC_CHANNEL_ATTENUVERTER_POSITION,
+  { LAW_QUADRATIC_BIPOLAR, false, 0.005f },  // ADC_CHANNEL_ATTENUVERTER_POSITION ,
 };
 
 void CvScaler::Init() {
   transpose_ = 0.0f;
+
+  fill(&adc_lp_[0], &adc_lp_[CHAN_LAST], 0.0f);
   
   inhibit_strum_ = 0;
   fm_cv_ = 0.0f;
