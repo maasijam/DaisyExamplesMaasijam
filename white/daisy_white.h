@@ -2,7 +2,10 @@
 
 #include "daisy_seed.h"
 
-
+//#define DTCMRAM __attribute__((section(".dtcmram_bss")))
+//#define D2RAM __attribute__((section(".d2_bss")))
+//#define D2RAM2 __attribute__((section(".d2r2_bss")))
+//#define ITCMRAM __attribute__((section(".itcmram_bss")))
 
 
 namespace white
@@ -168,7 +171,7 @@ class DaisyWhite
     ~DaisyWhite() {}
 
     /** Initializes the daisy seed, and bluemchen hardware.*/
-    void Init(bool boost = true);
+    void Init(bool boost = false);
 
     /** Audio Block size defaults to 48.
   Change it using this function before StartingAudio _\param size Audio block size.
