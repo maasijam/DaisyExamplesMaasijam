@@ -112,7 +112,7 @@ void ProcessControls(Patch* patch, PerformanceState* state)
     
     
     //strum
-    state->strum = hw.gate.Trig();
+    state->strum = hw.Gate();
 }
 
 float input[kMaxBlockSize];

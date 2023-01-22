@@ -59,6 +59,7 @@ int old_poly = 0;
 void ProcessControls(Patch* patch, PerformanceState* state, Settings* settings)
 {
     //polyphony setting
+    /*
     int poly = settings->state().polyphony;
     if(old_poly != poly)
     {
@@ -69,18 +70,18 @@ void ProcessControls(Patch* patch, PerformanceState* state, Settings* settings)
 
     //model settings
     part.set_model((ResonatorModel)settings->state().model);
-    string_synth.set_fx((FxType)settings->state().eggFxState);
+    string_synth.set_fx((FxType)settings->state().eggFxState);*/
     
     // normalization settings
-    state->internal_note    = settings->state().noteStrumState == 1 || settings->state().noteStrumState == 3 ? false : true;
-    state->internal_exciter = settings->state().exciterState == 1 ? false : true;
-    state->internal_strum   = settings->state().noteStrumState == 2 || settings->state().noteStrumState == 3 ? false : true;
+    //state->internal_note    = settings->state().noteStrumState == 1 || settings->state().noteStrumState == 3 ? false : true;
+    //state->internal_exciter = settings->state().exciterState == 1 ? false : true;
+    //state->internal_strum   = settings->state().noteStrumState == 2 || settings->state().noteStrumState == 3 ? false : true;
     
-    //state->internal_note    = true;
-    //state->internal_exciter = false;
+    state->internal_note    = true;
+    state->internal_exciter = false;
     //strum
-    //state->internal_strum = true;
-    state->strum = hw.gate.Trig();
+    state->internal_strum = true;
+    state->strum = hw.Gate();
     //state->strum = hw.s[S_6].RisingEdge();
 }
 
@@ -109,7 +110,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
     ProcessControls(&patch, &performance_state, &settings);
     cv_scaler.Read(&patch, &performance_state);
 
-    if(settings.state().easter_egg)
+    if(1 == 2)
     {
         for(size_t i = 0; i < size; ++i)
         {

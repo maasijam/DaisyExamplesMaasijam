@@ -77,8 +77,8 @@ struct CalibrationData
 struct State {
 
   State() : 
-  polyphony(2), 
-  model(2), 
+  polyphony(1), 
+  model(0), 
   easter_egg(0),
   color_blind(0),
   noteStrumState(0),

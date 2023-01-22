@@ -272,7 +272,9 @@ void DaisySaul::SetLed(uint8_t idx, bool state)
 
 void DaisySaul::SetRGBLed(uint8_t idx, uint8_t color)
 {
-    uint8_t  redIdx,greenIdx,blueIdx;
+    uint8_t redIdx = 0;
+    uint8_t greenIdx = 0;
+    uint8_t blueIdx = 0;
     if(idx > 0 && idx < 5) {
         redIdx = _rgbLedPins[idx-1][0];
         greenIdx = _rgbLedPins[idx-1][1];

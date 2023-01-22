@@ -59,8 +59,8 @@ void Ui::Init(
     ui_task_ = 0;
     mode_ = UI_MODE_NORMAL;
 
-    LoadState();
-  
+   // LoadState();
+  /*
   if (hw_->s[S_3].RawState()) {
     State* state = settings_->mutable_state();
     if (state->color_blind == 1) {
@@ -69,7 +69,15 @@ void Ui::Init(
       state->color_blind = 1; 
     }
     settings_->SaveState();
-  }
+  }*/
+
+  part_->set_polyphony(1);
+  part_->set_model(static_cast<ResonatorModel>(0));
+  string_synth_->set_polyphony(1);
+  string_synth_->set_fx(static_cast<FxType>(0));
+  mode_ = settings_->state().easter_egg
+      ? UI_MODE_EASTER_EGG_INTRO
+      : UI_MODE_NORMAL;
   
   
 }
@@ -255,7 +263,7 @@ void Ui::ReadSwitches() {
               }
               part_->set_polyphony(polyphony);
               string_synth_->set_polyphony(polyphony);
-              SaveState(); 
+              //SaveState(); 
     }
     if(hw_->s[BTN_EGG_FX].RisingEdge()){
         eggFxState_ += 1;
@@ -268,10 +276,11 @@ void Ui::ReadSwitches() {
           if (model >= 3) {
             model -= 3;
           } else {
-            model += 3;
+            model = (model + 1) % 3;
           }
           part_->set_model(static_cast<ResonatorModel>(model));
           string_synth_->set_fx(static_cast<FxType>(model));
+          //SaveState(); 
     }
 
     if(hw_->sw[0].Read() == 1){
@@ -282,16 +291,16 @@ void Ui::ReadSwitches() {
 
     if (hw_->s[BTN_TAP].RisingEdge())    
     {
-        shiftTime = System::GetNow();   //reset shift timer
+        //shiftTime = System::GetNow();   //reset shift timer
     }
 
     if (hw_->s[BTN_TAP].FallingEdge())    //when button is let go shift is off
     {
         //saveState = false;
-        hw_->SetRGBLed(1,OFF);
-        hw_->SetRGBLed(2,OFF);
-        hw_->SetRGBLed(3,OFF);
-        hw_->SetRGBLed(4,OFF);
+        //hw_->SetRGBLed(1,OFF);
+        //hw_->SetRGBLed(2,OFF);
+        //hw_->SetRGBLed(3,OFF);
+        //hw_->SetRGBLed(4,OFF);
     }
 
     if (hw_->s[BTN_TAP].Pressed())

@@ -216,7 +216,7 @@ class CvScaler {
 
   int32_t inhibit_strum_;
   
-  float adc_lp_[CV_LAST];
+  float adc_lp_[CHAN_LAST];
   float transpose_;
   float fm_cv_;
   float cv_c1_;

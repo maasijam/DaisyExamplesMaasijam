@@ -77,7 +77,7 @@ void CvScaler::Init() {
 
   transpose_ = 0.0f;
   
-  //fill(&adc_lp_[0], &adc_lp_[CHAN_LAST], 0.0f);
+  fill(&adc_lp_[0], &adc_lp_[CHAN_LAST], 0.0f);
   
   //normalization_probe_.Init();
   //normalization_detector_exciter_.Init(0.01f, 0.5f);
@@ -107,12 +107,12 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   for (size_t i = 0; i < CHAN_LAST; ++i) {
     const ChannelSettings& settings = channel_settings_[i];
     if(i < 6) {
-        value = hw.cv[cv_map[i]].Value();
-        //value = hw.GetCvValue(cv_map[i]);
+        //value = hw.cv[cv_map[i]].Value();
+        value = hw.GetCvValue(cv_map[i]);
         
     } else {
-        value = hw.knob[pot_map[i-6]].Value();
-        //value = hw.GetKnobValue(pot_map[i-6]);
+        //value = hw.knob[pot_map[i-6]].Value();
+        value = hw.GetKnobValue(pot_map[i-6]);
     }
     switch (settings.law) {
       case LAW_QUADRATIC_BIPOLAR:
@@ -181,7 +181,7 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   }
   
   // Hysteresis on chord.
-  //float chord = calibration_data_->offset[ADC_CHANNEL_CV_STRUCTURE] - \
+  //float chord = calibration_data_->offset[ADC_CHANNEL_CV_STRUCTURE] - 
   //    adc_.float_value(ADC_CHANNEL_CV_STRUCTURE);
         float chord = 0.505f - \
       adc_lp_[ADC_CHANNEL_CV_STRUCTURE];
