@@ -91,10 +91,7 @@ void audio_callback(AudioHandle::InputBuffer  in,
 {
 	//ui.Poll();
     hw.ProcessAllControls();
-    for (size_t i = 0; i < S_LAST; i++)
-    {
-        s[i].Debounce();
-    }
+    
     
     
     float sig, freq, amp;
@@ -159,7 +156,7 @@ int main(void)
     wavectrl.Init(hw.controls[POT_3], 0.0, num_waves, Parameter::LINEAR);
     ampctrl.Init(hw.controls[POT_4], 0.0, 0.5f, Parameter::LINEAR);
 
-    dsy_gpio_pin s_pins[S_LAST] = {hw.B10,hw.B9,hw.D10};
+    dsy_gpio_pin s_pins[S_LAST] = {hw.B7,hw.B8,hw.D10};
     for (size_t i = 0; i < S_LAST; i++)
     {
         s[i].Init(s_pins[i]);
@@ -207,15 +204,29 @@ int main(void)
 
 void Update_Digital() {
 
-    
+    for (size_t i = 0; i < S_LAST; i++)
+    {
+        s[i].Debounce();
+    }
 
    
 
     led[LED_2].Set(s[S_1].Pressed() ? 1.f : 0.f);
     led[LED_2].Update();
 
-    led[LED_3].Set(1.f);
+    led[LED_3].Set(s[S_2].Pressed() ? 1.f : 0.f);
     led[LED_3].Update();
+
+    if(s[S_3].Pressed()){
+        dsy_gpio_write(&hw.gate_out_1, true);
+        //led[LED_4].Set(1.f);
+        //led[LED_4].Update();
+    } else {
+        dsy_gpio_write(&hw.gate_out_1, false);
+        //led[LED_4].Set(s[S_3].Pressed() ? 1.f : 0.f);
+        //led[LED_4].Update();
+    }
+    
     
     
 }
