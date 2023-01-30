@@ -30,6 +30,7 @@ DaisyPinkman hw;
 Settings settings;
 Ui ui;
 Switch s[S_LAST];
+Switch toggle;
 Led led[LED_LAST];
 
 static Oscillator osc;
@@ -164,12 +165,12 @@ int main(void)
 
 
     dsy_gpio_pin led_pins[LED_LAST] = {hw.C10,hw.D8,hw.D9,hw.B5,hw.B6};
-    for (size_t i = 0; i < 3; i++)
+    for (size_t i = 0; i < LED_LAST; i++)
     {
         led[i].Init(led_pins[i],false);
     }
 
-    
+    toggle.Init(hw.A3);
     
 
     
@@ -208,7 +209,7 @@ void Update_Digital() {
     {
         s[i].Debounce();
     }
-
+    toggle.Debounce();
    
 
     led[LED_2].Set(s[S_1].Pressed() ? 1.f : 0.f);
@@ -226,6 +227,20 @@ void Update_Digital() {
         //led[LED_4].Set(s[S_3].Pressed() ? 1.f : 0.f);
         //led[LED_4].Update();
     }
+
+    if(toggle.Pressed()){
+        dsy_gpio_write(&hw.gate_out_2, true);
+        //led[LED_4].Set(1.f);
+        //led[LED_4].Update();
+        hw.WriteCvOut(CV_OUT_1,0.f);
+    } else {
+        dsy_gpio_write(&hw.gate_out_2, false);
+        //led[LED_4].Set(s[S_3].Pressed() ? 1.f : 0.f);
+        //led[LED_4].Update();
+        hw.WriteCvOut(CV_OUT_1,5.f);
+    }
+
+    
     
     
     
