@@ -52,7 +52,7 @@ size_t polyState = 0;
 size_t eggFxState = 0;
 size_t modelState = 0;
 bool saveState{false};
-
+bool firstLoop{true};
 
 
 // norm edit menu items
@@ -89,7 +89,173 @@ TorusSetting default_preset[PRESET_MAX] = {
 {3, 0, 0, 0, 0,true}
 };
 
+enum UiMode {
+  UI_MODE_NORMAL,
+  UI_MODE_CALIBRATION_C1,
+  UI_MODE_CALIBRATION_C3,
+  UI_MODE_ERROR,
+  UI_MODE_RESTORE_STATE,
+};
 
+UiMode mode_;
+
+/** Cal data */
+    float                  warp_v1_, warp_v3_;
+    daisy::VoctCalibration voct_cal;
+    float                  cv_offsets_[CV_LAST];
+    
+
+    bool cal_save_flag_;
+
+/** @brief Calibration data container for Margolis 
+*/
+struct CalibrationData
+{
+    CalibrationData() : warp_scale(60.f), warp_offset(0.f), cv_offset{0.f} {}
+    float warp_scale, warp_offset;
+    float cv_offset[CV_LAST];
+    
+
+    /** @brief checks sameness */
+    bool operator==(const CalibrationData &rhs)
+    {
+        if(warp_scale != rhs.warp_scale)
+        {
+            return false;
+        }
+        else if(warp_offset != rhs.warp_offset)
+        {
+            return false;
+        }
+        else
+        {
+            for(int i = 0; i < CV_LAST; i++)
+            {
+                if(cv_offset[i] != rhs.cv_offset[i])
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /** @brief Not equal operator */
+    bool operator!=(const CalibrationData &rhs) { return !operator==(rhs); }
+};
+
+float pitch_lp_calibration_ = 0.0f;
+
+
+
+/** @brief called during a customized calibration UI to record the 1V value */
+    inline void CalibrateV1(float v1) { warp_v1_ = v1; }
+
+    /** @brief called during a customized calibration UI to record the 3V value 
+     *         and set that calibraiton has completed and can be saved. 
+     */
+    inline void CalibrateV3(float v3)
+    {
+        warp_v3_ = v3;
+        voct_cal.Record(warp_v1_, warp_v3_);
+        cal_save_flag_ = true;
+    }
+
+    /** @brief Sets the calibration data for 1V/Octave over Warp CV 
+     *  typically set after reading stored data from external memory.
+     */
+    inline void SetWarpCalData(float scale, float offset)
+    {
+        voct_cal.SetData(scale, offset);
+    }
+
+    /** @brief Gets the current calibration data for 1V/Octave over Warp CV 
+     *  typically used to prepare data for storing after successful calibration
+     */
+    inline void GetWarpCalData(float &scale, float &offset)
+    {
+        voct_cal.GetData(scale, offset);
+    }
+
+    /** @brief Sets the cv offset from an externally array of data */
+    inline void SetCvOffsetData(float *data)
+    {
+        for(int i = 0; i < CV_LAST; i++)
+        {
+            cv_offsets_[i] = data[i];
+        }
+    }
+
+    /** @brief Fills an array with the offset data currently being used */
+    inline void GetCvOffsetData(float *data)
+    {
+        for(int i = 0; i < CV_LAST; i++)
+        {
+            data[i] = cv_offsets_[i];
+        }
+    }
+
+    /** @brief Checks to see if calibration has been completed and needs to be saved */
+    inline bool ReadyToSaveCal() { return cal_save_flag_; }
+
+    /** @brief signal the cal-save flag to clear once calibration data has been written to ext. flash memory */
+    inline void ClearSaveCalFlag() { cal_save_flag_ = false; }
+
+    float GetWarpVoct()
+    {
+    return voct_cal.ProcessInput(hw.cv[CV_5].Value());
+    }
+
+
+
+/** @brief Loads and sets calibration data */
+void LoadCalibrationData()
+{
+    daisy::PersistentStorage<CalibrationData> cal_storage(hw.seed.qspi);
+    CalibrationData                           default_cal;
+    cal_storage.Init(default_cal, FLASH_BLOCK * 10);
+    auto &cal_data = cal_storage.GetSettings();
+    SetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
+    SetCvOffsetData(cal_data.cv_offset);
+}
+
+/** @brief Loads and sets calibration data */
+void SaveCalibrationData()
+{
+    daisy::PersistentStorage<CalibrationData> cal_storage(hw.seed.qspi);
+    CalibrationData                           default_cal;
+    cal_storage.Init(default_cal, FLASH_BLOCK * 10);
+    auto &cal_data = cal_storage.GetSettings();
+    GetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
+    GetCvOffsetData(cal_data.cv_offset);
+    cal_storage.Save();
+    ClearSaveCalFlag();
+}
+
+void CalibrateC1() {
+  // Acquire offsets for all channels.
+  float co[CV_LAST];
+  for (int i = 0; i < CV_LAST; ++i) {
+    if (i != CV_5) {
+      co[i] = hw.cv[i].Value();
+    } else {
+      co[i] = 0.f;
+    }
+  }
+  auto &current_offset_data = co;
+  SetCvOffsetData(current_offset_data);
+
+  CalibrateV1(pitch_lp_calibration_);
+
+  mode_ = UI_MODE_CALIBRATION_C3;
+}
+
+void CalibrateC3() {
+  CalibrateV3(pitch_lp_calibration_);
+    if(ReadyToSaveCal()) {
+       mode_ = UI_MODE_NORMAL;
+    } else {
+      mode_ = UI_MODE_ERROR;
+    }
+}
 
 void ProcessControls(Patch* patch, PerformanceState* state)
 {
@@ -112,13 +278,28 @@ void ProcessControls(Patch* patch, PerformanceState* state)
     part.set_model((torus::ResonatorModel)modelState);
     string_synth.set_fx((torus::FxType)eggFxState);
 
+
+
     // normalization settings
     state->internal_note    = noteStrumState == 1 || noteStrumState == 3 ? false : true;
     state->internal_exciter = exciterState == 1 ? false : true;
     state->internal_strum   = noteStrumState == 2 || noteStrumState == 3 ? false : true;
 
+    state->note = GetWarpVoct();
+    
+    if (state->internal_note) {
+        // Remove quantization when nothing is plugged in the V/OCT input.
+        state->note = 0.0f;
+    }
+
     //strum
     state->strum = hw.gate_in1.Trig();
+
+    if (mode_ == UI_MODE_CALIBRATION_C1 || mode_ == UI_MODE_CALIBRATION_C3)
+    {
+        pitch_lp_calibration_ = hw.cv[CV_5].Value();;
+    }
+    
 }
 
 float input[kMaxBlockSize];
@@ -132,14 +313,15 @@ void AudioCallback(AudioHandle::InputBuffer  in,
                    AudioHandle::OutputBuffer out,
                    size_t                    size)
 {
-    hw.ProcessAllControls();
+    hw.ProcessAnalogControls();
     Update_Buttons();
 
     PerformanceState performance_state;
     Patch            patch;
 
-    ProcessControls(&patch, &performance_state);
+    
     cv_scaler.Read(&patch, &performance_state);
+    ProcessControls(&patch, &performance_state);
 
     if(easterEggOn)
     {
@@ -187,6 +369,15 @@ int main(void)
     //InitUiPages();
     InitResources();
     //ui.OpenPage(mainMenu);
+    mode_ = UI_MODE_NORMAL;
+
+    cal_save_flag_ = false;
+    for(int i = 0; i < CV_LAST; i++)
+    {
+        cv_offsets_[i] = 0.f;
+    }
+    
+    LoadCalibrationData();
 
     strummer.Init(0.01f, samplerate / blocksize);
     part.Init(reverb_buffer);
@@ -210,59 +401,111 @@ int main(void)
             FlashSave(1);
             saveState = false;
         }
+        if (ReadyToSaveCal()) {
+            SaveCalibrationData();
+        }
     }
 }
 
-constexpr uint32_t shiftWait{1000};
+constexpr uint32_t shiftWait{2000};
+static uint32_t shiftTime{};
 
 void Update_Buttons()
 {  
-    static uint32_t shiftTime{};
+    
+    hw.ProcessDigitalControls();
+
+    switch (mode_)
+    {
+    case UI_MODE_NORMAL:
+        {
+            if(hw.SwitchRisingEdge(S2)){
+                noteStrumState += 1;
+                if(noteStrumState > 3) {
+                noteStrumState = 0;     
+                }
+                saveState = true; 
+                }
+            if(hw.SwitchRisingEdge(S3)){
+                exciterState += 1;
+                if(exciterState > 1) {
+                exciterState = 0;     
+                } 
+                saveState = true; 
+            }
+            if(hw.SwitchRisingEdge(S6)){
+                polyState += 1;
+                if(polyState > 2) {
+                polyState = 0;     
+                } 
+                saveState = true; 
+            }
+            if(hw.SwitchRisingEdge(S4)){
+                eggFxState += 1;
+                if(eggFxState > 5) {
+                eggFxState = 0;     
+                } 
+                saveState = true; 
+            }
+            if(hw.SwitchRisingEdge(S5)){
+                modelState += 1;
+                if(modelState > 5) {
+                modelState = 0;     
+                } 
+                saveState = true; 
+            }
+
+            if(!hw.SwitchState(S0A)){
+                easterEggOn = true;
+            } else {
+                easterEggOn = false;
+            }
+
+            
+
+            if (!hw.SwitchState(S8))
+            {
+                if(firstLoop) {
+                    shiftTime = System::GetNow();
+                    firstLoop = false;
+                }
+                
+                if ( (System::GetNow() - shiftTime) > shiftWait)
+                {
+                    mode_ = UI_MODE_CALIBRATION_C1;
+                    firstLoop = true;
+                } 
+            } else 
+            {
+                shiftTime = System::GetNow();
+                firstLoop = true;
+            }
+        }
+        break;
+    case UI_MODE_CALIBRATION_C1:
+        if (hw.SwitchRisingEdge(S4))    
+            {
+                //mode_ = UI_MODE_CALIBRATION_C3;
+                CalibrateC1();
+            }
+        break;
+    case UI_MODE_CALIBRATION_C3:
+        if (hw.SwitchRisingEdge(S4))    
+            {
+                //mode_ = UI_MODE_NORMAL;
+                CalibrateC3();
+            }
+        break;
+    case UI_MODE_ERROR:
+        /* code */
+        break;
+    case UI_MODE_RESTORE_STATE:
+        /* code */
+        break;
+    
+    }
 
     
-
-
-    if(hw.SwitchRisingEdge(S2)){
-        noteStrumState += 1;
-        if(noteStrumState > 3) {
-           noteStrumState = 0;     
-        }
-        saveState = true; 
-    }
-    if(hw.SwitchRisingEdge(S3)){
-        exciterState += 1;
-        if(exciterState > 1) {
-           exciterState = 0;     
-        } 
-        saveState = true; 
-    }
-    if(hw.SwitchRisingEdge(S6)){
-        polyState += 1;
-        if(polyState > 2) {
-           polyState = 0;     
-        } 
-        saveState = true; 
-    }
-    if(hw.SwitchRisingEdge(S4)){
-        eggFxState += 1;
-        if(eggFxState > 5) {
-           eggFxState = 0;     
-        } 
-        saveState = true; 
-    }
-    if(hw.SwitchRisingEdge(S5)){
-        modelState += 1;
-        if(modelState > 5) {
-           modelState = 0;     
-        } 
-        saveState = true; 
-    }
-
-    if(!hw.SwitchState(S0A)){
-        easterEggOn = true;
-    } else {
-        easterEggOn = false;
-    }
 /*
     if (hw.SwitchRisingEdge(S8))    
     {
@@ -291,57 +534,88 @@ void Update_Buttons()
 void Update_Leds()
 {
     hw.ClearLeds();
-    switch (noteStrumState)
+    bool blink = (System::GetNow() & 127) > 64;
+
+    switch (mode_)
     {
-    case 1:
-        hw.SetGreenLeds(GREEN_LED_3,1);
-        hw.SetGreenLeds(GREEN_LED_4,0);
+    case UI_MODE_NORMAL:
+        {
+            switch (noteStrumState)
+            {
+            case 1:
+                hw.SetGreenLeds(GREEN_LED_3,1);
+                hw.SetGreenLeds(GREEN_LED_4,0);
+                break;
+            case 2:
+                hw.SetGreenLeds(GREEN_LED_3,0);
+                hw.SetGreenLeds(GREEN_LED_4,1);
+                break;
+            case 3:
+                hw.SetGreenLeds(GREEN_LED_3,1);
+                hw.SetGreenLeds(GREEN_LED_4,1);
+                break;
+            default:
+                hw.SetGreenLeds(GREEN_LED_3,0);
+                hw.SetGreenLeds(GREEN_LED_4,0);
+                break;
+            }
+
+            hw.SetGreenDirectLeds(GREEN_D_LED_1,exciterState ? 1 : 0);
+
+            switch (polyState)
+            {
+            case 1:
+                hw.SetGreenDirectLeds(GREEN_D_LED_4,1);
+                hw.SetGreenDirectLeds(GREEN_D_LED_3,0);
+                break;
+            case 2:
+                hw.SetGreenDirectLeds(GREEN_D_LED_4,0);
+                hw.SetGreenDirectLeds(GREEN_D_LED_3,1);
+                break;
+            case 3:
+                hw.SetGreenDirectLeds(GREEN_D_LED_4,1);
+                hw.SetGreenDirectLeds(GREEN_D_LED_3,1);
+                break;
+            default:
+                hw.SetGreenDirectLeds(GREEN_D_LED_4,0);
+                hw.SetGreenDirectLeds(GREEN_D_LED_3,0);
+                break;
+            }
+
+            hw.SetRGBColor(RGB_LED_1,(Colors)eggFxState);
+            hw.SetRGBColor(RGB_LED_4,(Colors)modelState);
+
+            if(saveState) {
+                    hw.SetRGBColor(RGB_LED_1,RED);
+                    hw.SetRGBColor(RGB_LED_2,RED);
+                    hw.SetRGBColor(RGB_LED_3,RED);
+                    hw.SetRGBColor(RGB_LED_4,RED);
+            } 
+        }
         break;
-    case 2:
-        hw.SetGreenLeds(GREEN_LED_3,0);
-        hw.SetGreenLeds(GREEN_LED_4,1);
+    case UI_MODE_CALIBRATION_C1:
+            hw.SetRGBColor(RGB_LED_1,blink ? GREEN : OFF);
+            hw.SetRGBColor(RGB_LED_2,blink ? GREEN : OFF);
+            hw.SetRGBColor(RGB_LED_3,blink ? GREEN : OFF);
+            hw.SetRGBColor(RGB_LED_4,blink ? GREEN : OFF);
         break;
-    case 3:
-        hw.SetGreenLeds(GREEN_LED_3,1);
-        hw.SetGreenLeds(GREEN_LED_4,1);
+    case UI_MODE_CALIBRATION_C3:
+         hw.SetRGBColor(RGB_LED_1,blink ? BLUE : OFF);
+            hw.SetRGBColor(RGB_LED_2,blink ? BLUE : OFF);
+            hw.SetRGBColor(RGB_LED_3,blink ? BLUE : OFF);
+            hw.SetRGBColor(RGB_LED_4,blink ? BLUE : OFF);
         break;
-    default:
-        hw.SetGreenLeds(GREEN_LED_3,0);
-        hw.SetGreenLeds(GREEN_LED_4,0);
+    case UI_MODE_ERROR:
+        /* code */
         break;
+    case UI_MODE_RESTORE_STATE:
+        /* code */
+        break;
+    
     }
 
-    hw.SetGreenDirectLeds(GREEN_D_LED_1,exciterState ? 1 : 0);
 
-    switch (polyState)
-    {
-    case 1:
-        hw.SetGreenDirectLeds(GREEN_D_LED_4,1);
-        hw.SetGreenDirectLeds(GREEN_D_LED_3,0);
-        break;
-    case 2:
-        hw.SetGreenDirectLeds(GREEN_D_LED_4,0);
-        hw.SetGreenDirectLeds(GREEN_D_LED_3,1);
-        break;
-    case 3:
-        hw.SetGreenDirectLeds(GREEN_D_LED_4,1);
-        hw.SetGreenDirectLeds(GREEN_D_LED_3,1);
-        break;
-    default:
-        hw.SetGreenDirectLeds(GREEN_D_LED_4,0);
-        hw.SetGreenDirectLeds(GREEN_D_LED_3,0);
-        break;
-    }
-
-    hw.SetRGBColor(RGB_LED_1,(Colors)eggFxState);
-    hw.SetRGBColor(RGB_LED_4,(Colors)modelState);
-
-    if(saveState) {
-            hw.SetRGBColor(RGB_LED_1,RED);
-            hw.SetRGBColor(RGB_LED_2,RED);
-            hw.SetRGBColor(RGB_LED_3,RED);
-            hw.SetRGBColor(RGB_LED_4,RED);
-    } 
+    
     hw.UpdateLeds();
     
 }
@@ -404,3 +678,5 @@ void WhiteToFlash(TorusSetting *rs)
     rs->Model = modelState;
     rs->flashloaded = true;
 }
+
+

@@ -152,15 +152,16 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   
   // float note = calibration_data_->pitch_offset;
   // note += adc_lp_[ADC_CHANNEL_CV_V_OCT] * calibration_data_->pitch_scale;
+
   
-  performance_state->note = adc_lp_[ADC_CHANNEL_CV_V_OCT] * 60.0f;
+  //performance_state->note = adc_lp_[ADC_CHANNEL_CV_V_OCT] * 60.0f;
   performance_state->tonic = 12.0f + transpose_;
     
   // Strumming / internal exciter triggering logic.    
 
   if (performance_state->internal_note) {
     // Remove quantization when nothing is plugged in the V/OCT input.
-    performance_state->note = 0.0f;
+    //performance_state->note = 0.0f;
     performance_state->tonic = 12.0f + transpose;
   }
   
