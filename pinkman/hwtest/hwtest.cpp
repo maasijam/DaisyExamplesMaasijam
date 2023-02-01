@@ -5,6 +5,9 @@
 #include "settings.h"
 #include "ui.h"
 
+#define TEST_FILE_NAME "test.txt"
+
+
 enum Switches {
   S_1,
   S_2,
@@ -32,6 +35,10 @@ Ui ui;
 Switch s[S_LAST];
 Switch toggle;
 Led led[LED_LAST];
+
+SdmmcHandler   sd;
+FatFSInterface fsi;
+FIL            SDFile;
 
 static Oscillator osc;
 Parameter  freqctrl, wavectrl, ampctrl, finectrl;
@@ -171,8 +178,66 @@ int main(void)
     }
 
     toggle.Init(hw.A3);
-    
 
+    char   outbuff[512];
+    char   inbuff[512];
+    size_t len, failcnt, byteswritten;
+    sprintf(outbuff, "Daisy...Testing...\n1...\n2...\n3...\n");
+    memset(inbuff, 0, 512);
+    len     = strlen(outbuff);
+    failcnt = 0;
+
+    // Init SD Card
+    SdmmcHandler::Config sd_cfg;
+    sd_cfg.Defaults();
+    sd_cfg.speed = SdmmcHandler::Speed::SLOW;
+    sd.Init(sd_cfg);
+
+    // Links libdaisy i/o to fatfs driver.
+    fsi.Init(FatFSInterface::Config::MEDIA_SD);
+
+    // Mount SD Card
+    f_mount(&fsi.GetSDFileSystem(), "/", 1);
+
+    // Open and write the test file to the SD Card.
+    if(f_open(&SDFile, TEST_FILE_NAME, (FA_CREATE_ALWAYS) | (FA_WRITE))
+       == FR_OK)
+    {
+        f_write(&SDFile, outbuff, len, &byteswritten);
+        f_close(&SDFile);
+    }
+
+    // Read back the test file from the SD Card.
+    if(f_open(&SDFile, TEST_FILE_NAME, FA_READ) == FR_OK)
+    {
+        f_read(&SDFile, inbuff, len, &byteswritten);
+        f_close(&SDFile);
+    }
+
+    // Check for sameness.
+    for(size_t i = 0; i < len; i++)
+    {
+        if(inbuff[i] != outbuff[i])
+        {
+            failcnt++;
+        }
+    }
+    // If what was read does not match
+    // what was written execution will stop.
+    if(failcnt)
+    {
+       led[LED_2].Set(0.f);
+        led[LED_2].Update();
+    } else {
+        led[LED_2].Set(1.f);
+        led[LED_2].Update();
+    }
+
+    
+        
+
+    /** 5 second delay before starting streaming test. */
+    System::Delay(2000);
     
     //hw.StartAdc();
 	hw.StartAudio(audio_callback);
@@ -212,8 +277,8 @@ void Update_Digital() {
     toggle.Debounce();
    
 
-    led[LED_2].Set(s[S_1].Pressed() ? 1.f : 0.f);
-    led[LED_2].Update();
+    //led[LED_2].Set(s[S_1].Pressed() ? 1.f : 0.f);
+    //led[LED_2].Update();
 
     led[LED_3].Set(s[S_2].Pressed() ? 1.f : 0.f);
     led[LED_3].Update();
