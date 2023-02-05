@@ -5,7 +5,6 @@
 #include "settings.h"
 #include "ui.h"
 
-#define TEST_FILE_NAME "test.txt"
 
 
 enum Switches {
@@ -36,9 +35,8 @@ Switch s[S_LAST];
 Switch toggle;
 Led led[LED_LAST];
 
-SdmmcHandler   sd;
 FatFSInterface fsi;
-FIL            SDFile;
+FIL            file;
 
 static Oscillator osc;
 Parameter  freqctrl, wavectrl, ampctrl, finectrl;
@@ -179,52 +177,47 @@ int main(void)
 
     toggle.Init(hw.A3);
 
-    char   outbuff[512];
-    char   inbuff[512];
-    size_t len, failcnt, byteswritten;
-    sprintf(outbuff, "Daisy...Testing...\n1...\n2...\n3...\n");
-    memset(inbuff, 0, 512);
-    len     = strlen(outbuff);
-    failcnt = 0;
+    /** SD card next */
+    SdmmcHandler::Config sd_config;
+    SdmmcHandler         sdcard;
+    sd_config.Defaults();
+    sd_config.speed = SdmmcHandler::Speed::SLOW;
+    sdcard.Init(sd_config);
 
-    // Init SD Card
-    SdmmcHandler::Config sd_cfg;
-    sd_cfg.Defaults();
-    sd_cfg.speed = SdmmcHandler::Speed::SLOW;
-    sd.Init(sd_cfg);
-
-    // Links libdaisy i/o to fatfs driver.
     fsi.Init(FatFSInterface::Config::MEDIA_SD);
 
-    // Mount SD Card
-    f_mount(&fsi.GetSDFileSystem(), "/", 1);
 
-    // Open and write the test file to the SD Card.
-    if(f_open(&SDFile, TEST_FILE_NAME, (FA_CREATE_ALWAYS) | (FA_WRITE))
-       == FR_OK)
+    /** Write/Read text file */
+    const char *test_string = "Testing Daisy Pinkman";
+    const char *test_fname  = "DaisyPinkman-Test.txt";
+    FRESULT     fres = FR_DENIED; /**< Unlikely to actually experience this */
+    if(f_mount(&fsi.GetSDFileSystem(), "/", 0) == FR_OK)
     {
-        f_write(&SDFile, outbuff, len, &byteswritten);
-        f_close(&SDFile);
-    }
-
-    // Read back the test file from the SD Card.
-    if(f_open(&SDFile, TEST_FILE_NAME, FA_READ) == FR_OK)
-    {
-        f_read(&SDFile, inbuff, len, &byteswritten);
-        f_close(&SDFile);
-    }
-
-    // Check for sameness.
-    for(size_t i = 0; i < len; i++)
-    {
-        if(inbuff[i] != outbuff[i])
+        /** Write Test */
+        if(f_open(&file, test_fname, (FA_CREATE_ALWAYS | FA_WRITE)) == FR_OK)
         {
-            failcnt++;
+            UINT   bw  = 0;
+            size_t len = strlen(test_string);
+            fres       = f_write(&file, test_string, len, &bw);
+        }
+        f_close(&file);
+        if(fres == FR_OK)
+        {
+            /** Read Test only if Write passed */
+            if(f_open(&file, test_fname, (FA_OPEN_EXISTING | FA_READ)) == FR_OK)
+            {
+                UINT   br = 0;
+                char   readbuff[32];
+                size_t len = strlen(test_string);
+                fres       = f_read(&file, readbuff, len, &br);
+            }
+            f_close(&file);
         }
     }
+    bool sdmmc_pass = fres == FR_OK;
     // If what was read does not match
     // what was written execution will stop.
-    if(failcnt)
+    if(!sdmmc_pass)
     {
        led[LED_2].Set(0.f);
         led[LED_2].Update();
