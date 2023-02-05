@@ -81,6 +81,8 @@ class DaisyVertigo
     */
     void StartAudio(AudioHandle::AudioCallback cb);
 
+ 
+
     /**
        Switch callback functions
        \param cb New interleaved callback function.
