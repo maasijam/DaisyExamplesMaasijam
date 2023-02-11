@@ -26,6 +26,19 @@ namespace pinkman
     static constexpr dsy_gpio_pin PIN_MUX_B = {DSY_GPIOB, 4};
     static constexpr dsy_gpio_pin PIN_MUX_C = {DSY_GPIOB, 15};
 
+    static constexpr dsy_gpio_pin BTN_TOP = {DSY_GPIOD, 3};
+    static constexpr dsy_gpio_pin BTN_BIG = {DSY_GPIOB, 8};
+    static constexpr dsy_gpio_pin BTN_RED = {DSY_GPIOB, 9};
+
+    static constexpr dsy_gpio_pin SW_TOGGLE = {DSY_GPIOA, 0};
+
+    static constexpr dsy_gpio_pin LED1 = {DSY_GPIOA, 4};
+    static constexpr dsy_gpio_pin LED2 = {DSY_GPIOC, 2};
+    static constexpr dsy_gpio_pin LED3 = {DSY_GPIOC, 3};
+    static constexpr dsy_gpio_pin LED4 = {DSY_GPIOC, 14};
+    static constexpr dsy_gpio_pin LED5 = {DSY_GPIOC, 13};
+
+    
 
     const dsy_gpio_pin kPinMap[4][10] = {
         /** Header Bank A */
@@ -294,47 +307,105 @@ namespace pinkman
         audio.Init(audio_config, sai_1_handle);
         callback_rate_ = AudioSampleRate() / AudioBlockSize();
 
-        /** ADC Init */
-        AdcChannelConfig adc_config[5];
-        /** Order of pins to match enum expectations */
-        dsy_gpio_pin adc_pins[] = {
-            PIN_ADC_CTRL_1,
-            PIN_ADC_CTRL_2,
-            PIN_ADC_CTRL_3,
-            PIN_ADC_CTRL_4,
-            PIN_ADC_CTRL_9
-        };
+        #ifdef PINKMAN_EXP
+            /** ADC Init */
+            AdcChannelConfig adc_config[9];
+            /** Order of pins to match enum expectations */
+            dsy_gpio_pin adc_pins[] = {
+                PIN_ADC_CTRL_1,
+                PIN_ADC_CTRL_2,
+                PIN_ADC_CTRL_3,
+                PIN_ADC_CTRL_4,
+                PIN_ADC_CTRL_5,
+                PIN_ADC_CTRL_6,
+                PIN_ADC_CTRL_7,
+                PIN_ADC_CTRL_8,
+                PIN_ADC_CTRL_9
+            };
 
-        for(int i = 0; i < 5; i++)
-        {
-            
-            if(i == 4) {
-                adc_config[i].InitMux(PIN_ADC_KNOB_MUX,
-                             8,
-                             PIN_MUX_A,
-                             PIN_MUX_B,
-                             PIN_MUX_C);
-            } else {
-                adc_config[i].InitSingle(adc_pins[i]);
+            for(int i = 0; i < 9; i++)
+            {
+                
+                if(i == 8) {
+                    adc_config[i].InitMux(PIN_ADC_KNOB_MUX,
+                                8,
+                                PIN_MUX_A,
+                                PIN_MUX_B,
+                                PIN_MUX_C);
+                } else {
+                    adc_config[i].InitSingle(adc_pins[i]);
+                }
+                
             }
-            
-        }
-        adc.Init(adc_config, 5);
-        /** Control Init */
-        for(size_t i = 0; i < ADC_LAST; i++)
+            adc.Init(adc_config, 9);
+            int hw_pot_order[ADC_LAST-POT_1] = {POT_1-POT_1,POT_6-POT_1,POT_5-POT_1,POT_2-POT_1,POT_8-POT_1,POT_3-POT_1,POT_4-POT_1,POT_7-POT_1};
+            /** Control Init */
+            for(size_t i = 0; i < ADC_LAST; i++)
+            {
+                if(i < POT_1)
+                    controls[i].InitBipolarCv(adc.GetPtr(i), callback_rate_);
+                else
+                    //controls[i].Init(adc.GetPtr(i), callback_rate_);
+                    controls[i].Init(adc.GetMuxPtr(8, hw_pot_order[i-POT_1]), callback_rate_); 
+            }
+        #else
+
+            /** ADC Init */
+            AdcChannelConfig adc_config[5];
+            /** Order of pins to match enum expectations */
+            dsy_gpio_pin adc_pins[] = {
+                PIN_ADC_CTRL_1,
+                PIN_ADC_CTRL_2,
+                PIN_ADC_CTRL_3,
+                PIN_ADC_CTRL_4,
+                PIN_ADC_CTRL_9
+            };
+
+            for(int i = 0; i < 5; i++)
+            {
+                
+                if(i == 4) {
+                    adc_config[i].InitMux(PIN_ADC_KNOB_MUX,
+                                8,
+                                PIN_MUX_A,
+                                PIN_MUX_B,
+                                PIN_MUX_C);
+                } else {
+                    adc_config[i].InitSingle(adc_pins[i]);
+                }
+                
+            }
+            adc.Init(adc_config, 5);
+            int hw_pot_order[ADC_LAST-POT_1] = {POT_1-POT_1,POT_6-POT_1,POT_5-POT_1,POT_2-POT_1,POT_8-POT_1,POT_3-POT_1,POT_4-POT_1,POT_7-POT_1};
+            /** Control Init */
+            for(size_t i = 0; i < ADC_LAST; i++)
+            {
+                if(i < POT_1)
+                    controls[i].InitBipolarCv(adc.GetPtr(i), callback_rate_);
+                else
+                    //controls[i].Init(adc.GetPtr(i), callback_rate_);
+                    controls[i].Init(adc.GetMuxPtr(4, hw_pot_order[i-POT_1]), callback_rate_); 
+            }
+
+        #endif  // PINKMAN_EXP
+
+        dsy_gpio_pin s_pins[S_LAST] = {BTN_BIG,BTN_RED,BTN_TOP};
+        for (size_t i = 0; i < S_LAST; i++)
         {
-            if(i < POT_1)
-                controls[i].InitBipolarCv(adc.GetPtr(i), callback_rate_);
-            else
-                //controls[i].Init(adc.GetPtr(i), callback_rate_);
-                controls[i].Init(adc.GetMuxPtr(4, i-POT_1), callback_rate_); 
+            s[i].Init(s_pins[i]);
         }
 
-        /** Fixed-function Digital I/O */
-        user_led.mode = DSY_GPIO_MODE_OUTPUT_PP;
-        user_led.pull = DSY_GPIO_NOPULL;
-        user_led.pin  = PIN_USER_LED;
-        dsy_gpio_init(&user_led);
+
+        //dsy_gpio_pin led_pins[LED_LAST] = {LED1,LED2,LED3,LED4,LED5};
+        //for (size_t i = 0; i < LED_LAST; i++)
+        //{
+        led2.Init(LED2,false);
+        led3.Init(LED3,false);
+        //}
+
+        toggle.Init(SW_TOGGLE);
+
+        
         //gate_in_1.Init((dsy_gpio_pin *)&DaisyPatchSM::B10);
         gate_in_1.Init((dsy_gpio_pin *)&B10);
         gate_in_2.Init((dsy_gpio_pin *)&B9);
@@ -474,7 +545,33 @@ namespace pinkman
         pimpl_->WriteCvOut(channel, voltage);
     }
 
-    void DaisyPinkman::SetLed(bool state) { dsy_gpio_write(&user_led, state); }
+    void DaisyPinkman::SetLed(Leds idx,bool state) { 
+        
+        switch (idx)
+        {
+        case LED_1:
+            WriteCvOut(CV_OUT_1,state ? 5.f : 0.f);
+            break;
+        case LED_2:
+            led2.Set(state ? 1.f : 0.f);
+            break;
+        case LED_3:
+            led3.Set(state ? 1.f : 0.f);
+            break;
+        case LED_4:
+            dsy_gpio_write(&gate_out_1, state);
+            break;
+        case LED_5:
+            dsy_gpio_write(&gate_out_2, state);
+            break;
+        }
+        
+    }
+
+    void DaisyPinkman::UpdateLeds() {
+        led2.Update();
+        led3.Update();
+    } 
 
     bool DaisyPinkman::ValidateSDRAM()
     {
@@ -543,6 +640,24 @@ namespace pinkman
             if(testmem[i] != (uint8_t)(i & 0xff))
                 fail_cnt++;
         return fail_cnt == 0;
+    }
+
+    float DaisyPinkman::CVKnobCombo(float CV_Val,float Pot_Val)
+    {
+        float output{};
+        output = CV_Val + Pot_Val;
+
+        if(output < 0.0f)
+        {
+            output = 0.0f;
+        }
+
+        if(output > 1.0f)
+        {
+            output = 1.0f;
+        }
+
+        return output;
     }
 
 } // namespace pinkman

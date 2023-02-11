@@ -10,7 +10,7 @@ TARGET = Grainwaves
 APP_TYPE = BOOT_NONE
 
 # Sources
-CPP_SOURCES = Grainwaves.cpp ../daisy_pinkman.cpp
+CPP_SOURCES = Grainwaves.cpp ../daisy_pinkman.cpp oled/Daisy_SSD1327.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy

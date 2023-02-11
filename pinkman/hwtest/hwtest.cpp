@@ -7,21 +7,7 @@
 
 
 
-enum Switches {
-  S_1,
-  S_2,
-  S_3,
-  S_LAST
-};
 
-enum Leds {
-  LED_1,
-  LED_2,
-  LED_3,
-  LED_4,
-  LED_5,
-  LED_LAST
-};
 
 
 using namespace daisy;
@@ -31,15 +17,15 @@ using namespace pinkman;
 DaisyPinkman hw;
 Settings settings;
 Ui ui;
-Switch s[S_LAST];
-Switch toggle;
-Led led[LED_LAST];
+
 
 FatFSInterface fsi;
 FIL            file;
 
 static Oscillator osc;
-Parameter  freqctrl, wavectrl, ampctrl, finectrl;
+Svf        svf;
+
+
 
 void Update_Digital();
 void Start_Led_Ani();
@@ -80,7 +66,7 @@ struct lfoStruct
 
         //write to the DAC
         
-        hw.WriteCvOut(chn,(osc_lfo.Process() + 1.f) * .5f * levelCtrl.Process());
+        hw.WriteCvOut(chn,(osc_lfo.Process() + 1.f) * levelCtrl.Process() * 5.f);
     }
 };
 
@@ -97,17 +83,36 @@ void audio_callback(AudioHandle::InputBuffer  in,
 {
 	//ui.Poll();
     hw.ProcessAllControls();
+    int   num_waves = Oscillator::WAVE_LAST - 1;
+
+    float cutoff_ = fmap(hw.CVKnobCombo(hw.controls[CV_5].Value(),hw.controls[POT_5].Value()), 20.f, 20000.f,Mapping::LOG);
+    float freqctrl_ = fmap(hw.CVKnobCombo(hw.controls[CV_1].Value(),hw.controls[POT_1].Value()), 10.f, 110.f,Mapping::LINEAR);
+    float finectrl_ = fmap(hw.CVKnobCombo(hw.controls[CV_2].Value(),hw.controls[POT_2].Value()), 0.f, 7.f,Mapping::LINEAR);
+    int wavectrl_ =  fmap(hw.CVKnobCombo(hw.controls[CV_3].Value(),hw.controls[POT_3].Value()), 0.f, num_waves,Mapping::LINEAR);
+    float ampctrl_ = fmap(hw.CVKnobCombo(hw.controls[CV_4].Value(),hw.controls[POT_4].Value()), 0.f, 0.5f,Mapping::LINEAR);
+    float res_ = fmap(hw.CVKnobCombo(hw.controls[CV_6].Value(),hw.controls[POT_6].Value()), .3f, 1.f,Mapping::LINEAR);
+    //float drive_ =  fmap(hw.CVKnobCombo(hw.controls[CV_7].Value(),hw.controls[POT_7].Value()), .3f, 1.f,Mapping::LINEAR);
+    float drive_ = 0.5f;
     
     
     
     float sig, freq, amp;
     size_t wave;
+
+    //float cutoff_ = cutoff.Process();
+    //float res_    = res.Process();
+    //float drive_  = drive.Process();
+    
+
+    svf.SetFreq(cutoff_);
+    svf.SetRes(res_);
+    svf.SetDrive(drive_);
     
     for(size_t i = 0; i < size; i++)
     {
-        freq = mtof(freqctrl.Process() + finectrl.Process());
-        wave = wavectrl.Process();
-        amp  = ampctrl.Process();
+        freq = mtof(freqctrl_ + finectrl_);
+        wave = wavectrl_;
+        amp  = ampctrl_;
 
         osc.SetFreq(freq);
         osc.SetWaveform(wave);
@@ -115,11 +120,13 @@ void audio_callback(AudioHandle::InputBuffer  in,
         
         sig = osc.Process();
 
-        // left out
-        out[0][i] = sig;
-        out[1][i] = sig;
+        svf.Process(sig);
 
-        lfo.Process(CV_OUT_1);
+        // left out
+        out[0][i] = svf.Low();
+        out[1][i] = svf.Low();
+
+        lfo.Process(CV_OUT_2);
 
         
 
@@ -141,13 +148,14 @@ int main(void)
     LoadState();
 
     float samplerate = hw.AudioSampleRate();
-    int   num_waves = Oscillator::WAVE_LAST - 1;
+    
             	
     
     
     Start_Led_Ani();
 
     osc.Init(samplerate);
+    svf.Init(samplerate);
 
 
     // Set parameters for oscillator
@@ -157,25 +165,7 @@ int main(void)
 
     lfo.Init(samplerate, hw.controls[POT_7], hw.controls[POT_8]);
 
-    freqctrl.Init(hw.controls[POT_1], 10.0, 110.0f, Parameter::LINEAR);
-    finectrl.Init(hw.controls[POT_2], 0.f, 7.f, Parameter::LINEAR);
-    wavectrl.Init(hw.controls[POT_3], 0.0, num_waves, Parameter::LINEAR);
-    ampctrl.Init(hw.controls[POT_4], 0.0, 0.5f, Parameter::LINEAR);
-
-    dsy_gpio_pin s_pins[S_LAST] = {hw.B7,hw.B8,hw.D10};
-    for (size_t i = 0; i < S_LAST; i++)
-    {
-        s[i].Init(s_pins[i]);
-    }
-
-
-    dsy_gpio_pin led_pins[LED_LAST] = {hw.C10,hw.D8,hw.D9,hw.B5,hw.B6};
-    for (size_t i = 0; i < LED_LAST; i++)
-    {
-        led[i].Init(led_pins[i],false);
-    }
-
-    toggle.Init(hw.A3);
+     
 
     /** SD card next */
     SdmmcHandler::Config sd_config;
@@ -219,18 +209,18 @@ int main(void)
     // what was written execution will stop.
     if(!sdmmc_pass)
     {
-       led[LED_2].Set(0.f);
-        led[LED_2].Update();
+       //hw.led[LED_2].Set(0.f);
+       // hw.led[LED_2].Update();
     } else {
-        led[LED_2].Set(1.f);
-        led[LED_2].Update();
+       // hw.led[LED_2].Set(1.f);
+       // hw.led[LED_2].Update();
     }
 
     
         
 
     /** 5 second delay before starting streaming test. */
-    System::Delay(2000);
+    System::Delay(1000);
     
     //hw.StartAdc();
 	hw.StartAudio(audio_callback);
@@ -265,41 +255,21 @@ void Update_Digital() {
 
     for (size_t i = 0; i < S_LAST; i++)
     {
-        s[i].Debounce();
+        hw.s[i].Debounce();
     }
-    toggle.Debounce();
+    hw.toggle.Debounce();
    
 
     //led[LED_2].Set(s[S_1].Pressed() ? 1.f : 0.f);
     //led[LED_2].Update();
-
-    led[LED_3].Set(s[S_2].Pressed() ? 1.f : 0.f);
-    led[LED_3].Update();
-
-    if(s[S_3].Pressed()){
-        dsy_gpio_write(&hw.gate_out_1, true);
-        //led[LED_4].Set(1.f);
-        //led[LED_4].Update();
-    } else {
-        dsy_gpio_write(&hw.gate_out_1, false);
-        //led[LED_4].Set(s[S_3].Pressed() ? 1.f : 0.f);
-        //led[LED_4].Update();
-    }
-
-    if(toggle.Pressed()){
-        dsy_gpio_write(&hw.gate_out_2, true);
-        //led[LED_4].Set(1.f);
-        //led[LED_4].Update();
-        hw.WriteCvOut(CV_OUT_1,0.f);
-    } else {
-        dsy_gpio_write(&hw.gate_out_2, false);
-        //led[LED_4].Set(s[S_3].Pressed() ? 1.f : 0.f);
-        //led[LED_4].Update();
-        hw.WriteCvOut(CV_OUT_1,5.f);
-    }
-
+    hw.SetLed(LED_1,hw.s[S_BIG].Pressed());
+    hw.SetLed(LED_2,hw.s[S_TOP].Pressed());
+    hw.SetLed(LED_3,hw.s[S_RED].Pressed());
+    hw.SetLed(LED_4,hw.toggle.Pressed());
+    hw.SetLed(LED_5,!hw.toggle.Pressed());
     
     
+    hw.UpdateLeds();
     
     
 }

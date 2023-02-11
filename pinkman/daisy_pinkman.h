@@ -2,6 +2,8 @@
 
 #include "daisy.h"
 
+#define PINKMAN_EXP 1
+
 namespace daisy
 {
 namespace pinkman
@@ -15,22 +17,45 @@ namespace pinkman
      * 
      *  patch.GetAdcValue(patch_sm::CV_1);
      */
-    enum
-    {
-        CV_1 = 0,
-        CV_2,
-        CV_3,
-        CV_4,
-        POT_1,
-        POT_2,
-        POT_3,
-        POT_4,
-        POT_5,
-        POT_6,
-        POT_7,
-        POT_8,
-        ADC_LAST,
+    #ifdef PINKMAN_EXP
+        enum
+        {
+            CV_1 = 0,
+            CV_2,
+            CV_3,
+            CV_4,
+            CV_5,
+            CV_6,
+            CV_7,
+            CV_8,
+            POT_1,
+            POT_2,
+            POT_3,
+            POT_4,
+            POT_5,
+            POT_6,
+            POT_7,
+            POT_8,
+            ADC_LAST,
+        };
+    #else
+        enum
+        {
+            CV_1 = 0,
+            CV_2,
+            CV_3,
+            CV_4,
+            POT_1,
+            POT_2,
+            POT_3,
+            POT_4,
+            POT_5,
+            POT_6,
+            POT_7,
+            POT_8,
+            ADC_LAST,
     };
+    #endif  // PINKMAN_EXP
 
     /** Enum for addressing the CV Outputs via the WriteCvOut function. */
     enum
@@ -38,6 +63,22 @@ namespace pinkman
         CV_OUT_BOTH = 0,
         CV_OUT_1,
         CV_OUT_2,
+    };
+
+    enum Switches {
+        S_BIG,
+        S_RED,
+        S_TOP,
+        S_LAST
+    };
+
+    enum Leds {
+        LED_1,
+        LED_2,
+        LED_3,
+        LED_4,
+        LED_5,
+        LED_LAST
     };
 
 
@@ -188,7 +229,8 @@ namespace pinkman
             return Random::GetFloat(min, max);
         }
 
-        void SetLed(bool state);
+        void SetLed(Leds idx,bool state);
+        void UpdateLeds();
 
         /** Print formatted debug log message
          */
@@ -239,6 +281,8 @@ namespace pinkman
          */
         bool ValidateQSPI(bool quick = true);
 
+        float CVKnobCombo(float CV_Val,float Pot_Val);
+
         /** Direct Access Structs/Classes */
         System      system;
         SdramHandle sdram;
@@ -248,9 +292,11 @@ namespace pinkman
         UsbHandle   usb;
         Pcm3060     codec;
         DacHandle   dac;
+        Switch s[S_LAST];
+        Switch toggle;
+        Led led2,led3;
 
         /** Dedicated Function Pins */
-        dsy_gpio      user_led;
         AnalogControl controls[ADC_LAST];
         GateIn        gate_in_1, gate_in_2;
         dsy_gpio      gate_out_1, gate_out_2;
