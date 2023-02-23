@@ -55,8 +55,8 @@ size_t	    wav_start_pos[MAX_WAVES];
 static PagedParam pitch_p, rate_p, crush_p, downsample_p, grain_duration_p, \
 		  grain_density_p, scatter_dist_p, pitch_dist_p, sample_start_p, sample_end_p;
 
-#define NUM_PAGES 6
-int8_t cur_page = 0;
+//#define NUM_PAGES 6
+//int8_t cur_page = 0;
 int8_t cur_wave = 0;
 
 float sr;
@@ -117,7 +117,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
   float sample, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10;
 
   // It should be possible to move the param handling to the main loop instead of the audio callback
-  hw.ProcessDigitalControls();
+  hw.ProcessAllControls();
   UpdateButtons();
  
 
