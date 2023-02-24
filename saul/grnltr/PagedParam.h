@@ -38,7 +38,14 @@ class PagedParam
 
     float Process(float in)
     {
-      cur_val_ = in;
+      if (locked_) {
+          if (abs(in - cur_val_) < thresh_) {
+    	      locked_ = false;
+    	      cur_val_ = in;
+          }
+      } else {
+        cur_val_ = in;
+      }
           
       return fminf(max_, fmaxf(min_, (min_ + cur_val_ * range_)));
     }

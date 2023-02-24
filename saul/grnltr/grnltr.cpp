@@ -33,7 +33,7 @@ float rexpo_env[GRAIN_ENV_SIZE];
 float *grain_envs[] = {rect_env, gauss_env, hamming_env, hann_env, expo_env, rexpo_env};
 size_t cur_grain_env = 2; 
 
-#define MAX_WAVES 16
+#define MAX_WAVES 6
 
 /**< Maximum LFN (set to same in FatFs (ffconf.h) */
 #define WAV_FILENAME_MAX 256 
@@ -59,6 +59,11 @@ static PagedParam pitch_p, rate_p, crush_p, downsample_p, grain_duration_p, \
 //int8_t cur_page = 0;
 int8_t cur_wave = 0;
 
+bool scatter_led = false;
+bool freeze_led = false;
+bool grainrev_led = false;
+bool scanrev_led = false;
+
 float sr;
 
 
@@ -68,7 +73,7 @@ FIL            SDFile;
 
 
 
-void UpdateButtons()
+void UpdateDigital()
 {
   
       if(hw.s[S_2].RisingEdge()) {
@@ -78,25 +83,45 @@ void UpdateButtons()
 	      }
 	      grnltr.ChangeEnv(grain_envs[cur_grain_env]);
       }
+      hw.SetRGBLed(2,cur_grain_env);
+
       if(hw.s[S_6].RisingEdge()) {
 	      pitch_p.lock(1.0);
   	    rate_p.lock(1.0);
       }
+      if(hw.s[S_6].Pressed()) {
+        hw.SetRGBLed(1,RED);
+      } else {
+        hw.SetRGBLed(1,OFF);
+      }
       
       if(hw.s[S_4].RisingEdge()) {
 	      grnltr.ToggleGrainReverse();
+        grainrev_led = !grainrev_led;
       }
+      hw.SetLed(LED_6,!grainrev_led);
+
       if(hw.s[S_5].RisingEdge()) {
 	      grnltr.ToggleScanReverse();
+        scanrev_led = !scanrev_led;
       }
+
+      hw.SetLed(LED_7,!scanrev_led);
       
       if(hw.s[S_0].RisingEdge()) {
 	      grnltr.ToggleScatter();
+        scatter_led = !scatter_led;
       }
+      hw.SetLed(LED_0,!scatter_led);
+
       if(hw.s[S_1].RisingEdge()) {
 	      grnltr.ToggleFreeze();
+        freeze_led = !freeze_led;
       }
+      hw.SetLed(LED_1,!freeze_led);
+
       grnltr.ToggleRandomPitch((hw.sw[SW_1].Read() == 1 ? true : false));
+      hw.SetLed(LED_4,(hw.sw[SW_1].Read() == 1 ? false : true));
       
       if(hw.s[S_3].RisingEdge()) {
 	      cur_wave++;
@@ -107,7 +132,11 @@ void UpdateButtons()
 	        wav_file_names[cur_wave].raw_data.SubCHunk2Size / sizeof(int16_t));
     	  grnltr.Dispatch(0);
       }
+      hw.SetRGBLed(3,cur_wave);
+
+
       grnltr.ToggleSampleLoop((hw.sw[SW_0].Read() == 1 ? true : false));
+      hw.SetLed(LED_2,(hw.sw[SW_0].Read() == 1 ? false : true));
       
   
 }
@@ -118,7 +147,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 
   // It should be possible to move the param handling to the main loop instead of the audio callback
   hw.ProcessAllControls();
-  UpdateButtons();
+  UpdateDigital();
  
 
   p1 = pot1.Process();
@@ -269,16 +298,18 @@ int main(void)
         GRAIN_ENV_SIZE);
     grnltr.Dispatch(0);
 
-    pot1.Init(hw.knob[KNOB_0], 0.0f, 1.0f, Parameter::LINEAR);
+    hw.SetRGBLed(4,OFF);
+
+    pot1.Init(hw.knob[KNOB_8], 0.0f, 1.0f, Parameter::LINEAR);
     pot2.Init(hw.knob[KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
-    pot3.Init(hw.knob[KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
-    pot4.Init(hw.knob[KNOB_3], 0.0f, 1.0f, Parameter::LINEAR);
+    pot3.Init(hw.knob[KNOB_9], 0.0f, 1.0f, Parameter::LINEAR);
+    pot4.Init(hw.knob[KNOB_10], 0.0f, 1.0f, Parameter::LINEAR);
     pot5.Init(hw.knob[KNOB_4], 0.0f, 1.0f, Parameter::LINEAR);
     pot6.Init(hw.knob[KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
     pot7.Init(hw.knob[KNOB_6], 0.0f, 1.0f, Parameter::LINEAR);
     pot8.Init(hw.knob[KNOB_7], 0.0f, 1.0f, Parameter::LINEAR);
-    pot9.Init(hw.knob[KNOB_8], 0.0f, 1.0f, Parameter::LINEAR);
-    pot10.Init(hw.knob[KNOB_9], 0.0f, 1.0f, Parameter::LINEAR);
+    pot9.Init(hw.knob[KNOB_0], 0.0f, 1.0f, Parameter::LINEAR);
+    pot10.Init(hw.knob[KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
 
     pitch_p.Init(           DEFAULT_GRAIN_PITCH,	  0.25f,  4.0f,	PARAM_THRESH);
     rate_p.Init(            DEFAULT_SCAN_RATE,        0.25f,  4.0f, PARAM_THRESH);
