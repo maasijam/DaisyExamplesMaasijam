@@ -2,6 +2,7 @@
 //
 // Check UpdateEncoder function for controls
 //
+//
 #include <stdio.h>
 #include <string.h>
 #include "../daisy_saul.h"
@@ -12,13 +13,23 @@
 #include "PagedParam.h"
 #include "windows.h"
 #include "granulator.h"
+#include "dsp/ShimmerReverb.h"
 
 using namespace daisy;
 using namespace daisysp;
 using namespace saul;
 
 static Granulator grnltr;
-static Decimator crush;
+//static Decimator crush;
+ShimmerReverb  shimrev;
+#define LOOPER_MAX_SIZE (48000 * 30 * 1) // 1 minutes stereo of floats at 48 khz
+
+float DSY_SDRAM_BSS mlooper_buf_1l[LOOPER_MAX_SIZE];
+float DSY_SDRAM_BSS mlooper_buf_1r[LOOPER_MAX_SIZE];
+
+float DSY_SDRAM_BSS mlooper_frozen_buf_1l[LOOPER_MAX_SIZE];
+
+
 static DaisySaul hw;
 static Parameter pot1, pot2, pot3, pot4, pot5, pot6, pot7, pot8, pot9, pot10;
 
@@ -39,7 +50,7 @@ size_t cur_grain_env = 2;
 #define WAV_FILENAME_MAX 256 
 
 // 64 MB of memory - how many 16bit samples can we fit in there?
-static int16_t DSY_SDRAM_BSS sm[(64 * 1024 * 1024) / sizeof(int16_t)];
+static int16_t DSY_SDRAM_BSS sm[(32 * 1024 * 1024) / sizeof(int16_t)];
 size_t sm_size = sizeof(sm);
 size_t cur_sm_bytes = 0;
 
@@ -143,7 +154,7 @@ void UpdateDigital()
 
 void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
-  float sample, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10;
+  float sample, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, out1, out2;
 
   // It should be possible to move the param handling to the main loop instead of the audio callback
   hw.ProcessAllControls();
@@ -169,16 +180,21 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
   grnltr.SetPitchDist(pitch_dist_p.Process(p6));
   grnltr.SetSampleStart(sample_start_p.Process(p7));
   grnltr.SetSampleEnd(sample_end_p.Process(p8));
-  crush.SetBitcrushFactor(crush_p.Process(p9));
-  crush.SetDownsampleFactor(downsample_p.Process(p10));
+  shimrev.SetDryWet(p9);
+  shimrev.SetFdbk(p10);
 
   //audio
   for(size_t i = 0; i < size; i++)
   {
+    out1 = 0.f;
+    out2 = 0.f;
+    
     sample = grnltr.Process();
-    sample = crush.Process(sample);
-    out[0][i] = sample;
-    out[1][i] = sample;
+    //sample = crush.Process(sample);
+    shimrev.Process(out1, out2, sample, sample);
+
+    out[0][i] = out1;
+    out[1][i] = out2;
   }
 }
 
@@ -256,7 +272,7 @@ int main(void)
     expodec_window(expo_env, rexpo_env, GRAIN_ENV_SIZE, TAU);
 
     // Init hardware
-    hw.Init();
+    hw.Init(true);
     sr = hw.AudioSampleRate();
 
     hw.SetRGBLed(4,RED);
@@ -300,6 +316,11 @@ int main(void)
 
     hw.SetRGBLed(4,OFF);
 
+    shimrev.Init(mlooper_buf_1l,mlooper_buf_1r,mlooper_frozen_buf_1l,sr);
+    shimrev.SetCompression(0.5f);
+    shimrev.SetShimmer(0.75f);
+    shimrev.SetTone(0.6f);
+
     pot1.Init(hw.knob[KNOB_8], 0.0f, 1.0f, Parameter::LINEAR);
     pot2.Init(hw.knob[KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
     pot3.Init(hw.knob[KNOB_9], 0.0f, 1.0f, Parameter::LINEAR);
@@ -322,8 +343,8 @@ int main(void)
     crush_p.Init(           0.0f,                     0.0f,   1.0f, PARAM_THRESH);
     downsample_p.Init(      0.0f,                     0.0f,   1.0f, PARAM_THRESH);
     
-    crush.Init();
-    crush.SetDownsampleFactor(0.0f);
+    //crush.Init();
+    //crush.SetDownsampleFactor(0.0f);
 
     // GO!
     hw.StartAdc();

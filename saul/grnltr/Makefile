@@ -2,7 +2,7 @@
 TARGET = grnltr
 
 # Sources
-CPP_SOURCES = grnltr.cpp windows.cpp ../daisy_saul.cpp
+CPP_SOURCES = grnltr.cpp windows.cpp dsp/ShimmerReverb.cpp ../daisy_saul.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy
