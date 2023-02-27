@@ -13,7 +13,7 @@ class PagedParam
       
     
       thresh_ = thresh;
-      locked_ = true;
+      locked_ = false;
       min_ = min;
       max_ = max;
       range_ = max_ - min_;
