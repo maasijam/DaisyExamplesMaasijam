@@ -8,7 +8,7 @@
 
 using namespace daisy;
 using namespace daisysp;
-
+using namespace white;
 //int16_t DSY_SDRAM_BSS my_sample[1024*1024*32];
 
 
@@ -168,7 +168,7 @@ void Update_Buttons() {
 
 
 	if(!hw.SwitchState(S1)){
-       hw.SetGreenLeds(DaisyWhite::GREEN_LED_1, 1.f);
+       hw.SetGreenLeds(GREEN_LED_1, 1.f);
     } 
     if(!hw.SwitchState(S2)){
         hw.SetGreenLeds(DaisyWhite::GREEN_LED_3, 1.f);
