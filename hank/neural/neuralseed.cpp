@@ -11,8 +11,8 @@ using namespace daisysp;
 
 // Declare a local daisy_petal for hardware access
 DaisyHank hw;
-Parameter inLevel, modelParam, modelParam2, modelParam3, outLevel, wetDryMix;
-bool      bypass;
+Parameter modelParam, modelParam2, modelParam3, wetDryMix;
+//bool      bypass;
 int       modelInSize;
 unsigned int       modelIndex;
 
@@ -21,11 +21,11 @@ unsigned int       modelIndex;
 static CrossFade cfade; // For blending the wet/dry signals while maintaining constant volume
 
 // Each EQ will be turned on/off independently
-bool       eqOn[4];
-int        freqs[4];
+//bool       eqOn[4];
+//int        freqs[4];
 
 // Our bandpass filter for each EQ boost switch
-struct Filter
+/*struct Filter
 {
     Svf   filt;
     float amp;
@@ -66,7 +66,7 @@ void InitFilters(float samplerate)
     }
 }
 
-
+*/
 // These are each of the Neural Model options.
 // GRU (Gated Recurrent Unit) networks with input sizes ranging 1 - 4.
 // 1 input for audio, up to 3 inputs for parameterized controls, such
@@ -95,9 +95,9 @@ RTNeural::ModelT<float, 4, 1,
 // Loads a new model using the correct template and resets the right LED brightness
 void changeModel()
 {
-    if (bypass) {
-       return;
-    }
+    //if (bypass) {
+    //   return;
+    //}
     if (modelIndex == model_collection.size() - 1) {
         modelIndex = 0;
     } else {
@@ -166,13 +166,13 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                           AudioHandle::OutputBuffer out,
                           size_t                    size)
 {
-    //hw.ProcessAllControls();
+    hw.ProcessAllControls();
     hw.ProcessAnalogControls();
-    hw.ProcessDigitalControls();
+    //hw.ProcessDigitalControls();
     //led1.Update();
     //led2.Update();
 
-    float in_level = 0.2f;
+    float in_level = 0.5f;
     float model_param = modelParam.Process();
     float model_param2 = modelParam2.Process();
     float model_param3 = modelParam3.Process();
@@ -210,12 +210,12 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         float wet   = input;
 
         // Process your signal here
-        if(bypass)
-        {
-            out[0][i] = in[0][i];
-        }
-        else
-        {
+        //if(bypass)
+        //{
+        //    out[0][i] = in[0][i];
+        //}
+        //else
+        //{
             if (modelInSize == 2) {
                 input_arr[0] = input * in_level;           // Set input array with input level adjustment
                 input_arr[1] = model_param;
@@ -248,10 +248,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             bool noEQ = true;
             for(int j = 0; j < 4; j++)
             {
-                if (eqOn[j]) {
-                    sig += filters[j].Process(wet);
-                    noEQ = false;
-                }
+                //if (eqOn[j]) {
+                //    sig += filters[j].Process(wet);
+                //    noEQ = false;
+                //}
             }
             sig *= .7;  // EQ level adjust if needed
 
@@ -261,9 +261,9 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             
             final_mix = cfade.Process(input, wet); // crossfade wet/dry at constant power (consistent volume)
 
-           // out[0][i] = final_mix * out_level;                           // Set output level
-            out[0][i] = 0;
-        }
+            //out[0][i] = final_mix * out_level;                           // Set output level
+            out[0][i] = 0.f;
+        //}
 
         // Copy left channel to right channel
 	    // Not needed for Terrarium, mono only (left channel)
@@ -285,7 +285,7 @@ int main(void)
     setupWeights();
     //hw.SetAudioBlockSize(4);
 
-    inLevel.Init(hw.knob[hw.CV_1], 0.0f, 3.0f, Parameter::LINEAR);
+    //inLevel.Init(hw.knob[hw.CV_1], 0.0f, 3.0f, Parameter::LINEAR);
     wetDryMix.Init(hw.knob[hw.KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
     //outLevel.Init(hw.knob[KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); 
     modelParam.Init(hw.knob[hw.KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
@@ -297,8 +297,8 @@ int main(void)
     changeModel();
 
     // Initialize filters for 4 EQ boost switches
-    InitFreqs();
-    InitFilters(samplerate);
+    //InitFreqs();
+    //InitFilters(samplerate);
 
     // Initialize & set params for CrossFade object
     cfade.Init();
@@ -307,10 +307,12 @@ int main(void)
     // Init the LEDs and set activate bypass
     //led1.Init(hw.seed.GetPin(Terrarium::LED_1),false);
     //led1.Update();
-    bypass = true;
+    //bypass = true;
 
     //led2.Init(hw.seed.GetPin(Terrarium::LED_2),false);
     //led2.Update();
+    hw.ClearLeds();
+    hw.UpdateLeds();
 
     hw.StartAdc();
     hw.StartAudio(AudioCallback);

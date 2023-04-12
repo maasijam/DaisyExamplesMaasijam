@@ -39,7 +39,7 @@ void DaisyHank::Init(bool boost)
 {
     seed.Configure();
     seed.Init(boost);
-    //seed.SetAudioBlockSize(48);
+    seed.SetAudioBlockSize(48);
 
     s1.Init(seed.GetPin(PIN_S1));
 
