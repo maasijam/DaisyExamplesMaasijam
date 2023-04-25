@@ -7,12 +7,12 @@ using namespace daisy;
 
 
 // HANK Pins
-#define PIN_POT1 15
-#define PIN_POT2 16
-#define PIN_POT3 17
-#define PIN_POT4 18
+#define PIN_POT1 22
+#define PIN_POT2 23
+#define PIN_POT3 24
+#define PIN_POT4 25
 
-#define PIN_CV1 19
+#define PIN_CV1 28
 
 
 
@@ -30,8 +30,8 @@ using namespace daisy;
 #define PIN_RGB3_G 9
 #define PIN_RGB3_B 10
 #define PIN_RGB4_R 11
-#define PIN_RGB4_G 12
-#define PIN_RGB4_B 13
+#define PIN_RGB4_G 26
+#define PIN_RGB4_B 27
 
 
 
