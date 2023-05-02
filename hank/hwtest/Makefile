@@ -5,7 +5,7 @@ TARGET = hwtest
  #LDFLAGS += -u _printf_float
 
 # Sources
-CPP_SOURCES = hwtest.cpp ../daisy_hank.cpp
+CPP_SOURCES = hwtest.cpp ../daisy_hank.cpp ../switch_hank.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy

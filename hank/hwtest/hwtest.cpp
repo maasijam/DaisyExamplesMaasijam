@@ -7,6 +7,13 @@
 using namespace daisy;
 using namespace daisysp;
 
+enum Modes {
+    NORMAL,
+    PRESET,
+    CV,
+    LAST_MODE
+};
+
 
 DaisyHank hw;
 
@@ -15,11 +22,19 @@ static Oscillator osc;
 
 void Update_Digital();
 void Start_Led_Ani();
-
+void Update_Controls();
 
 int ledcount = 0;
+bool longPress = false;
+bool doubleSwOn = false;
 int   myenc;
 int myknob2;
+int preset = 0;
+int cvToCtrl = 0;
+bool changePreset = false;
+bool firstTimeMode = false;
+bool cvMode = false;
+int mode = NORMAL;
 
 
 
@@ -28,14 +43,19 @@ void audio_callback(AudioHandle::InputBuffer  in,
                    size_t                                size)
 {
 	float sig;
+    Update_Controls();
+    Update_Digital(); 
    
     for(size_t i = 0; i < size; i++)
     {
         sig = osc.Process();
 
         // left out
-        out[0][i] = sig;
-        out[1][i] = sig;
+        //out[0][i] = sig;
+        //out[1][i] = sig;
+
+        out[0][i] = 0;
+        out[1][i] = 0;
 
         
 
@@ -72,8 +92,8 @@ int main(void)
 
 	while(1)
 	{	
-		 hw.ProcessAllControls();
-         Update_Digital(); 
+		 
+         
          
 	}
 }
@@ -82,18 +102,76 @@ int main(void)
 void Update_Digital() {
 
     hw.ClearLeds();
-    if(hw.s1.RisingEdge() || hw.gate_in1.Trig()) {
-        ledcount++;
-        if(ledcount == hw.RGB_LED_LAST) {
-            ledcount = 0;
-        }
+
+    switch (mode)
+    {
+        case NORMAL:
+            if (hw.s1.TimeHeldMs() == 1000)
+            {
+                firstTimeMode = true;   
+                mode = PRESET;
+                
+            }
+        
+        
+            if(hw.s1.DoubleClick()) {
+                mode = CV;
+            }
+
+            hw.SetLed(DaisyHank::RGB_LED_1, 0,( preset == 0 ? 1.0f : 0),0);
+            hw.SetLed(DaisyHank::RGB_LED_2, 0,( preset == 1 ? 1.0f : 0),0);
+            hw.SetLed(DaisyHank::RGB_LED_3, 0,( preset == 2 ? 1.0f : 0),0);
+            hw.SetLed(DaisyHank::RGB_LED_4, 0,( preset == 3 ? 1.0f : 0),0);
+
+            break;
+        case PRESET:
+            if(hw.s1.RisingEdge()) {
+                firstTimeMode = false;
+            }
+            
+            if(hw.s1.FallingEdge() && !firstTimeMode){
+                
+                preset++;
+                if(preset > 3) 
+                    preset = 0;
+            }
+            if (hw.s1.TimeHeldMs() == 1000)
+            {
+                firstTimeMode = true;   
+                mode = NORMAL;
+                
+            }
+            hw.SetLed(DaisyHank::RGB_LED_1, preset == 0 ? 1 : 0,0,0 );
+            hw.SetLed(DaisyHank::RGB_LED_2, preset == 1 ? 1: 0,0,0);
+            hw.SetLed(DaisyHank::RGB_LED_3, preset == 2 ? 1 : 0,0,0);
+            hw.SetLed(DaisyHank::RGB_LED_4, preset == 3 ? 1 : 0,0,0);
+            break;
+        case CV:
+            if(hw.s1.RisingEdge()) {
+                firstTimeMode = false;
+            }
+            
+            if(hw.s1.FallingEdge() && !firstTimeMode){
+                
+                cvToCtrl++;
+                if(cvToCtrl > 3) 
+                    cvToCtrl = 0;
+            }
+            if (hw.s1.TimeHeldMs() == 1000)
+            {
+                firstTimeMode = true;   
+                mode = NORMAL;
+                
+            }
+            hw.SetLed(DaisyHank::RGB_LED_1, 0,0,cvToCtrl == 0 ? 1 : 0 );
+            hw.SetLed(DaisyHank::RGB_LED_2, 0,0,cvToCtrl == 1 ? 1 : 0);
+            hw.SetLed(DaisyHank::RGB_LED_3, 0,0,cvToCtrl == 2 ? 1 : 0);
+            hw.SetLed(DaisyHank::RGB_LED_4, 0,0,cvToCtrl == 3 ? 1 : 0);
+            break;
     }
     
-    hw.SetLed(DaisyHank::RGB_LED_1, 1.0f,0,0);
-
-    hw.SetLed(DaisyHank::RGB_LED_2,hw.knob[0].Value() > 0.2f ? 1.0f : 0.0f,0,0);
-    hw.SetLed(DaisyHank::RGB_LED_3,hw.knob[1].Value() > 0.2f ? 1.0f : 0.0f,0,0);
-    hw.SetLed(DaisyHank::RGB_LED_4,ledcount == 1 ? 1.0f : 0.0f, ledcount == 2 ? 1.0f : 0.0f, ledcount == 3 ? 1.0f : 0.0f);
+        
+   
     hw.UpdateLeds();
 }
 
