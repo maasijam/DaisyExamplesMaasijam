@@ -1,19 +1,47 @@
 #pragma once
 
 #include "daisy_seed.h"
+#include "switch_hank.h"
 
-//#define EXT_OLED
-//#define EXT_POTCVUSB
-//#define EXT_AUDIOIO
-#ifdef EXT_OLED
+//#define EXT_USB
+#ifdef EXT_USB
 #include "dev/oled_ssd130x.h"
-#endif  // EXT_OLED
+#endif  // EXT_USB
 
-
+#define FLASH_BLOCK 4096
 
 
 namespace daisy
 {
+
+/** @brief Calibration data container for Margolis 
+*/
+struct CalibrationData
+{
+    CalibrationData() : warp_scale(60.f), warp_offset(0.f) {}
+    float warp_scale, warp_offset;
+    
+    
+
+    /** @brief checks sameness */
+    bool operator==(const CalibrationData &rhs)
+    {
+        if(warp_scale != rhs.warp_scale)
+        {
+            return false;
+        }
+        else if(warp_offset != rhs.warp_offset)
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    /** @brief Not equal operator */
+    bool operator!=(const CalibrationData &rhs) { return !operator==(rhs); }
+};
+
 class DaisyHank
 {
   public:
@@ -61,7 +89,23 @@ class DaisyHank
     };
 
 
-
+  enum Colors {
+      RED,
+      GREEN,
+      BLUE,
+      YELLOW,
+      CYAN,
+      PURPLE,
+      ORANGE,
+      DARKGREEN,
+      DARKBLUE,
+      DARKRED,
+      TURQ,
+      GREY,
+      DARKORANGE,
+      WHITE,
+      OFF
+  };
  
 
     
@@ -176,6 +220,9 @@ class DaisyHank
 
     /** Set an LED (idx < 4) to a color */
     void SetLed(size_t idx, float red, float green, float blue);  
+    void SetRGBColor(size_t idx, Colors c);
+
+    float GetWarpVoct(); 
 
     /**
   General delay _\param del Delay time in ms.
@@ -191,6 +238,60 @@ class DaisyHank
 
     float CVKnobCombo(float CV_Val,float Pot_Val);
 
+    /** @brief called during a customized calibration UI to record the 1V value */
+    inline void CalibrateV1(float v1) { warp_v1_ = v1; }
+
+    /** @brief called during a customized calibration UI to record the 3V value 
+     *         and set that calibraiton has completed and can be saved. 
+     */
+    inline void CalibrateV3(float v3)
+    {
+        warp_v3_ = v3;
+        voct_cal.Record(warp_v1_, warp_v3_);
+        cal_save_flag_ = true;
+    }
+
+    /** @brief Sets the calibration data for 1V/Octave over Warp CV 
+     *  typically set after reading stored data from external memory.
+     */
+    inline void SetWarpCalData(float scale, float offset)
+    {
+        voct_cal.SetData(scale, offset);
+    }
+
+    /** @brief Gets the current calibration data for 1V/Octave over Warp CV 
+     *  typically used to prepare data for storing after successful calibration
+     */
+    inline void GetWarpCalData(float &scale, float &offset)
+    {
+        voct_cal.GetData(scale, offset);
+    }
+
+    /** @brief Sets the cv offset from an externally array of data */
+    inline void SetCvOffsetData(float *data)
+    {
+        for(int i = 0; i < CV_LAST; i++)
+        {
+            cv_offsets_[i] = data[i];
+        }
+    }
+
+    /** @brief Fills an array with the offset data currently being used */
+    inline void GetCvOffsetData(float *data)
+    {
+        for(int i = 0; i < CV_LAST; i++)
+        {
+            data[i] = cv_offsets_[i];
+        }
+    }
+
+    /** @brief Checks to see if calibration has been completed and needs to be saved */
+    inline bool ReadyToSaveCal() const { return cal_save_flag_; }
+
+    /** @brief signal the cal-save flag to clear once calibration data has been written to ext. flash memory */
+    inline void ClearSaveCalFlag() { cal_save_flag_ = false; }
+
+
     
 
     DaisySeed       seed;                /**< Seed object */
@@ -198,7 +299,7 @@ class DaisyHank
     AnalogControl   cv[CV_LAST]; /**< Array of AnalogControls */
     GateIn        gate_in1;
     RgbLed        rgb[RGB_LED_LAST]; /**< & */
-    Switch        s1;
+    SwitchHank        s1;
 
 
 
@@ -206,6 +307,14 @@ class DaisyHank
 
   private:
     void SetHidUpdateRates();
+
+    /** Cal data */
+    float                  warp_v1_, warp_v3_;
+    daisy::VoctCalibration voct_cal;
+    float                  cv_offsets_[CV_LAST];
+    
+
+    bool cal_save_flag_;
     
     
 };

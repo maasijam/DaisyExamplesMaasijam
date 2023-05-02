@@ -147,6 +147,14 @@ void DaisyHank::StopAdc()
     seed.adc.Stop();
 }
 
+/** @brief Return a MIDI note number value from -60 to 60 corresponding to 
+ *      the -5V to 5V input range of the Warp CV input.
+ */
+float DaisyHank::GetWarpVoct()
+{
+    return voct_cal.ProcessInput(cv[CV_1].Value());
+}
+
 
 void DaisyHank::ProcessAnalogControls()
 {
@@ -214,6 +222,62 @@ void DaisyHank::SetLed(size_t idx, float red, float green, float blue)
 {
     rgb[idx].Set(red, green, blue);
 }
+
+void DaisyHank::SetRGBColor (size_t idx, Colors color)
+{
+    
+    switch (color)
+    {
+    case RED:
+        SetLed(idx,1.f,0.f,0.f);
+        break;
+    case GREEN:
+        SetLed(idx,0.f,0.7f,0.f);
+        break;
+    case BLUE:
+        SetLed(idx,0.f,0.f,1.f);
+        break;
+    case YELLOW:
+        SetLed(idx,1.f,0.7f,0.f);
+        break;
+    case CYAN:
+        SetLed(idx,0.f,1.f,1.f);
+        break;
+    case PURPLE:
+        SetLed(idx,1.f,0.f,1.f);
+        break;
+    case ORANGE:
+        SetLed(idx,1.f,0.3f,0.f);
+        break;
+    case DARKGREEN:
+        SetLed(idx,0.f,0.2f,0.f);
+        break;
+    case DARKBLUE:
+        SetLed(idx,0.2f,0.2f,0.6f);
+        break;
+    case DARKRED:
+        SetLed(idx,0.4f,0.f,0.f);
+        break;
+    case TURQ:
+        SetLed(idx,0.f,0.5f,0.5f);
+        break;
+    case GREY:
+        SetLed(idx,0.75f,0.75f,0.75f);
+        break;
+    case DARKORANGE:
+        SetLed(idx,0.5f,0.2f,0.f);
+        break;
+    case WHITE:
+        SetLed(idx,1.f,1.f,1.f);
+        break;
+    case OFF:
+        SetLed(idx,0.f,0.f,0.f);
+        break;
+    }
+    
+}
+
+
 
 
 
