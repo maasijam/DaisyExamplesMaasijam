@@ -128,7 +128,7 @@ void Init() {
   
   settings.Init(&hw);
   
-  ui.Init(&patch, &modulations, &settings, &hw);
+  ui.Init(&patch, &modulations, &voice, &settings, &hw);
   hw.StartAdc();
 	hw.StartAudio(AudioCallback);
   

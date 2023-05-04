@@ -43,21 +43,21 @@ static const int32_t kLongPressTime = 2000;
 
 #define ENABLE_LFO_MODE
 
-void Ui::Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyHank* hw) {
+void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Settings* settings, DaisyHank* hw) {
   hw_ = hw;
   patch_ = patch;
   modulations_ = modulations;
   settings_ = settings;
-
+  voice_ = voice;
   
 
   ui_task_ = 0;
   mode_ = UI_MODE_NORMAL;
 
-       
-
+  num_engines_ = voice_->GetNumEngines();     
   
   
+  //settings_->RestoreState();
   LoadState();
 
   /*
@@ -182,10 +182,10 @@ void Ui::UpdateLEDs() {
             ? DaisyHank::YELLOW
             : DaisyHank::GREEN;
         //hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),active_engine_ & 8 ? red : green);
-        hw_->SetRGBColor(active_engine_ & 7,active_engine_ & 8 ? red : green);
+        hw_->SetRGBColor(static_cast<size_t>(active_engine_ & 7),active_engine_ & 8 ? red : green);
         if (pwm_counter < triangle) {
           //hw_->SetRGBColor(static_cast<LeddriverLeds>(patch_->engine & 7),patch_->engine & 8 ? red : green);
-          hw_->SetRGBColor(patch_->engine & 7,patch_->engine & 8 ? red : green);
+          hw_->SetRGBColor(static_cast<size_t>(patch_->engine & 7),patch_->engine & 8 ? red : green);
         }
 
         //hw_->SetGreenLeds(LED_GREEN_1,modulations_->timbre_patched ? 1.f : 0.f);
@@ -351,10 +351,10 @@ void Ui::ReadSwitches() {
         
         if (hw_->s1.FallingEdge() && !ignore_release_[0]) {
           RealignPots();
-          if (patch_->engine >= 8) {
-            patch_->engine = patch_->engine & 7;
+          if (patch_->engine > num_engines_) {
+            patch_->engine = 0;
           } else {
-            patch_->engine = (patch_->engine + 1) % 8;
+            patch_->engine++;
           }
           readyToSaveState = true;
         }

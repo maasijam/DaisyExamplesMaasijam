@@ -163,6 +163,8 @@ class Voice {
       Frame* frames,
       size_t size);
   inline int active_engine() const { return previous_engine_index_; }
+  inline int GetNumEngines() const{ return engines_.size(); }
+
 
   float lfoval;
     

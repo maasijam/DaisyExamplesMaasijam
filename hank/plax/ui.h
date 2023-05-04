@@ -67,7 +67,7 @@ class Ui {
   Ui() { }
   ~Ui() { }
   
-  void Init(Patch* patch, Modulations* modulations, Settings* settings, DaisyHank* hw);
+  void Init(Patch* patch, Modulations* modulations, Voice* voice, Settings* settings, DaisyHank* hw);
   
   void Poll();
   
@@ -118,6 +118,7 @@ class Ui {
   DaisyHank* hw_;
   Patch* patch_;
   Modulations* modulations_;
+  Voice* voice_;
   PotController pots_[DaisyHank::KNOB_LAST];
   float pitch_lp_;
   float pitch_lp_calibration_;
@@ -132,6 +133,7 @@ class Ui {
   bool ignore_release_[2];
   
   int active_engine_;
+  int num_engines_;
   
   float cv_c1_;  // For calibration
   
