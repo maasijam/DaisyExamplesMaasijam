@@ -56,7 +56,7 @@ Voice voice;
 
 
 
-//float plaits_cv_scale[hw.CV_LAST-1] = {1.03,1.6,60.0,1.6,1,0.6};
+
 
 
 
@@ -74,16 +74,19 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
   
 
 
-  modulations.frequency = 0;
-	modulations.harmonics = 0;
-	modulations.timbre = 0;
-	modulations.morph = 0;
-	modulations.engine = 0;
+  //modulations.frequency = 0;
+	//modulations.harmonics = 0;
+	//modulations.timbre = 0;
+	//modulations.morph = 0;
+	//modulations.engine = 0;
   modulations.level = 1;
 
-  patch.frequency_modulation_amount = 0.f;
-	patch.timbre_modulation_amount = 0.f;
-	patch.morph_modulation_amount = 0.f;
+
+  
+
+  patch.frequency_modulation_amount = 1.f;
+	patch.timbre_modulation_amount = 1.f;
+	patch.morph_modulation_amount = 1.f;
 
   modulations.timbre_patched = true;
   modulations.frequency_patched = true;
@@ -91,7 +94,8 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
   modulations.trigger_patched = true;
   modulations.level_patched = false;
 
-  modulations.trigger = 5.f * (hw.gate_in1.State() ? 1.f : 0.f);
+
+  modulations.trigger = 5.f * (hw.GateIn1() ? 1.f : 0.f);
   
 
 
@@ -129,6 +133,9 @@ void Init() {
   settings.Init(&hw);
   
   ui.Init(&patch, &modulations, &voice, &settings, &hw);
+
+  
+
   hw.StartAdc();
 	hw.StartAudio(AudioCallback);
   

@@ -43,12 +43,14 @@ using namespace daisy;
 
 const int kNumNormalizedChannels = 3;
 const int kProbeSequenceDuration = 32;
-const int kNumLEDs = 8;
+const int kNumLEDs = 4;
 
 enum UiMode {
   UI_MODE_NORMAL,
-  UI_MODE_DISPLAY_ALTERNATE_PARAMETERS,
   UI_MODE_DISPLAY_OCTAVE,
+  UI_MODE_DISPLAY_VCFA_VCA,
+  UI_MODE_DISPLAY_TIME_DECAY,
+  UI_MODE_DISPLAY_CV_CTRL,
   UI_MODE_CALIBRATION_C1,
   UI_MODE_CALIBRATION_C3,
   UI_MODE_TEST,
@@ -57,7 +59,15 @@ enum UiMode {
   UI_MODE_HIDDEN_PATCHED,
 };
 
-
+enum CvCtrlState {
+  VOCT,
+  FM,
+  HARM,
+  TIMBRE,
+  MORPH,
+  MODEL,
+  CV_CTRL_LAST,
+};
 
 
 
@@ -77,12 +87,17 @@ class Ui {
   void SaveCalibrationData();
   void SaveStateData();
   void SaveState();
+
+  void StartCalibration();
+  void CalibrateC1();
+  void CalibrateC3();
   
 
   bool readyToSaveState = false;
   bool readyToRestore = false;
 
   float lfovalue;
+  float plaits_cv_scale[CV_CTRL_LAST] = {0,60.0,1,1.6,1.6,1.03};
 
   
  private:
@@ -94,26 +109,28 @@ class Ui {
   
   void DetectNormalization();
   
-  void StartCalibration();
-  void CalibrateC1();
-  void CalibrateC3();
+  
 
   void RealignPots() {
     pots_[DaisyHank::KNOB_3].Realign();
     pots_[DaisyHank::KNOB_4].Realign();
     pots_[DaisyHank::KNOB_2].Realign();
+    pots_[DaisyHank::KNOB_1].Realign();
   }
 
   void LoadStateData();
+
+  void SetLedsState(int idx);
     
   UiMode mode_;
-  
+  CvCtrlState cv_ctrl_state_;
   
   
   int ui_task_;
 
   float transposition_;
   float octave_;
+  float cv_ctrl_;
   uint8_t cblind_;
   DaisyHank* hw_;
   Patch* patch_;
@@ -129,11 +146,11 @@ class Ui {
   bool isPatched[PATCHED_LAST] = {false};
 
   int pwm_counter_;
-  int press_time_[2];
-  bool ignore_release_[2];
+  int press_time_;
+  bool ignore_release_;
   
   int active_engine_;
-  int num_engines_;
+  int size_engines_;
   
   float cv_c1_;  // For calibration
   

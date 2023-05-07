@@ -59,6 +59,7 @@ struct State {
   lpg_colour(0), 
   decay(128),
   octave(255),
+  cv_ctrl(0),
   color_blind(0),
   is_patched{false,false,false,true,false}  {}
 
@@ -67,6 +68,7 @@ struct State {
   uint8_t lpg_colour;
   uint8_t decay;
   uint8_t octave;
+  uint8_t cv_ctrl;
   uint8_t color_blind;
   bool is_patched[PATCHED_LAST];
 
@@ -86,7 +88,10 @@ struct State {
         } else if(octave != rhs.octave)
         {
             return false;
-        } else if(color_blind != rhs.color_blind)
+        } else if(cv_ctrl != rhs.cv_ctrl)
+        {
+            return false;
+        }else if(color_blind != rhs.color_blind)
         {
             return false;
         } else

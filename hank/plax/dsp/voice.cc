@@ -42,10 +42,6 @@ void Voice::Init(BufferAllocator* allocator) {
   engines_.RegisterInstance(&fm_engine_, false, 0.6f, 0.6f);
   engines_.RegisterInstance(&grain_engine_, false, 0.7f, 0.6f);
   engines_.RegisterInstance(&additive_engine_, false, 0.8f, 0.8f);
-  //engines_.RegisterInstance(&wavetable_engine_, false, 0.6f, 0.6f);
-  //engines_.RegisterInstance(&chord_engine_, false, 0.8f, 0.8f);
-  //engines_.RegisterInstance(&speech_engine_, false, -0.7f, 0.8f);
-
   engines_.RegisterInstance(&swarm_engine_, false, -3.0f, 1.0f);
   engines_.RegisterInstance(&noise_engine_, false, -1.0f, -1.0f);
   engines_.RegisterInstance(&particle_engine_, false, -2.0f, 1.0f);
@@ -54,6 +50,9 @@ void Voice::Init(BufferAllocator* allocator) {
   engines_.RegisterInstance(&bass_drum_engine_, true, 0.8f, 0.8f);
   engines_.RegisterInstance(&snare_drum_engine_, true, 0.8f, 0.8f);
   engines_.RegisterInstance(&hi_hat_engine_, true, 0.8f, 0.8f);
+    //engines_.RegisterInstance(&wavetable_engine_, false, 0.6f, 0.6f);
+  //engines_.RegisterInstance(&chord_engine_, false, 0.8f, 0.8f);
+  //engines_.RegisterInstance(&speech_engine_, false, -0.7f, 0.8f);
   for (int i = 0; i < engines_.size(); ++i) {
     // All engines will share the same RAM space.
     allocator->Free();

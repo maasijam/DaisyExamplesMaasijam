@@ -47,7 +47,7 @@ void Settings::Init(DaisyHank* hw) {
 inline void Settings::SetStateData(State state_data)
 {
     state_ = state_data;
-    CONSTRAIN(state_.engine, 0, 15);
+    CONSTRAIN(state_.engine, 0, 12);
       
 }
 

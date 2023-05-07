@@ -83,7 +83,7 @@ void DaisyHank::Init(bool boost)
         rgb[i].Init(r, g, b, true);
     }
 
-        
+     LoadCalibrationData();   
 }
 
 void DaisyHank::SetAudioSampleRate(daisy::SaiHandle::Config::SampleRate sr)
@@ -320,4 +320,15 @@ float DaisyHank::CVKnobCombo(float CV_Val,float Pot_Val)
     }
 
     return output;
+}
+
+/** @brief Loads and sets calibration data */
+void DaisyHank::LoadCalibrationData()
+{
+    daisy::PersistentStorage<CalibrationData> cal_storage(seed.qspi);
+    CalibrationData                           default_cal;
+    cal_storage.Init(default_cal, FLASH_BLOCK);
+    auto &cal_data = cal_storage.GetSettings();
+    SetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
+    //SetCvOffsetData(cal_data.cv_offset);
 }

@@ -40,6 +40,7 @@ using namespace stmlib;
 
 
 static const int32_t kLongPressTime = 2000;
+static const int32_t kLongCalPressTime = 10000;
 
 #define ENABLE_LFO_MODE
 
@@ -53,9 +54,10 @@ void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Settings* se
 
   ui_task_ = 0;
   mode_ = UI_MODE_NORMAL;
+ 
 
-  num_engines_ = voice_->GetNumEngines();     
-  
+  size_engines_ = voice_->GetNumEngines();     
+  cv_ctrl_ = VOCT;
   
   //settings_->RestoreState();
   LoadState();
@@ -73,13 +75,13 @@ void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Settings* se
   */
   // Bind pots to parameters.
   pots_[DaisyHank::KNOB_1].Init(
-      &transposition_, NULL, 2.0f, -1.0f);
+      &transposition_, &octave_, 2.0f, -1.0f);
   pots_[DaisyHank::KNOB_2].Init(
-      &patch->harmonics, &octave_, 1.0f, 0.0f);
+      &patch->harmonics, &patch->lpg_colour, 1.0f, 0.0f);
   pots_[DaisyHank::KNOB_3].Init(
-      &patch->timbre, &patch->lpg_colour, 1.0f, 0.0f);
+      &patch->timbre, &patch->decay, 1.0f, 0.0f);
   pots_[DaisyHank::KNOB_4].Init(
-      &patch->morph, &patch->decay, 1.0f, 0.0f);
+      &patch->morph, &cv_ctrl_, 1.0f, 0.0f);
   /*pots_[KNOB_5].Init(
       &patch->timbre_modulation_amount, NULL, 2.0f, -1.0f);
   pots_[KNOB_6].Init(
@@ -92,14 +94,16 @@ void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Settings* se
   
   
   pwm_counter_ = 0;
-  fill(&press_time_[0], &press_time_[2], 0);
-  fill(&ignore_release_[0], &ignore_release_[2], false);
+  press_time_ =  0;
+  ignore_release_ = false;
   
   active_engine_ = 0;
   cv_c1_ = 0.0f;
   pitch_lp_ = 0.0f;
   pitch_lp_calibration_ = 0.0f;
   cblind_ = 0;
+
+  
 }
 
 void Ui::LoadState() {
@@ -108,6 +112,7 @@ void Ui::LoadState() {
   patch_->lpg_colour = static_cast<float>(state.lpg_colour) / 256.0f;
   patch_->decay = static_cast<float>(state.decay) / 256.0f;
   octave_ = static_cast<float>(state.octave) / 256.0f;
+  cv_ctrl_ = static_cast<float>(state.cv_ctrl) / 256.0f;
   for(int i = 0; i < PATCHED_LAST; i++)
         {
             switch (i)
@@ -139,6 +144,7 @@ void Ui::SaveState() {
   state->lpg_colour = static_cast<uint8_t>(patch_->lpg_colour * 256.0f);
   state->decay = static_cast<uint8_t>(patch_->decay * 256.0f);
   state->octave = static_cast<uint8_t>(octave_ * 256.0f);
+  state->cv_ctrl = static_cast<uint8_t>(cv_ctrl_ * 256.0f);
   for(int i = 0; i < PATCHED_LAST; i++)
         {
             switch (i)
@@ -175,37 +181,86 @@ void Ui::UpdateLEDs() {
     case UI_MODE_NORMAL:
       {
 
-        DaisyHank::Colors red = settings_->state().color_blind == 1
-            ? ((pwm_counter & 7) ? DaisyHank::OFF : DaisyHank::YELLOW)
+        /*DaisyHank::Colors red = settings_->state().color_blind == 1
+            ? ((pwm_counter & 3) ? DaisyHank::OFF : DaisyHank::YELLOW)
             : DaisyHank::RED;
         DaisyHank::Colors green = settings_->state().color_blind == 1
             ? DaisyHank::YELLOW
-            : DaisyHank::GREEN;
+            : DaisyHank::GREEN;*/
         //hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),active_engine_ & 8 ? red : green);
-        hw_->SetRGBColor(static_cast<size_t>(active_engine_ & 7),active_engine_ & 8 ? red : green);
-        if (pwm_counter < triangle) {
+        //hw_->SetRGBColor(static_cast<size_t>(active_engine_ & 3),active_engine_ & 4 ? red : green);
+        //if (pwm_counter < triangle) {
           //hw_->SetRGBColor(static_cast<LeddriverLeds>(patch_->engine & 7),patch_->engine & 8 ? red : green);
-          hw_->SetRGBColor(static_cast<size_t>(patch_->engine & 7),patch_->engine & 8 ? red : green);
-        }
+          //hw_->SetRGBColor(static_cast<size_t>(patch_->engine & 3),patch_->engine & 4 ? red : green);
+        //}
 
-        //hw_->SetGreenLeds(LED_GREEN_1,modulations_->timbre_patched ? 1.f : 0.f);
-        //hw_->SetGreenLeds(LED_GREEN_2,modulations_->frequency_patched ? 1.f : 0.f);
-        //hw_->SetGreenLeds(LED_GREEN_3,modulations_->morph_patched ? 1.f : 0.f);
+        DaisyHank::Colors engine_color_;
+        if(active_engine_ < 4) 
+        {
+            engine_color_ = DaisyHank::RED;
+        }
+        else if(active_engine_ > 3 && active_engine_ < 8) 
+        {
+            engine_color_ = DaisyHank::GREEN;
+        }
+        else if(active_engine_ > 7 && active_engine_ < 12) 
+        {
+            engine_color_ = DaisyHank::BLUE;
+        }
+        else {
+            engine_color_ = DaisyHank::PURPLE;
+        }
+        hw_->SetRGBColor(static_cast<size_t>(active_engine_ & 3),engine_color_);
+
 
       }
       break;
     
-    case UI_MODE_DISPLAY_ALTERNATE_PARAMETERS:
+    case UI_MODE_DISPLAY_VCFA_VCA:
       {
-        for (int parameter = 0; parameter < 2; ++parameter) {
-          float value = parameter == 0
-              ? patch_->lpg_colour
-              : patch_->decay;
+          
+          float value = patch_->lpg_colour;
           value -= 0.001f;
           for (int i = 0; i < 4; ++i) {
-            hw_->SetRGBColor(parameter * 4 + 3 - i,value * 64.0f > pwm_counter ? DaisyHank::YELLOW : DaisyHank::OFF);
+            hw_->SetRGBColor(
+                static_cast<size_t>(i),
+                value * 64.0f > pwm_counter ? DaisyHank::YELLOW : DaisyHank::OFF);
             value -= 0.25f;
           }
+        
+      }
+      break;
+
+      case UI_MODE_DISPLAY_TIME_DECAY:
+      {
+        
+        float value = patch_->decay;
+          value -= 0.001f;
+          for (int i = 0; i < 4; ++i) {
+            hw_->SetRGBColor(
+                static_cast<size_t>(i),
+                value * 64.0f > pwm_counter ? DaisyHank::YELLOW : DaisyHank::OFF);
+            value -= 0.25f;
+          }
+      }
+      break;
+
+      case UI_MODE_DISPLAY_CV_CTRL:
+      {
+        float value = cv_ctrl_;
+        value -= 0.001f;
+        if(value >= 0.165f && value < 0.33f ) {
+            SetLedsState(FM);
+        } else if(value >= 0.33f && value < 0.495f) {
+            SetLedsState(HARM);
+        } else if(value >= 0.495f && value < 0.66f) {
+            SetLedsState(TIMBRE);
+        } else if(value >= 0.66f && value < 0.825f) {
+            SetLedsState(MORPH);
+        } else if(value >= 0.825f && value <= 1.f) {
+            SetLedsState(MODEL);
+        } else {
+            SetLedsState(VOCT);
         }
       }
       break;
@@ -214,7 +269,7 @@ void Ui::UpdateLEDs() {
       {
 #ifdef ENABLE_LFO_MODE
         int octave = static_cast<float>(octave_ * 10.0f);
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < 4; ++i) {
           DaisyHank::Colors color = DaisyHank::OFF;
           if (octave == 0) {
             color = i == (triangle >> 1) ? DaisyHank::OFF : DaisyHank::YELLOW;
@@ -223,7 +278,7 @@ void Ui::UpdateLEDs() {
           } else {
             color = (octave - 1) == i ? DaisyHank::YELLOW : DaisyHank::OFF;
           }
-          hw_->SetRGBColor(7 - i,color);
+          hw_->SetRGBColor(3 - i,color);
         }
 #else
         int octave = static_cast<float>(octave_ * 9.0f);
@@ -236,13 +291,19 @@ void Ui::UpdateLEDs() {
       
     case UI_MODE_CALIBRATION_C1:
       if (pwm_counter < triangle) {
-        hw_->SetRGBColor(DaisyHank::RGB_LED_1,DaisyHank::GREEN);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_1,DaisyHank::ORANGE);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_2,DaisyHank::ORANGE);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_3,DaisyHank::ORANGE);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_4,DaisyHank::ORANGE);
       }
       break;
 
     case UI_MODE_CALIBRATION_C3:
       if (pwm_counter < triangle) {
-        hw_->SetRGBColor(DaisyHank::RGB_LED_1,DaisyHank::YELLOW);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_1,DaisyHank::TURQ);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_2,DaisyHank::TURQ);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_3,DaisyHank::TURQ);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_4,DaisyHank::TURQ);
       }
       break;
     
@@ -272,7 +333,7 @@ void Ui::UpdateLEDs() {
       
         if (pwm_counter < triangle) {
           for (int i = 0; i < kNumLEDs; ++i) {
-            hw_->SetRGBColor(i,DaisyHank::PURPLE);
+            hw_->SetRGBColor(i,DaisyHank::CYAN);
           }
         }
       
@@ -295,67 +356,76 @@ void Ui::ReadSwitches() {
 
   hw_->ProcessDigitalControls();
 
-  int s_pins[1] = {0};
+  //int s_pins[1] = {0};
   
   switch (mode_) {
     case UI_MODE_NORMAL:
       {
         //for (int i = 0; i < 2; ++i) {
           if (hw_->s1.RisingEdge()) {
-            press_time_[0] = 0;
-            ignore_release_[0] = false;
+            press_time_ = 0;
+            ignore_release_ = false;
           }
           if (hw_->s1.Pressed()) {
-            ++press_time_[0];
+            ++press_time_;
           } else {
-            press_time_[0] = 0;
+            press_time_ = 0;
           }
         //}
         
         if (hw_->s1.RisingEdge()) {
+          pots_[DaisyHank::KNOB_1].Lock();
+          pots_[DaisyHank::KNOB_2].Lock();
           pots_[DaisyHank::KNOB_3].Lock();
           pots_[DaisyHank::KNOB_4].Lock();
         }
-        //if (hw_->s[S3].RisingEdge()) {
-        //  pots_[DaisyHank::KNOB_2].Lock();
-        //}
         
-        if (pots_[DaisyHank::KNOB_4].editing_hidden_parameter() ||
-            pots_[DaisyHank::KNOB_3].editing_hidden_parameter()) {
-          mode_ = UI_MODE_DISPLAY_ALTERNATE_PARAMETERS;
+        if (pots_[DaisyHank::KNOB_1].editing_hidden_parameter()) {
+          mode_ = UI_MODE_DISPLAY_OCTAVE; 
+        }
+
+        if (pots_[DaisyHank::KNOB_2].editing_hidden_parameter()) {
+          mode_ = UI_MODE_DISPLAY_VCFA_VCA;
         }
         
-        if (pots_[DaisyHank::KNOB_2].editing_hidden_parameter()) {
-          mode_ = UI_MODE_DISPLAY_OCTAVE;
+        
+        if (pots_[DaisyHank::KNOB_3].editing_hidden_parameter()) {
+          mode_ = UI_MODE_DISPLAY_TIME_DECAY;
+        }
+        
+        if (pots_[DaisyHank::KNOB_4].editing_hidden_parameter()) {
+          mode_ = UI_MODE_DISPLAY_CV_CTRL;
         }
         
         // Long, double press: enter calibration mode.
 //TODO
-        if (press_time_[0] >= kLongPressTime &&
-            press_time_[1] >= kLongPressTime) {
-          press_time_[0] = press_time_[1] = 0;
-          RealignPots();
-          StartCalibration();
-        }
+        //if (press_time_ >= kLongPressTime &&
+        //    press_time_ >= kLongPressTime) {
+        //  press_time_  = 0;
+        //  RealignPots();
+        //  StartCalibration();
+        //}
         
         // Long press or actually editing any hidden parameter: display value
         // of hidden parameters.
-        if (press_time_[0] >= kLongPressTime && !press_time_[1]) {
-          press_time_[0] = press_time_[1] = 0;
-          mode_ = UI_MODE_DISPLAY_ALTERNATE_PARAMETERS;
-        }
-        if (press_time_[1] >= kLongPressTime && !press_time_[0]) {
-          press_time_[0] = press_time_[1] = 0;
-          mode_ = UI_MODE_DISPLAY_OCTAVE;
-        }
+        //if (press_time_ >= kLongPressTime) {
+        //  press_time_ = 0;
+        //  mode_ = UI_MODE_DISPLAY_ALTERNATE_PARAMETERS;
+        //}
+        //if (press_time_[1] >= kLongPressTime && !press_time_[0]) {
+        //  press_time_[0] = press_time_[1] = 0;
+        //  mode_ = UI_MODE_DISPLAY_OCTAVE;
+        //}
         
-        if (hw_->s1.FallingEdge() && !ignore_release_[0]) {
+        if (hw_->s1.FallingEdge() && !ignore_release_) {
           RealignPots();
-          if (patch_->engine > num_engines_) {
-            patch_->engine = 0;
-          } else {
-            patch_->engine++;
-          }
+          patch_->engine = (patch_->engine + 1) % size_engines_;
+          //if (patch_->engine >= 8) {
+          //  patch_->engine = patch_->engine & 7;
+          //} else {
+          //  patch_->engine = (patch_->engine + 1) % 8;
+          //}
+          //patch_->engine = (patch_->engine + 1) % 8;
           readyToSaveState = true;
         }
 /*
@@ -391,18 +461,28 @@ void Ui::ReadSwitches() {
             readyToRestore = true;
             mode_ = UI_MODE_RESTORE_STATE;
         }*/
+
+        if (hw_->s1.TimeHeldMs() >= kLongCalPressTime) {
+          press_time_  = 0;
+          RealignPots();
+          StartCalibration();
+        }
         
       }
       break;
       
-    case UI_MODE_DISPLAY_ALTERNATE_PARAMETERS:
     case UI_MODE_DISPLAY_OCTAVE:
+    case UI_MODE_DISPLAY_VCFA_VCA:
+    case UI_MODE_DISPLAY_TIME_DECAY:
+    case UI_MODE_DISPLAY_CV_CTRL:
       //for (int i = 0; i < 2; ++i) {
         if (hw_->s1.FallingEdge()) {
           pots_[DaisyHank::KNOB_3].Unlock();
           pots_[DaisyHank::KNOB_4].Unlock();
           pots_[DaisyHank::KNOB_2].Unlock();
-          press_time_[0] = 0;
+          pots_[DaisyHank::KNOB_1].Unlock();
+          press_time_ = 0;
+          readyToSaveState = true;
           mode_ = UI_MODE_NORMAL;
         }
       //}
@@ -411,8 +491,8 @@ void Ui::ReadSwitches() {
     case UI_MODE_CALIBRATION_C1:
       //for (int i = 0; i < 2; ++i) {
         if (hw_->s1.RisingEdge()) {
-          press_time_[0] = 0;
-          ignore_release_[0] = true;
+          press_time_ = 0;
+          ignore_release_ = true;
           CalibrateC1();
           break;
         }
@@ -422,8 +502,8 @@ void Ui::ReadSwitches() {
     case UI_MODE_CALIBRATION_C3:
       //for (int i = 0; i < 2; ++i) {
         if (hw_->s1.RisingEdge()) {
-          press_time_[0] = 0;
-          ignore_release_[0] = true;
+          press_time_ = 0;
+          ignore_release_ = true;
           CalibrateC3();
           break;
         }
@@ -435,8 +515,8 @@ void Ui::ReadSwitches() {
     case UI_MODE_RESTORE_STATE:
       //for (int i = 0; i < 2; ++i) {
         if (hw_->s1.RisingEdge()) {
-          press_time_[0] = 0;
-          ignore_release_[0] = true;
+          press_time_ = 0;
+          ignore_release_ = true;
           mode_ = UI_MODE_NORMAL;
         }
       //}
@@ -482,6 +562,28 @@ void Ui::Poll() {
   for (int i = 0; i < DaisyHank::KNOB_LAST; ++i) {
     pots_[i].ProcessControlRate(hw_->knob[i].Value());
   }
+
+  if(cv_ctrl_ >= 0.165f && cv_ctrl_ < 0.33f ) {
+      cv_ctrl_state_ = FM;
+  } else if(cv_ctrl_ >= 0.33f && cv_ctrl_ < 0.495f) {
+      cv_ctrl_state_ = HARM;
+  } else if(cv_ctrl_ >= 0.495f && cv_ctrl_ < 0.66f) {
+      cv_ctrl_state_ = TIMBRE;
+  } else if(cv_ctrl_ >= 0.66f && cv_ctrl_ < 0.825f) {
+      cv_ctrl_state_ = MORPH;
+  } else if(cv_ctrl_ >= 0.825f && cv_ctrl_ <= 1.f) {
+      cv_ctrl_state_ = MODEL;
+  } else {
+      cv_ctrl_state_ = VOCT;
+  }
+
+
+  modulations_->frequency = cv_ctrl_state_ == FM ? hw_->cv[DaisyHank::CV_1].Value() * plaits_cv_scale[FM] : 0;
+	modulations_->harmonics = cv_ctrl_state_ == HARM ? hw_->cv[DaisyHank::CV_1].Value() * plaits_cv_scale[HARM] : 0;
+	modulations_->timbre = cv_ctrl_state_ == TIMBRE ? hw_->cv[DaisyHank::CV_1].Value() * plaits_cv_scale[TIMBRE] : 0;
+	modulations_->morph = cv_ctrl_state_ == MORPH ? hw_->cv[DaisyHank::CV_1].Value() * plaits_cv_scale[MORPH] : 0;
+	modulations_->engine = cv_ctrl_state_ == MODEL ? hw_->cv[DaisyHank::CV_1].Value() * plaits_cv_scale[MODEL] : 0;
+  //modulations.level = hw.cv[CV_6].Value() * plaits_cv_scale[CV_6];
 
   
   
@@ -574,6 +676,15 @@ void Ui::SaveCalibrationData()
     hw_->GetWarpCalData(cal_data.warp_scale, cal_data.warp_offset);
     cal_storage.Save();
     hw_->ClearSaveCalFlag();
+}
+
+
+void Ui::SetLedsState(int idx)
+{
+    hw_->SetRGBColor(DaisyHank::RGB_LED_1,(idx == FM || idx == MODEL ? DaisyHank::YELLOW : DaisyHank::OFF));
+    hw_->SetRGBColor(DaisyHank::RGB_LED_2,(idx == HARM || idx == MODEL ? DaisyHank::YELLOW : DaisyHank::OFF));
+    hw_->SetRGBColor(DaisyHank::RGB_LED_3,(idx == TIMBRE ? DaisyHank::YELLOW : DaisyHank::OFF));
+    hw_->SetRGBColor(DaisyHank::RGB_LED_4,(idx == MORPH ? DaisyHank::YELLOW : DaisyHank::OFF));
 }
 
 }  // namespace plaits

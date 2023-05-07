@@ -307,6 +307,7 @@ class DaisyHank
 
   private:
     void SetHidUpdateRates();
+    void LoadCalibrationData();
 
     /** Cal data */
     float                  warp_v1_, warp_v3_;
