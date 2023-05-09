@@ -37,10 +37,8 @@ using namespace std;
 using namespace daisy;
 
 void Settings::Init(DaisyHank* hw) {
-  hw_ = hw;
-  
+  hw_ = hw; 
   LoadState();
-
 }
 
  /** @brief Sets the cv offset from an externally array of data */

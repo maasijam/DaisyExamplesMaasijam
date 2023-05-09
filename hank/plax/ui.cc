@@ -62,17 +62,7 @@ void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Settings* se
   //settings_->RestoreState();
   LoadState();
 
-  /*
-  if (hw_->s[S3].RawState()) {
-    State* state = settings_->mutable_state();
-    if (state->color_blind == 1) {
-      state->color_blind = 0; 
-    } else {
-      state->color_blind = 1; 
-    }
-    settings_->SaveState();
-  }
-  */
+  
   // Bind pots to parameters.
   pots_[DaisyHank::KNOB_1].Init(
       &transposition_, &octave_, 2.0f, -1.0f);
@@ -82,15 +72,6 @@ void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Settings* se
       &patch->timbre, &patch->decay, 1.0f, 0.0f);
   pots_[DaisyHank::KNOB_4].Init(
       &patch->morph, &cv_ctrl_, 1.0f, 0.0f);
-  /*pots_[KNOB_5].Init(
-      &patch->timbre_modulation_amount, NULL, 2.0f, -1.0f);
-  pots_[KNOB_6].Init(
-      &patch->frequency_modulation_amount, NULL, 2.0f, -1.0f);
-  pots_[KNOB_7].Init(
-      &patch->morph_modulation_amount, NULL, 2.0f, -1.0f);*/
-  
-  // Keep track of the agreement between the random sequence sent to the 
-  // switch and the value read by the ADC.
   
   
   pwm_counter_ = 0;
@@ -180,19 +161,6 @@ void Ui::UpdateLEDs() {
   switch (mode_) {
     case UI_MODE_NORMAL:
       {
-
-        /*DaisyHank::Colors red = settings_->state().color_blind == 1
-            ? ((pwm_counter & 3) ? DaisyHank::OFF : DaisyHank::YELLOW)
-            : DaisyHank::RED;
-        DaisyHank::Colors green = settings_->state().color_blind == 1
-            ? DaisyHank::YELLOW
-            : DaisyHank::GREEN;*/
-        //hw_->SetRGBColor(static_cast<LeddriverLeds>(active_engine_ & 7),active_engine_ & 8 ? red : green);
-        //hw_->SetRGBColor(static_cast<size_t>(active_engine_ & 3),active_engine_ & 4 ? red : green);
-        //if (pwm_counter < triangle) {
-          //hw_->SetRGBColor(static_cast<LeddriverLeds>(patch_->engine & 7),patch_->engine & 8 ? red : green);
-          //hw_->SetRGBColor(static_cast<size_t>(patch_->engine & 3),patch_->engine & 4 ? red : green);
-        //}
 
         DaisyHank::Colors engine_color_;
         if(active_engine_ < 4) 
@@ -314,40 +282,6 @@ void Ui::UpdateLEDs() {
         }
       }
       break;
-
-      case UI_MODE_TEST:
-      {
-        int color = (pwm_counter_ >> 10) % 3;
-          for (int i = 0; i < kNumLEDs; ++i) {
-            
-            hw_->SetRGBColor(i,pwm_counter > ((triangle + (i * 2)) & 15)
-                    ? (color == 0
-                      ? DaisyHank::GREEN
-                      : (color == 1 ? DaisyHank::YELLOW : DaisyHank::RED))
-                    : DaisyHank::OFF);
-          }
-      }
-        break;
-
-      case UI_MODE_RESTORE_STATE:
-      
-        if (pwm_counter < triangle) {
-          for (int i = 0; i < kNumLEDs; ++i) {
-            hw_->SetRGBColor(i,DaisyHank::CYAN);
-          }
-        }
-      
-      break;
-
-      case UI_MODE_HIDDEN_PATCHED:
-      {
-                    
-          //hw_->SetGreenLeds(LED_GREEN_1,modulations_->trigger_patched ? 1.f : 0.f);
-          //hw_->SetGreenLeds(LED_GREEN_2,modulations_->level_patched ? 1.f : 0.f);
-          
-          
-      }
-        break;
   }
   hw_->UpdateLeds();
 }
@@ -356,12 +290,9 @@ void Ui::ReadSwitches() {
 
   hw_->ProcessDigitalControls();
 
-  //int s_pins[1] = {0};
-  
   switch (mode_) {
     case UI_MODE_NORMAL:
       {
-        //for (int i = 0; i < 2; ++i) {
           if (hw_->s1.RisingEdge()) {
             press_time_ = 0;
             ignore_release_ = false;
@@ -371,7 +302,6 @@ void Ui::ReadSwitches() {
           } else {
             press_time_ = 0;
           }
-        //}
         
         if (hw_->s1.RisingEdge()) {
           pots_[DaisyHank::KNOB_1].Lock();
@@ -396,71 +326,12 @@ void Ui::ReadSwitches() {
         if (pots_[DaisyHank::KNOB_4].editing_hidden_parameter()) {
           mode_ = UI_MODE_DISPLAY_CV_CTRL;
         }
-        
-        // Long, double press: enter calibration mode.
-//TODO
-        //if (press_time_ >= kLongPressTime &&
-        //    press_time_ >= kLongPressTime) {
-        //  press_time_  = 0;
-        //  RealignPots();
-        //  StartCalibration();
-        //}
-        
-        // Long press or actually editing any hidden parameter: display value
-        // of hidden parameters.
-        //if (press_time_ >= kLongPressTime) {
-        //  press_time_ = 0;
-        //  mode_ = UI_MODE_DISPLAY_ALTERNATE_PARAMETERS;
-        //}
-        //if (press_time_[1] >= kLongPressTime && !press_time_[0]) {
-        //  press_time_[0] = press_time_[1] = 0;
-        //  mode_ = UI_MODE_DISPLAY_OCTAVE;
-        //}
-        
+                
         if (hw_->s1.FallingEdge() && !ignore_release_) {
           RealignPots();
           patch_->engine = (patch_->engine + 1) % size_engines_;
-          //if (patch_->engine >= 8) {
-          //  patch_->engine = patch_->engine & 7;
-          //} else {
-          //  patch_->engine = (patch_->engine + 1) % 8;
-          //}
-          //patch_->engine = (patch_->engine + 1) % 8;
           readyToSaveState = true;
         }
-/*
-        if (hw_->s[S3].FallingEdge() && !ignore_release_[1]) {
-          RealignPots();
-          if (patch_->engine < 8) {
-            patch_->engine = (patch_->engine & 7) + 8;
-          } else {
-            patch_->engine = 8 + ((patch_->engine + 1) % 8);
-          }
-         readyToSaveState = true;
-        }
-*/
-        /*if(hw_->s[S4].RisingEdge()) {
-          modulations_->timbre_patched = !modulations_->timbre_patched;
-          readyToSaveState = true;
-        }
-
-        if(hw_->s[S5].RisingEdge()) {
-          modulations_->frequency_patched = !modulations_->frequency_patched;
-          readyToSaveState = true;
-        }
-
-        if(hw_->s[S6].RisingEdge()) {
-          modulations_->morph_patched = !modulations_->morph_patched;
-          readyToSaveState = true;
-        }
-
-        if(hw_->s[S2].TimeHeldMs() > kLongPressTime) {
-            mode_ = UI_MODE_HIDDEN_PATCHED;
-        }
-        if(hw_->s[S4].TimeHeldMs() > kLongPressTime && hw_->s[S6].TimeHeldMs() > kLongPressTime) {
-            readyToRestore = true;
-            mode_ = UI_MODE_RESTORE_STATE;
-        }*/
 
         if (hw_->s1.TimeHeldMs() >= kLongCalPressTime) {
           press_time_  = 0;
@@ -475,7 +346,7 @@ void Ui::ReadSwitches() {
     case UI_MODE_DISPLAY_VCFA_VCA:
     case UI_MODE_DISPLAY_TIME_DECAY:
     case UI_MODE_DISPLAY_CV_CTRL:
-      //for (int i = 0; i < 2; ++i) {
+      
         if (hw_->s1.FallingEdge()) {
           pots_[DaisyHank::KNOB_3].Unlock();
           pots_[DaisyHank::KNOB_4].Unlock();
@@ -485,58 +356,38 @@ void Ui::ReadSwitches() {
           readyToSaveState = true;
           mode_ = UI_MODE_NORMAL;
         }
-      //}
+      
       break;
     
     case UI_MODE_CALIBRATION_C1:
-      //for (int i = 0; i < 2; ++i) {
+     
         if (hw_->s1.RisingEdge()) {
           press_time_ = 0;
           ignore_release_ = true;
           CalibrateC1();
           break;
         }
-      //}
+      
       break;
       
     case UI_MODE_CALIBRATION_C3:
-      //for (int i = 0; i < 2; ++i) {
+      
         if (hw_->s1.RisingEdge()) {
           press_time_ = 0;
           ignore_release_ = true;
           CalibrateC3();
           break;
         }
-      //}
+      
       break;
 
-    case UI_MODE_TEST:
     case UI_MODE_ERROR:
-    case UI_MODE_RESTORE_STATE:
-      //for (int i = 0; i < 2; ++i) {
         if (hw_->s1.RisingEdge()) {
           press_time_ = 0;
           ignore_release_ = true;
           mode_ = UI_MODE_NORMAL;
         }
-      //}
       break;
-      case UI_MODE_HIDDEN_PATCHED:
-      {
-          /*if(hw_->s[S4].RisingEdge()) {
-            modulations_->trigger_patched = !modulations_->trigger_patched;
-          }
-
-          if(hw_->s[S5].RisingEdge()) {
-            modulations_->level_patched = !modulations_->level_patched;
-          }
-          if(hw_->s[S2].RisingEdge()) {
-            readyToSaveState = true;
-            mode_ = UI_MODE_NORMAL;
-          }*/
-      }
-      break;
-
   }
 }
 
@@ -547,17 +398,11 @@ void Ui::ProcessPotsHiddenParameters() {
 }
 
 
-
 void Ui::DetectNormalization() {
-
-  
 
 }
 
 void Ui::Poll() {
-
-  
-  
 
   for (int i = 0; i < DaisyHank::KNOB_LAST; ++i) {
     pots_[i].ProcessControlRate(hw_->knob[i].Value());
@@ -583,10 +428,7 @@ void Ui::Poll() {
 	modulations_->timbre = cv_ctrl_state_ == TIMBRE ? hw_->cv[DaisyHank::CV_1].Value() * plaits_cv_scale[TIMBRE] : 0;
 	modulations_->morph = cv_ctrl_state_ == MORPH ? hw_->cv[DaisyHank::CV_1].Value() * plaits_cv_scale[MORPH] : 0;
 	modulations_->engine = cv_ctrl_state_ == MODEL ? hw_->cv[DaisyHank::CV_1].Value() * plaits_cv_scale[MODEL] : 0;
-  //modulations.level = hw.cv[CV_6].Value() * plaits_cv_scale[CV_6];
 
-  
-  
   
   ONE_POLE(pitch_lp_, hw_->GetWarpVoct(), 0.7f);
   ONE_POLE(pitch_lp_calibration_, hw_->cv[DaisyHank::CV_1].Value(), 0.1f);
@@ -649,9 +491,7 @@ void Ui::CalibrateC1() {
   }
   auto &current_offset_data = co;
   hw_->SetCvOffsetData(current_offset_data);
-
   hw_->CalibrateV1(pitch_lp_calibration_);
-
   mode_ = UI_MODE_CALIBRATION_C3;
 }
 

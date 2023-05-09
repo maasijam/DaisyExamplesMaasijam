@@ -55,11 +55,6 @@ Ui ui;
 Voice voice;
 
 
-
-
-
-
-
 char shared_buffer[16384] = {};
 
 
@@ -71,18 +66,8 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 
   hw.ProcessAnalogControls();
   ui.Poll();
-  
 
-
-  //modulations.frequency = 0;
-	//modulations.harmonics = 0;
-	//modulations.timbre = 0;
-	//modulations.morph = 0;
-	//modulations.engine = 0;
   modulations.level = 1;
-
-
-  
 
   patch.frequency_modulation_amount = 1.f;
 	patch.timbre_modulation_amount = 1.f;
@@ -106,9 +91,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 		OUT_R[i] = outputPlaits[i].aux / 32768.f;
 	}
   ui.set_active_engine(voice.active_engine());
-  
 
-  
 }
 
 
@@ -125,16 +108,10 @@ void Init() {
 
   stmlib::BufferAllocator allocator(shared_buffer, sizeof(shared_buffer));
 	voice.Init(&allocator);
-    
-  
-  
-  
   
   settings.Init(&hw);
   
   ui.Init(&patch, &modulations, &voice, &settings, &hw);
-
-  
 
   hw.StartAdc();
 	hw.StartAudio(AudioCallback);
@@ -142,15 +119,11 @@ void Init() {
 }
 
 int main(void) {
-  //hw.seed.StartLog(false);
   Init();
-  ///CvIns mycvin;
-  float  cvval;
+
   uint32_t last_save_time = System::GetNow(); 
-  //float cvoff[CV_LAST];
 
   while (1) {
-    //hw.GetCvOffsetData(cvoff);
     
         if (hw.ReadyToSaveCal()) {
             ui.SaveCalibrationData();

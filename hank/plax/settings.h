@@ -32,14 +32,9 @@
 #include "../stmlib/stmlib.h"
 #include "../daisy_hank.h"
 
-
-
-
 namespace plaits {
 
 using namespace daisy;
-
-
 
 #define FLASH_BLOCK 4096
 
