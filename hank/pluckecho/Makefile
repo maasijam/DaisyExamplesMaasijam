@@ -1,12 +1,12 @@
 # Project Name
 TARGET = pluckecho
 
-USE_FATFS = 1
+#USE_FATFS = 1
 
 #DEBUG = 1
 #LDFLAGS += -u _printf_float
 
-APP_TYPE = BOOT_QSPI
+#APP_TYPE = BOOT_QSPI
 
 # Sources
 CPP_SOURCES = pluckecho.cpp ../daisy_hank.cpp ../switch_hank.cpp
