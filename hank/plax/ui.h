@@ -118,6 +118,7 @@ class Ui {
   void LoadStateData();
 
   void SetLedsState(int idx);
+  void SetLedsOctRange(int idx);
     
   UiMode mode_;
   CvCtrlState cv_ctrl_state_;

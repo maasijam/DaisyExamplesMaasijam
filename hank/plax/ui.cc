@@ -42,7 +42,7 @@ using namespace stmlib;
 static const int32_t kLongPressTime = 2000;
 static const int32_t kLongCalPressTime = 10000;
 
-#define ENABLE_LFO_MODE
+//#define ENABLE_LFO_MODE
 
 void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Settings* settings, DaisyHank* hw) {
   hw_ = hw;
@@ -250,9 +250,7 @@ void Ui::UpdateLEDs() {
         }
 #else
         int octave = static_cast<float>(octave_ * 9.0f);
-        for (int i = 0; i < 8; ++i) {
-          hw_->SetRGBColor(static_cast<LeddriverLeds>(7 - i),octave == i || (octave == 8) ? YELLOW : OFF);
-        }
+        SetLedsOctRange(octave);
 #endif  // ENABLE_LFO_MODE
       }
       break;
@@ -518,6 +516,14 @@ void Ui::SaveCalibrationData()
     hw_->ClearSaveCalFlag();
 }
 
+
+void Ui::SetLedsOctRange(int idx)
+{
+    hw_->SetRGBColor(DaisyHank::RGB_LED_1,(idx == 1 || idx == 5 || idx == 6 || idx == 7 || idx == 8  ? DaisyHank::YELLOW : DaisyHank::OFF));
+    hw_->SetRGBColor(DaisyHank::RGB_LED_2,(idx == 2 || idx == 5 || idx == 8 ? DaisyHank::YELLOW : DaisyHank::OFF));
+    hw_->SetRGBColor(DaisyHank::RGB_LED_3,(idx == 3 || idx == 6 || idx == 8 ? DaisyHank::YELLOW : DaisyHank::OFF));
+    hw_->SetRGBColor(DaisyHank::RGB_LED_4,(idx == 4 || idx == 7 || idx == 8 ? DaisyHank::YELLOW : DaisyHank::OFF));
+}
 
 void Ui::SetLedsState(int idx)
 {
