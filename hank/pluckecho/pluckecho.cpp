@@ -25,6 +25,10 @@ float smooth_time;
 
 uint8_t     arp_idx;
 uint8_t 	scale_idx;
+uint8_t 	chord_idx;
+uint8_t 	chord_slot_idx;
+
+int chordSlot[4] = {0};
 
 // select scale, and pass midi note as nn 
 float scaleSelect(float nn){
@@ -55,29 +59,59 @@ float scaleSelect(float nn){
 
 	}
 
+// select scale, and pass midi note as nn 
+float chordSelect(float nn){
+	float freq;
+	freq = nn + chords[chordSlot[chord_slot_idx]].notes[arp_idx];
+
+	/*switch (chord_idx)
+	{
+	case I:
+		freq = nn + chords[chord_idx].notes[arp_idx];
+		break;
+	case IS2:
+		freq = nn + chords[chord_idx].notes[arp_idx];
+		break;
+	case IS4:
+		freq = nn + chords[chord_idx].notes[arp_idx];
+		break;
+	case I7:
+		freq = nn + chords[chord_idx].notes[arp_idx];
+		break;
+	default:
+		
+		
+		break;
+	}*/
+	
+	return freq;
+
+	}
+
 void UpdateDigital() {
 	hw.s1.Debounce();
 	hw.ClearLeds();
 	if(hw.s1.FallingEdge()){
-		scale_idx = (scale_idx + 1) % 5; // advance scale +1, else wrap back to 1? 
-		if(scale_idx == 0) {
-			scale_idx = 1;
-		}
+		//chord_idx = (chord_idx + 1) % 12; // advance scale +1, else wrap back to 1? 
+		//if(chord_idx == 0) {
+		//	chord_idx = 0;
+		//}
 	}
-	switch (scale_idx)
+	switch (chord_slot_idx)
 	{
-	case 1:
+	case 0:
 		hw.SetRGBColor(DaisyHank::RGB_LED_1,hw.BLUE);
 		break;
-	case 2:
+	case 1:
 		hw.SetRGBColor(DaisyHank::RGB_LED_2,hw.BLUE);
 		break;
-	case 3:
+	case 2:
 		hw.SetRGBColor(DaisyHank::RGB_LED_3,hw.BLUE);
 		break;
-	case 4:
+	case 3:
 		hw.SetRGBColor(DaisyHank::RGB_LED_4,hw.BLUE);
 		break;
+   
 	default:
 		
 		break;
@@ -106,9 +140,13 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 
     // Handle Triggering the Plucks
     trig = 0.0f;
-    if(hw.s1.RisingEdge() || hw.gate_in1.Trig())
+    int chordLength = chords[chordSlot[chord_slot_idx]].num_notes;
+    if(hw.gate_in1.Trig())
     {
-        arp_idx = (arp_idx + 1) % 5; // advance the kArpeggio, wrapping at the end.
+        if(arp_idx == (chordLength - 1)) {
+            chord_slot_idx = (chord_slot_idx + 1) % 4;
+        }
+        arp_idx = (arp_idx + 1) % chordLength; // advance the kArpeggio, wrapping at the end.
         trig = 1.0f;
     }
         
@@ -135,7 +173,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
         fonepole(smooth_time, deltime, 0.0005f);
         delay.SetDelay(smooth_time);
 
-        float new_freq = scaleSelect(nn);
+        float new_freq = chordSelect(nn);
 
         // Synthesize Plucks
         sig = synth.Process(trig, new_freq);
@@ -176,6 +214,13 @@ int main(void)
     verb.SetLpFreq(2000.0f);
 
     scale_idx = 1;
+    chord_idx = 0;
+    chord_slot_idx = 0;
+
+    chordSlot[0] = I;
+    chordSlot[1] = I7;
+    chordSlot[2] = IV;
+    chordSlot[3] = V7;
 
     // Start the ADC and Audio Peripherals on the Hardware
     hw.StartAdc();
