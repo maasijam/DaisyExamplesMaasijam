@@ -1,11 +1,14 @@
 #include "../daisy_hank.h"
 #include "daisysp.h"
 #include "arp_notes.h"
+#include "settings.h"
+#include "ui.h"
 #include <string>
 
 using namespace daisy;
 using namespace daisysp;
 using namespace arps;
+
 
 #define NUM_VOICES 32
 #define MAX_DELAY ((size_t)(10.0f * 48000.0f))
@@ -14,79 +17,36 @@ using namespace arps;
 // Hardware
 DaisyHank hw;
 
+
+
+using namespace plaits;
+using namespace stmlib;
+
 // Synthesis
 PolyPluck<NUM_VOICES> synth;
 // 10 second delay line on the external SDRAM
 DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delay;
 ReverbSc                                  verb;
 
+Settings settings;
+Ui ui;
+
 // Persistent filtered Value for smooth delay time changes.
 float smooth_time;
 
 uint8_t     arp_idx;
-uint8_t 	scale_idx;
 uint8_t 	chord_idx;
 uint8_t 	chord_slot_idx;
 
-int chordSlot[4] = {0};
-
-// select scale, and pass midi note as nn 
-float scaleSelect(float nn){
-	float freq;
-	
-
-	switch (scale_idx)
-	{
-	case 1:
-		freq = nn + noMajPen[arp_idx];
-		break;
-	case 2:
-		freq = nn + noMinPen[arp_idx];
-		break;
-	case 3:
-		freq = nn + noMajTri[arp_idx];
-		break;
-	case 4:
-		freq = nn + noMinTri[arp_idx];
-		break;
-	default:
-		
-		
-		break;
-	}
-	
-	return freq;
-
-	}
+ArpSettings arpsettings;
 
 // select scale, and pass midi note as nn 
 float chordSelect(float nn){
 	float freq;
-	freq = nn + chords[chordSlot[chord_slot_idx]].notes[arp_idx];
-
-	/*switch (chord_idx)
-	{
-	case I:
-		freq = nn + chords[chord_idx].notes[arp_idx];
-		break;
-	case IS2:
-		freq = nn + chords[chord_idx].notes[arp_idx];
-		break;
-	case IS4:
-		freq = nn + chords[chord_idx].notes[arp_idx];
-		break;
-	case I7:
-		freq = nn + chords[chord_idx].notes[arp_idx];
-		break;
-	default:
-		
-		
-		break;
-	}*/
-	
+	freq = nn + scaleChords[arpsettings.scaleIdx][arpsettings.slotChordIdx[chord_slot_idx]].notes[arp_idx];	
 	return freq;
 
-	}
+}
 
 void UpdateDigital() {
 	hw.s1.Debounce();
@@ -140,7 +100,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 
     // Handle Triggering the Plucks
     trig = 0.0f;
-    int chordLength = chords[chordSlot[chord_slot_idx]].num_notes;
+    int chordLength = scaleChords[arpsettings.scaleIdx][arpsettings.slotChordIdx[chord_slot_idx]].num_notes;
     if(hw.gate_in1.Trig())
     {
         if(arp_idx == (chordLength - 1)) {
@@ -213,20 +173,40 @@ int main(void)
     verb.SetFeedback(0.85f);
     verb.SetLpFreq(2000.0f);
 
-    scale_idx = 1;
-    chord_idx = 0;
+    //scale_idx = DORIAN;
+    chord_idx = I;
     chord_slot_idx = 0;
 
-    chordSlot[0] = I;
-    chordSlot[1] = I7;
-    chordSlot[2] = IV;
-    chordSlot[3] = V7;
+    //chordSlot[0] = I;
+    //chordSlot[1] = I7;
+    //chordSlot[2] = IV;
+    //chordSlot[3] = V7;
+
+    settings.Init(&hw);
+  
+  ui.Init(&arpsettings, &settings, &hw);
 
     // Start the ADC and Audio Peripherals on the Hardware
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
-    for(;;)
-    {
-        UpdateDigital();
-    }
+    
+    uint32_t last_save_time = System::GetNow(); 
+
+  while (1) {
+    UpdateDigital();
+        if (hw.ReadyToSaveCal()) {
+            //ui.SaveCalibrationData();
+        }
+        if (System::GetNow() - last_save_time > 100 && ui.readyToSaveState)
+        {
+          //ui.SaveState();
+          last_save_time = System::GetNow();
+          ui.readyToSaveState = false;
+        }
+        if (ui.readyToRestore) {
+            /** Collect the data from where ever in the application it is */
+            settings.RestoreState();
+            ui.readyToRestore = false;
+        }
+  }
 }
