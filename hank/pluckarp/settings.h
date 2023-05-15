@@ -56,10 +56,10 @@ struct State {
   direction(0)  {}
 
   
-  uint8_t scale;
-  uint8_t slotChord[4];
-  uint8_t repeats;
-  uint8_t direction;
+  float scale;
+  float slotChord[4];
+  float repeats;
+  float direction;
   
 
 

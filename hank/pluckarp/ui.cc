@@ -44,32 +44,33 @@ static const int32_t kLongCalPressTime = 10000;
 
 //#define ENABLE_LFO_MODE
 
-void Ui::Init(ArpSettings* arpsettings, Settings* settings, DaisyHank* hw) {
+void Ui::Init(Synthparams* synthparams, ArpSettings* arpsettings, Settings* settings, DaisyHank* hw) {
   hw_ = hw;
   settings_ = settings;
   arpsettings_ = arpsettings;
+  synthparams_ = synthparams;
 
   ui_task_ = 0;
   mode_ = UI_MODE_NORMAL;
  
  
-  cv_ctrl_ = VOCT;
+  //cv_ctrl_ = VOCT;
   
   //settings_->RestoreState();
   LoadState();
 
   
   // Bind pots to parameters.
-  /*
+  
   pots_[DaisyHank::KNOB_1].Init(
-      &transposition_, &octave_, 2.0f, -1.0f);
+      &synthparams_->freq, &arpsettings_->slotChordIdx[0], &arpsettings_->scaleIdx ,1.0f, 0.0f);
   pots_[DaisyHank::KNOB_2].Init(
-      &patch->harmonics, &patch->lpg_colour, 1.0f, 0.0f);
+      &synthparams_->damp, &arpsettings_->slotChordIdx[1], &arpsettings_->chordDirection ,1.0f, 0.0f);
   pots_[DaisyHank::KNOB_3].Init(
-      &patch->timbre, &patch->decay, 1.0f, 0.0f);
+      &synthparams_->revfdb, &arpsettings_->slotChordIdx[2], &arpsettings_->chordRepeats ,1.0f, 0.0f);
   pots_[DaisyHank::KNOB_4].Init(
-      &patch->morph, &cv_ctrl_, 1.0f, 0.0f);
-  */
+      &synthparams_->revlpf, &arpsettings_->slotChordIdx[3], NULL, 1.0f, 0.0f);
+  
   
   pwm_counter_ = 0;
   press_time_ =  0;
@@ -128,38 +129,55 @@ void Ui::UpdateLEDs() {
   switch (mode_) {
     case UI_MODE_NORMAL:
       {
-
+      switch (arpsettings_->chord_slot_idx)
+        {
+        case 0:
+          SetChordColor(static_cast<int>(arpsettings_->slotChordIdx[0] * 12.0f),DaisyHank::RGB_LED_1);
+          break;
+        case 1:
+          SetChordColor(static_cast<int>(arpsettings_->slotChordIdx[1] * 12.0f),DaisyHank::RGB_LED_2);
+          break;
+        case 2:
+          SetChordColor(static_cast<int>(arpsettings_->slotChordIdx[2] * 12.0f),DaisyHank::RGB_LED_3);
+          break;
+        case 3:
+          SetChordColor(static_cast<int>(arpsettings_->slotChordIdx[3] * 12.0f),DaisyHank::RGB_LED_4);
+          break;
         
-        //hw_->SetRGBColor(static_cast<size_t>(active_engine_ & 3),engine_color_);
-
-
-      }
-      break;
-    
-    case UI_MODE_DISPLAY_VCFA_VCA:
-      {
+        default:
           
-         
-        
-      }
-      break;
+          break;
+        }
 
-      case UI_MODE_DISPLAY_TIME_DECAY:
-      {
-        
-        
-      }
-      break;
-
-      case UI_MODE_DISPLAY_CV_CTRL:
-      {
-        
       }
       break;
     
-    case UI_MODE_DISPLAY_OCTAVE:
+    case UI_MODE_SLOT_CHORD:
       {
+          int chord1 = static_cast<int>(arpsettings_->slotChordIdx[0] * 12.0f);
+          SetChordColor(chord1,DaisyHank::RGB_LED_1);
+          int chord2 = static_cast<int>(arpsettings_->slotChordIdx[1] * 12.0f);
+          SetChordColor(chord2,DaisyHank::RGB_LED_2);
+          int chord3 = static_cast<int>(arpsettings_->slotChordIdx[2] * 12.0f);
+          SetChordColor(chord3,DaisyHank::RGB_LED_3);
+          int chord4 = static_cast<int>(arpsettings_->slotChordIdx[3] * 12.0f);
+          SetChordColor(chord4,DaisyHank::RGB_LED_4);
+          
+        
+      }
+      break;
 
+      case UI_MODE_CONFIG:
+      {
+        int scaleidx = static_cast<int>(arpsettings_->scaleIdx * 3.0f);
+        SetConfigColor(scaleidx, DaisyHank::RGB_LED_1);
+        int directionidx = static_cast<int>(arpsettings_->chordDirection * 5.0f);
+        SetConfigColor(directionidx, DaisyHank::RGB_LED_2);
+        int repeatsidx = static_cast<int>(arpsettings_->chordRepeats * 8.0f);
+        SetConfigColor(repeatsidx, DaisyHank::RGB_LED_3);
+        
+      
+        
       }
       break;
       
@@ -210,28 +228,28 @@ void Ui::ReadSwitches() {
           }
         
         if (hw_->s1.RisingEdge()) {
-          pots_[DaisyHank::KNOB_1].Lock();
-          pots_[DaisyHank::KNOB_2].Lock();
-          pots_[DaisyHank::KNOB_3].Lock();
-          pots_[DaisyHank::KNOB_4].Lock();
+          pots_[DaisyHank::KNOB_1].Lock(false);
+          pots_[DaisyHank::KNOB_2].Lock(false);
+          pots_[DaisyHank::KNOB_3].Lock(false);
+          pots_[DaisyHank::KNOB_4].Lock(false);
         }
         
-        if (pots_[DaisyHank::KNOB_1].editing_hidden_parameter()) {
-          mode_ = UI_MODE_DISPLAY_OCTAVE; 
+        if (pots_[DaisyHank::KNOB_1].editing_hidden_parameter1() ||
+          pots_[DaisyHank::KNOB_2].editing_hidden_parameter1() ||
+          pots_[DaisyHank::KNOB_3].editing_hidden_parameter1() ||
+          pots_[DaisyHank::KNOB_4].editing_hidden_parameter1()) {
+          mode_ = UI_MODE_SLOT_CHORD; 
         }
 
-        if (pots_[DaisyHank::KNOB_2].editing_hidden_parameter()) {
-          mode_ = UI_MODE_DISPLAY_VCFA_VCA;
+        if(hw_->s1.DoubleClick()) {
+          pots_[DaisyHank::KNOB_1].Lock(true);
+          pots_[DaisyHank::KNOB_2].Lock(true);
+          pots_[DaisyHank::KNOB_3].Lock(true);
+          pots_[DaisyHank::KNOB_4].Lock(true);
+          mode_ = UI_MODE_CONFIG;
         }
+
         
-        
-        if (pots_[DaisyHank::KNOB_3].editing_hidden_parameter()) {
-          mode_ = UI_MODE_DISPLAY_TIME_DECAY;
-        }
-        
-        if (pots_[DaisyHank::KNOB_4].editing_hidden_parameter()) {
-          mode_ = UI_MODE_DISPLAY_CV_CTRL;
-        }
                 
         if (hw_->s1.FallingEdge() && !ignore_release_) {
           RealignPots();
@@ -248,17 +266,30 @@ void Ui::ReadSwitches() {
       }
       break;
       
-    case UI_MODE_DISPLAY_OCTAVE:
-    case UI_MODE_DISPLAY_VCFA_VCA:
-    case UI_MODE_DISPLAY_TIME_DECAY:
-    case UI_MODE_DISPLAY_CV_CTRL:
-      
+    case UI_MODE_SLOT_CHORD:
+    
+        
         if (hw_->s1.FallingEdge()) {
           pots_[DaisyHank::KNOB_3].Unlock();
           pots_[DaisyHank::KNOB_4].Unlock();
           pots_[DaisyHank::KNOB_2].Unlock();
           pots_[DaisyHank::KNOB_1].Unlock();
           press_time_ = 0;
+          readyToSaveState = true;
+          mode_ = UI_MODE_NORMAL;
+        }
+      
+      break;
+
+    case UI_MODE_CONFIG:
+        
+        if (hw_->s1.RisingEdge()) {
+          pots_[DaisyHank::KNOB_3].Unlock();
+          pots_[DaisyHank::KNOB_4].Unlock();
+          pots_[DaisyHank::KNOB_2].Unlock();
+          pots_[DaisyHank::KNOB_1].Unlock();
+          press_time_ = 0;
+          ignore_release_ = true;
           readyToSaveState = true;
           mode_ = UI_MODE_NORMAL;
         }
@@ -313,23 +344,6 @@ void Ui::Poll() {
   for (int i = 0; i < DaisyHank::KNOB_LAST; ++i) {
     pots_[i].ProcessControlRate(hw_->knob[i].Value());
   }
-
-  if(cv_ctrl_ >= 0.165f && cv_ctrl_ < 0.33f ) {
-      cv_ctrl_state_ = FM;
-  } else if(cv_ctrl_ >= 0.33f && cv_ctrl_ < 0.495f) {
-      cv_ctrl_state_ = HARM;
-  } else if(cv_ctrl_ >= 0.495f && cv_ctrl_ < 0.66f) {
-      cv_ctrl_state_ = TIMBRE;
-  } else if(cv_ctrl_ >= 0.66f && cv_ctrl_ < 0.825f) {
-      cv_ctrl_state_ = MORPH;
-  } else if(cv_ctrl_ >= 0.825f && cv_ctrl_ <= 1.f) {
-      cv_ctrl_state_ = MODEL;
-  } else {
-      cv_ctrl_state_ = VOCT;
-  }
-
-
- 
   
   ONE_POLE(pitch_lp_, hw_->GetWarpVoct(), 0.7f);
   ONE_POLE(pitch_lp_calibration_, hw_->cv[DaisyHank::CV_1].Value(), 0.1f);
@@ -410,12 +424,86 @@ void Ui::SetLedsOctRange(int idx)
     hw_->SetRGBColor(DaisyHank::RGB_LED_4,(idx == 4 || idx == 7 || idx == 8 ? DaisyHank::YELLOW : DaisyHank::OFF));
 }
 
-void Ui::SetLedsState(int idx)
+void Ui::SetChordColor(int idx, DaisyHank::Rgbs rgb_idx)
 {
-    hw_->SetRGBColor(DaisyHank::RGB_LED_1,(idx == FM || idx == MODEL ? DaisyHank::YELLOW : DaisyHank::OFF));
-    hw_->SetRGBColor(DaisyHank::RGB_LED_2,(idx == HARM || idx == MODEL ? DaisyHank::YELLOW : DaisyHank::OFF));
-    hw_->SetRGBColor(DaisyHank::RGB_LED_3,(idx == TIMBRE ? DaisyHank::YELLOW : DaisyHank::OFF));
-    hw_->SetRGBColor(DaisyHank::RGB_LED_4,(idx == MORPH ? DaisyHank::YELLOW : DaisyHank::OFF));
+    
+    switch (idx)
+    {
+    case I:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::BLUE);
+      break;
+    case IS2:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::TURQ);
+      break;
+    case IS4:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::CYAN);
+      break;
+    case I7:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::DARKGREEN);
+      break;
+    case IV:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::RED);
+      break;
+    case IV7:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::DARKRED);
+      break;
+    case V:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::BLUE);
+      break;
+    case V7:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::DARKBLUE);
+      break;
+    case VI:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::ORANGE);
+      break;
+    case VI7:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::DARKORANGE);
+      break;
+    case II:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::YELLOW);
+      break;
+    case III:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::PURPLE);
+      break;
+    
+    default:
+      break;
+    }
+}
+
+void Ui::SetConfigColor(int idx, DaisyHank::Rgbs rgb_idx)
+{
+    
+    switch (idx)
+    {
+    case 0:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::BLUE);
+      break;
+    case 1:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::RED);
+      break;
+    case 2:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::GREEN);
+      break;
+    case 3:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::YELLOW);
+      break;
+    case 4:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::PURPLE);
+      break;
+    case 5:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::CYAN);
+      break;
+    case 6:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::ORANGE);
+      break;
+    case 7:
+      hw_->SetRGBColor(rgb_idx,DaisyHank::WHITE);
+      break;
+    
+    default:
+      break;
+    }
 }
 
 }  // namespace plaits

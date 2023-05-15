@@ -86,7 +86,7 @@ class SwitchHank
         return flip_ ? !dsy_gpio_read(&hw_gpio_) : dsy_gpio_read(&hw_gpio_);
     }
 
-    /** \return true if a button was just pressed. */
+    /** \return true if a button was double clicked. */
     inline bool DoubleClick() const { return updated_ ? doubleclicked_ : false; }
 
     /** \return the time in milliseconds that the button has been held (or toggle has been on) */

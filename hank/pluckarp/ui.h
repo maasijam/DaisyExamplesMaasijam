@@ -34,7 +34,7 @@
 
 #include "../daisy_hank.h"
 #include "pot_controller.h"
-#include "arp_notes.h"
+#include "arp.h"
 #include "settings.h"
 
 
@@ -50,26 +50,12 @@ const int kNumLEDs = 4;
 
 enum UiMode {
   UI_MODE_NORMAL,
-  UI_MODE_DISPLAY_OCTAVE,
-  UI_MODE_DISPLAY_VCFA_VCA,
-  UI_MODE_DISPLAY_TIME_DECAY,
-  UI_MODE_DISPLAY_CV_CTRL,
+  UI_MODE_SLOT_CHORD,
+  UI_MODE_CONFIG,
   UI_MODE_CALIBRATION_C1,
   UI_MODE_CALIBRATION_C3,
   UI_MODE_ERROR,
 };
-
-enum CvCtrlState {
-  VOCT,
-  FM,
-  HARM,
-  TIMBRE,
-  MORPH,
-  MODEL,
-  CV_CTRL_LAST,
-};
-
-
 
 
 class Ui {
@@ -77,7 +63,7 @@ class Ui {
   Ui() { }
   ~Ui() { }
   
-  void Init(ArpSettings* arpsettings, Settings* settings, DaisyHank* hw);
+  void Init(Synthparams* synthparams, ArpSettings* arpsettings, Settings* settings, DaisyHank* hw);
   
   void Poll();
   
@@ -95,7 +81,7 @@ class Ui {
   bool readyToRestore = false;
 
   float lfovalue;
-  float plaits_cv_scale[CV_CTRL_LAST] = {0,60.0,1,1.6,1.6,1.03};
+  //float plaits_cv_scale[CV_CTRL_LAST] = {0,60.0,1,1.6,1.6,1.03};
 
   
  private:
@@ -120,9 +106,11 @@ class Ui {
 
   void SetLedsState(int idx);
   void SetLedsOctRange(int idx);
+  void SetChordColor(int idx, DaisyHank::Rgbs rgb_idx);
+  void SetConfigColor(int idx, DaisyHank::Rgbs rgb_idx);
     
   UiMode mode_;
-  CvCtrlState cv_ctrl_state_;
+  //CvCtrlState cv_ctrl_state_;
   
   
   int ui_task_;
@@ -135,7 +123,7 @@ class Ui {
   
   Settings* settings_;
   ArpSettings* arpsettings_;
-
+  Synthparams* synthparams_;
 
 
   int pwm_counter_;

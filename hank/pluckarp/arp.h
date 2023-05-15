@@ -2,6 +2,14 @@
 #define ARP_NOTES_H_
 
 namespace arps {
+
+
+struct Synthparams {
+  float freq;
+  float damp;
+  float revlpf;
+  float revfdb;
+};
     
 // direction - to be implemented later
 enum arpdirection {
@@ -38,12 +46,13 @@ enum chordname {
 };
 
 struct ArpSettings {
-    int slotChordIdx[4];
-    int scaleIdx;
-    int chordRepeats;
-    int chordDirection;
+    float slotChordIdx[4];
+    float scaleIdx;
+    float chordRepeats;
+    float chordDirection;
+    int chord_slot_idx;
+    int arp_idx;
 };
-
 
 
 struct Chord {

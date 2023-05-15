@@ -46,8 +46,10 @@ namespace plaits {
 
 enum PotState {
   POT_STATE_TRACKING,
-  POT_STATE_LOCKING,
-  POT_STATE_HIDDEN_PARAMETER,
+  POT_STATE_LOCKING1,
+  POT_STATE_LOCKING2,
+  POT_STATE_HIDDEN_PARAMETER1,
+  POT_STATE_HIDDEN_PARAMETER2,
   POT_STATE_CATCHING_UP
 };
   
@@ -58,14 +60,16 @@ class PotController {
   
   inline void Init(
       float* main_parameter,
-      float* hidden_parameter,
+      float* hidden_parameter1,
+      float* hidden_parameter2,
       float scale,
       float offset) {
     state_ = POT_STATE_TRACKING;
     was_catching_up_ = false;
 
     main_parameter_ = main_parameter;
-    hidden_parameter_ = hidden_parameter;
+    hidden_parameter1_ = hidden_parameter1;
+    hidden_parameter2_ = hidden_parameter2;
 
     value_ = 0.0f;
     stored_value_ = 0.0f;
@@ -74,22 +78,31 @@ class PotController {
     offset_ = offset;
   }
   
-  inline void Lock() {
-    if (state_ == POT_STATE_LOCKING || state_ == POT_STATE_HIDDEN_PARAMETER) {
+  inline void Lock(bool config) {
+    if (state_ == POT_STATE_LOCKING1 || state_ == POT_STATE_LOCKING2 || state_ == POT_STATE_HIDDEN_PARAMETER1 || state_ == POT_STATE_HIDDEN_PARAMETER2) {
       return;
     }
-    if (hidden_parameter_) {
+    if (hidden_parameter1_ || hidden_parameter2_) {
       was_catching_up_ = state_ == POT_STATE_CATCHING_UP;
-      state_ = POT_STATE_LOCKING;
+      if(config) {
+        state_ = POT_STATE_LOCKING2;
+      } else {
+        state_ = POT_STATE_LOCKING1;
+      }
+      
     }
   }
   
-  inline bool editing_hidden_parameter() const {
-    return state_ == POT_STATE_HIDDEN_PARAMETER;
+  inline bool editing_hidden_parameter1() const {
+    return state_ == POT_STATE_HIDDEN_PARAMETER1;
+  }
+
+  inline bool editing_hidden_parameter2() const {
+    return state_ == POT_STATE_HIDDEN_PARAMETER2;
   }
   
   inline void Unlock() {
-    if (state_ == POT_STATE_HIDDEN_PARAMETER || was_catching_up_) {
+    if (state_ == POT_STATE_HIDDEN_PARAMETER1 || state_ == POT_STATE_HIDDEN_PARAMETER2 || was_catching_up_) {
       state_ = POT_STATE_CATCHING_UP;
     } else {
       state_ = POT_STATE_TRACKING;
@@ -113,17 +126,30 @@ class PotController {
         previous_value_ = value_;
         break;
         
-      case POT_STATE_LOCKING:
+      case POT_STATE_LOCKING1:
         if (fabsf(value_ - previous_value_) > 0.03f) {
           stored_value_ = previous_value_;
-          *hidden_parameter_ = value_;
-          state_ = POT_STATE_HIDDEN_PARAMETER;
+          *hidden_parameter1_ = value_;
+          state_ = POT_STATE_HIDDEN_PARAMETER1;
           previous_value_ = value_;
         }
         break;
       
-      case POT_STATE_HIDDEN_PARAMETER:
-        *hidden_parameter_ = value_;
+      case POT_STATE_LOCKING2:
+        if (fabsf(value_ - previous_value_) > 0.03f) {
+          stored_value_ = previous_value_;
+          *hidden_parameter2_ = value_;
+          state_ = POT_STATE_HIDDEN_PARAMETER2;
+          previous_value_ = value_;
+        }
+        break;
+      
+      case POT_STATE_HIDDEN_PARAMETER1:
+        *hidden_parameter1_ = value_;
+        previous_value_ = value_;
+        break;
+      case POT_STATE_HIDDEN_PARAMETER2:
+        *hidden_parameter2_ = value_;
         previous_value_ = value_;
         break;
         
@@ -156,7 +182,8 @@ class PotController {
   bool was_catching_up_;
   
   float* main_parameter_;
-  float* hidden_parameter_;
+  float* hidden_parameter1_;
+  float* hidden_parameter2_;
   float value_;
   float stored_value_;
   float previous_value_;

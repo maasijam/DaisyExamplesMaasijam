@@ -45,11 +45,11 @@ void Settings::Init(DaisyHank* hw) {
 inline void Settings::SetStateData(State state_data)
 {
     state_ = state_data;
-    CONSTRAIN(state_.scale, 0, 2);
-    CONSTRAIN(state_.slotChord[0], 0, 11);
-    CONSTRAIN(state_.slotChord[1], 0, 11);
-    CONSTRAIN(state_.slotChord[2], 0, 11);
-    CONSTRAIN(state_.slotChord[3], 0, 11);
+    //CONSTRAIN(state_.scale, 0, 2);
+    //CONSTRAIN(state_.slotChord[0], 0, 11);
+    //CONSTRAIN(state_.slotChord[1], 0, 11);
+    //CONSTRAIN(state_.slotChord[2], 0, 11);
+    //CONSTRAIN(state_.slotChord[3], 0, 11);
       
 }
 

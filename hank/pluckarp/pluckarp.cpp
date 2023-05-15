@@ -1,6 +1,7 @@
 #include "../daisy_hank.h"
 #include "daisysp.h"
-#include "arp_notes.h"
+#include "polypluckarp.h"
+#include "arp.h"
 #include "settings.h"
 #include "ui.h"
 #include <string>
@@ -23,115 +24,104 @@ using namespace plaits;
 using namespace stmlib;
 
 // Synthesis
-PolyPluck<NUM_VOICES> synth;
+PolyPluckArp<NUM_VOICES> synth;
 // 10 second delay line on the external SDRAM
-DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delay;
+//DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delay;
 ReverbSc                                  verb;
 
 Settings settings;
 Ui ui;
 
 // Persistent filtered Value for smooth delay time changes.
-float smooth_time;
+//float smooth_time;
 
-uint8_t     arp_idx;
-uint8_t 	chord_idx;
-uint8_t 	chord_slot_idx;
+
+
 
 ArpSettings arpsettings;
+
+Synthparams synthparams;
 
 // select scale, and pass midi note as nn 
 float chordSelect(float nn){
 	float freq;
-	freq = nn + scaleChords[arpsettings.scaleIdx][arpsettings.slotChordIdx[chord_slot_idx]].notes[arp_idx];	
+	freq = nn + scaleChords[static_cast<int>(arpsettings.scaleIdx)][static_cast<int>(arpsettings.slotChordIdx[arpsettings.chord_slot_idx]*12)].notes[arpsettings.arp_idx];	
 	return freq;
 
 }
 
-void UpdateDigital() {
-	hw.s1.Debounce();
-	hw.ClearLeds();
-	if(hw.s1.FallingEdge()){
-		//chord_idx = (chord_idx + 1) % 12; // advance scale +1, else wrap back to 1? 
-		//if(chord_idx == 0) {
-		//	chord_idx = 0;
-		//}
-	}
-	switch (chord_slot_idx)
-	{
-	case 0:
-		hw.SetRGBColor(DaisyHank::RGB_LED_1,hw.BLUE);
-		break;
-	case 1:
-		hw.SetRGBColor(DaisyHank::RGB_LED_2,hw.BLUE);
-		break;
-	case 2:
-		hw.SetRGBColor(DaisyHank::RGB_LED_3,hw.BLUE);
-		break;
-	case 3:
-		hw.SetRGBColor(DaisyHank::RGB_LED_4,hw.BLUE);
-		break;
-   
-	default:
-		
-		break;
-	}
-	hw.UpdateLeds();
-}
+
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                    AudioHandle::OutputBuffer out,
                    size_t                    size)
 {
-    float sig, delsig;           // Mono Audio Vars
-    float trig, nn, decay;       // Pluck Vars
-    float deltime, delfb, kval;  // Delay Vars
-    float dry, send, wetl, wetr; // Effects Vars
-    float samplerate;
+    float sig;           // Mono Audio Vars
+    float trig, nn, damp;       // Pluck Vars
+    //float deltime, delfb, kval;  // Delay Vars
+    float dry, send, wetl, wetr, verblpf; // Effects Vars
+    
+
+    
 
     // Assign Output Buffers
     float *out_left, *out_right;
     out_left  = out[0];
     out_right = out[1];
 
-    samplerate = hw.AudioSampleRate();
-    hw.ProcessDigitalControls();
+    
+    //hw.ProcessDigitalControls();
     hw.ProcessAnalogControls();
+
+    ui.Poll();
 
     // Handle Triggering the Plucks
     trig = 0.0f;
-    int chordLength = scaleChords[arpsettings.scaleIdx][arpsettings.slotChordIdx[chord_slot_idx]].num_notes;
+    int chordLength = scaleChords[static_cast<int>(arpsettings.scaleIdx)][static_cast<int>(arpsettings.slotChordIdx[arpsettings.chord_slot_idx]*12)].num_notes;
     if(hw.gate_in1.Trig())
     {
-        if(arp_idx == (chordLength - 1)) {
-            chord_slot_idx = (chord_slot_idx + 1) % 4;
+        if(arpsettings.arp_idx == (chordLength - 1)) {
+            arpsettings.chord_slot_idx = (arpsettings.chord_slot_idx + 1) % 4;
         }
-        arp_idx = (arp_idx + 1) % chordLength; // advance the kArpeggio, wrapping at the end.
+        arpsettings.arp_idx = (arpsettings.arp_idx + 1) % chordLength; // advance the kArpeggio, wrapping at the end.
         trig = 1.0f;
     }
         
 
     // Set MIDI Note for new Pluck notes.
-    nn = 24.0f + hw.GetKnobValue(DaisyHank::KNOB_1) * 60.0f;
+    nn = 24.0f + synthparams.freq * 60.0f;
     nn = static_cast<int32_t>(nn); // Quantize to semitones
 
 
 
     // Read knobs for decay;
-    decay = 0.5f + (hw.GetKnobValue(DaisyHank::KNOB_2) * 0.5f);
-    synth.SetDecay(decay);
+    damp = 0.5f + (synthparams.damp * 0.5f);
+    synth.SetDamp(damp);
+
+    // Read knobs for decay;
+    //decay = 0.3f + (synthparams.damp * 0.7f);
+    //synth.SetDecay(decay);
 
     // Get Delay Parameters from knobs.
-    kval    = hw.GetKnobValue(DaisyHank::KNOB_3);
-    deltime = (0.001f + (kval * kval) * 5.0f) * samplerate;
-    delfb   = hw.GetKnobValue(DaisyHank::KNOB_4);
+    //kval    = synthparams.deltime;
+    //deltime = (0.001f + (kval * kval) * 5.0f) * samplerate;
+    //delfb   = synthparams.delfdbk;
+
+    verb.SetFeedback(synthparams.revfdb);
+    verblpf = 2000.0f + (synthparams.revlpf * 6000.0f);
+    verb.SetLpFreq(verblpf);
 
     // Synthesis.
     for(size_t i = 0; i < size; i++)
     {
         // Smooth delaytime, and set.
-        fonepole(smooth_time, deltime, 0.0005f);
-        delay.SetDelay(smooth_time);
+        //fonepole(smooth_time, deltime, 0.0005f);
+        //delay.SetDelay(smooth_time);
+        //if(synthparams.revfdb >0.75f){
+           //drylevel =  1 - synthparams.revfdb;
+        //} else {
+        //    drylevel = 1;
+        //}
 
         float new_freq = chordSelect(nn);
 
@@ -139,17 +129,19 @@ void AudioCallback(AudioHandle::InputBuffer  in,
         sig = synth.Process(trig, new_freq);
 
         //		// Handle Delay
-        delsig = delay.Read();
-        delay.Write(sig + (delsig * delfb));
+        //delsig = delay.Read();
+        //delay.Write(sig + (delsig * delfb));
 
         // Create Reverb Send
-        dry  = sig + delsig;
+        dry  = sig;
         send = dry * 0.6f;
         verb.Process(send, send, &wetl, &wetr);
 
         // Output
         out_left[i]  = dry + wetl;
         out_right[i] = dry + wetr;
+        //out_left[i]  = (dry * drylevel) + wetl;
+        //out_right[i] = (dry * drylevel) + wetr;
     }
 }
 
@@ -166,25 +158,20 @@ int main(void)
 
     synth.Init(samplerate);
 
-    delay.Init();
-    delay.SetDelay(samplerate * 0.8f); // half second delay
+    //delay.Init();
+    //delay.SetDelay(samplerate * 0.8f); // half second delay
 
     verb.Init(samplerate);
     verb.SetFeedback(0.85f);
     verb.SetLpFreq(2000.0f);
 
-    //scale_idx = DORIAN;
-    chord_idx = I;
-    chord_slot_idx = 0;
 
-    //chordSlot[0] = I;
-    //chordSlot[1] = I7;
-    //chordSlot[2] = IV;
-    //chordSlot[3] = V7;
+    arpsettings.chord_slot_idx = 0;
+
 
     settings.Init(&hw);
   
-  ui.Init(&arpsettings, &settings, &hw);
+  ui.Init(&synthparams, &arpsettings, &settings, &hw);
 
     // Start the ADC and Audio Peripherals on the Hardware
     hw.StartAdc();
@@ -193,13 +180,13 @@ int main(void)
     uint32_t last_save_time = System::GetNow(); 
 
   while (1) {
-    UpdateDigital();
+    
         if (hw.ReadyToSaveCal()) {
-            //ui.SaveCalibrationData();
+            ui.SaveCalibrationData();
         }
         if (System::GetNow() - last_save_time > 100 && ui.readyToSaveState)
         {
-          //ui.SaveState();
+          ui.SaveState();
           last_save_time = System::GetNow();
           ui.readyToSaveState = false;
         }
