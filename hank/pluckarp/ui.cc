@@ -242,10 +242,10 @@ void Ui::ReadSwitches() {
         }
 
         if(hw_->s1.DoubleClick()) {
-          pots_[DaisyHank::KNOB_3].Unlock();
-          pots_[DaisyHank::KNOB_4].Unlock();
-          pots_[DaisyHank::KNOB_2].Unlock();
-          pots_[DaisyHank::KNOB_1].Unlock();
+          pots_[DaisyHank::KNOB_3].Unlock2();
+          pots_[DaisyHank::KNOB_4].Unlock2();
+          pots_[DaisyHank::KNOB_2].Unlock2();
+          pots_[DaisyHank::KNOB_1].Unlock2();
           pots_[DaisyHank::KNOB_1].Lock(true);
           pots_[DaisyHank::KNOB_2].Lock(true);
           pots_[DaisyHank::KNOB_3].Lock(true);

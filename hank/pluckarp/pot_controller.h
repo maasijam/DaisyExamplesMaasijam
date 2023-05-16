@@ -108,6 +108,10 @@ class PotController {
       state_ = POT_STATE_TRACKING;
     }
   }
+
+  inline void Unlock2() {
+    state_ = POT_STATE_CATCHING_UP;
+  }
   
   inline void Realign() {
     state_ = POT_STATE_TRACKING;
