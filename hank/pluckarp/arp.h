@@ -13,13 +13,11 @@ struct Synthparams {
     
 // direction - to be implemented later
 enum arpdirection {
-    up = 0,
-    down,
-    upUp,
-    downDown,
-    upDown,
-    downUp,
-    random,
+    UP,
+    DOWN,
+    UP_DOWN_IN,
+    UP_DOWN_EX,
+    RAND,
     LAST_DIR
 };
 
@@ -52,6 +50,7 @@ struct ArpSettings {
     float chordDirection;
     int chord_slot_idx;
     int arp_idx;
+    bool slotChange;
 };
 
 
