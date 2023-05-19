@@ -9,7 +9,7 @@ TARGET = pluckarp
 #APP_TYPE = BOOT_QSPI
 
 # Sources
-CPP_SOURCES = pluckarp.cpp ../daisy_hank.cpp ../switch_hank.cpp
+CPP_SOURCES = pluckarp.cpp ../daisy_hank.cpp ../switch_hank.cpp arp.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy

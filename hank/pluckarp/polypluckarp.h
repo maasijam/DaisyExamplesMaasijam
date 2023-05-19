@@ -9,6 +9,13 @@
 
 namespace daisysp
 {
+
+    struct Synthparams {
+  float freq;
+  float damp;
+  float revlpf;
+  float revfdb;
+};
 /** Simplified Pseudo-Polyphonic Pluck Voice
 
 Template Based Pluck Voice, with configurable number of voices and simple pseudo-polyphony.

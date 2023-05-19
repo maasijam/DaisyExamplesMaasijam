@@ -36,13 +36,14 @@
 #include "pot_controller.h"
 #include "arp.h"
 #include "settings.h"
-
+#include "polypluckarp.h"
 
 
 namespace plaits {
 
 using namespace daisy;
-using namespace arps;
+using namespace daisysp;
+using namespace arp;
 
 const int kNumNormalizedChannels = 3;
 const int kProbeSequenceDuration = 32;
@@ -63,7 +64,7 @@ class Ui {
   Ui() { }
   ~Ui() { }
   
-  void Init(Synthparams* synthparams, ArpSettings* arpsettings, Settings* settings, DaisyHank* hw);
+  void Init(Synthparams* synthparams, Arp* arp, Settings* settings, DaisyHank* hw);
   
   void Poll();
   
@@ -122,7 +123,7 @@ class Ui {
   float pitch_lp_calibration_;
   
   Settings* settings_;
-  ArpSettings* arpsettings_;
+  Arp* arp_;
   Synthparams* synthparams_;
 
 

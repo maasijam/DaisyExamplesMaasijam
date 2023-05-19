@@ -1,15 +1,13 @@
-#ifndef ARP_NOTES_H_
-#define ARP_NOTES_H_
+#ifndef ARP_H_
+#define ARP_H_
 
-namespace arps {
+#include <stdlib.h>
+
+namespace arp {
 
 
-struct Synthparams {
-  float freq;
-  float damp;
-  float revlpf;
-  float revfdb;
-};
+
+
     
 // direction - to be implemented later
 enum arpdirection {
@@ -24,7 +22,8 @@ enum arpdirection {
 enum scale {
   MAJOR,
   MINOR,
-  DORIAN
+  DORIAN,
+  LAST_SCALE
 };
 
 
@@ -40,7 +39,8 @@ enum chordname {
     VI,
     VI7,
     II,
-    III
+    III,
+    LAST_CHORD
 };
 
 struct ArpSettings {
@@ -144,8 +144,28 @@ const Chord scaleChords[3][12] = {
 }
 };
 
+class Arp {
+ public:
+  Arp() { }
+  ~Arp() { }
+  
+  ArpSettings arpsettings;
+  
+  
+  void Init();
+  void Process(bool trig,float nn, float *arpnote);
+   
+  private:
+  int GetIdxByDirection(int idx, int chordlen);
+  float ChordSelect(float nn);
+  int irand(int min, int max) ;
+  bool firstrun;
+  float* arpnote_;
+  int chordLength_;
+
+};
 
 
 } // namespace arps
 
-#endif  // ARP_NOTES_H_
+#endif  // ARP_H_
