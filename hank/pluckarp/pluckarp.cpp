@@ -12,21 +12,15 @@ using namespace arp;
 
 
 #define NUM_VOICES 32
-#define MAX_DELAY ((size_t)(10.0f * 48000.0f))
-
 
 // Hardware
 DaisyHank hw;
-
-
 
 using namespace plaits;
 using namespace stmlib;
 
 // Synthesis
 PolyPluckArp<NUM_VOICES> synth;
-// 10 second delay line on the external SDRAM
-//DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delay;
 ReverbSc                                  verb;
 
 Settings settings;
@@ -34,11 +28,6 @@ Ui ui;
 
 Arp arpeggiator;
 Synthparams synthparams;
-
-
-
-
-
 
 
 void AudioCallback(AudioHandle::InputBuffer  in,
@@ -49,9 +38,6 @@ void AudioCallback(AudioHandle::InputBuffer  in,
     float trig, nn, damp;       // Pluck Vars
     //float deltime, delfb, kval;  // Delay Vars
     float dry, send, wetl, wetr, verblpf; // Effects Vars
-    bool arptrig;
-    
-
     
 
     // Assign Output Buffers
@@ -67,13 +53,11 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 
     // Handle Triggering the Plucks
     trig = 0.0f;
-    arptrig = false;
 
     if(hw.gate_in1.Trig())
     {
-        //if(arpsettings.arp_idx == (chordLength - 1)) {
-        arptrig = true;
         trig = 1.0f;
+        arpeggiator.Trig();
     }
         
 
@@ -87,43 +71,24 @@ void AudioCallback(AudioHandle::InputBuffer  in,
     damp = 0.5f + (synthparams.damp * 0.5f);
     synth.SetDamp(damp);
 
-    // Read knobs for decay;
-    //decay = 0.3f + (synthparams.damp * 0.7f);
-    //synth.SetDecay(decay);
-
-    // Get Delay Parameters from knobs.
-    //kval    = synthparams.deltime;
-    //deltime = (0.001f + (kval * kval) * 5.0f) * samplerate;
-    //delfb   = synthparams.delfdbk;
+    
 
     verb.SetFeedback(synthparams.revfdb);
     verblpf = 2000.0f + (synthparams.revlpf * 6000.0f);
     verb.SetLpFreq(verblpf);
 
-     float new_freq;
-    arpeggiator.Process(arptrig,nn,&new_freq);
+    
+    
 
     // Synthesis.
     for(size_t i = 0; i < size; i++)
     {
-        // Smooth delaytime, and set.
-        //fonepole(smooth_time, deltime, 0.0005f);
-        //delay.SetDelay(smooth_time);
-        //if(synthparams.revfdb >0.75f){
-           //drylevel =  1 - synthparams.revfdb;
-        //} else {
-        //    drylevel = 1;
-        //}
-       
+              
 
-        //float new_freq = chordSelect(nn);
+        float new_freq = arpeggiator.GetArpNote(nn);
         
         // Synthesize Plucks
         sig = synth.Process(trig, new_freq);
-
-        //		// Handle Delay
-        //delsig = delay.Read();
-        //delay.Write(sig + (delsig * delfb));
 
         // Create Reverb Send
         dry  = sig;
@@ -133,8 +98,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
         // Output
         out_left[i]  = dry + wetl;
         out_right[i] = dry + wetr;
-        //out_left[i]  = (dry * drylevel) + wetl;
-        //out_right[i] = (dry * drylevel) + wetr;
+        
     }
 }
 
@@ -151,9 +115,6 @@ int main(void)
 
     synth.Init(samplerate);
 
-    //delay.Init();
-    //delay.SetDelay(samplerate * 0.8f); // half second delay
-
     verb.Init(samplerate);
     verb.SetFeedback(0.85f);
     verb.SetLpFreq(2000.0f);
@@ -164,7 +125,7 @@ int main(void)
 
     settings.Init(&hw);
   
-  ui.Init(&synthparams, &arpeggiator, &settings, &hw);
+    ui.Init(&synthparams, &arpeggiator, &settings, &hw);
 
     // Start the ADC and Audio Peripherals on the Hardware
     hw.StartAdc();

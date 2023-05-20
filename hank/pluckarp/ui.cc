@@ -94,7 +94,7 @@ void Ui::LoadState() {
   //patch_->decay = static_cast<float>(state.decay) / 256.0f;
   //octave_ = static_cast<float>(state.octave) / 256.0f;
   //cv_ctrl_ = static_cast<float>(state.cv_ctrl) / 256.0f;
-  for(int i = 0; i < 4; i++)
+  for(int i = 0; i < arpSlots; i++)
   {
     arp_->arpsettings.slotChordIdx[i] = state.slotChord[i];
   }
@@ -110,7 +110,7 @@ void Ui::SaveState() {
   state->scale = arp_->arpsettings.scaleIdx;
   state->direction = arp_->arpsettings.chordDirection;
   state->repeats = arp_->arpsettings.chordRepeats;
-  for(int i = 0; i < 4; i++)
+  for(int i = 0; i < arpSlots; i++)
   {
     state->slotChord[i] = arp_->arpsettings.slotChordIdx[i];
   }
@@ -132,16 +132,16 @@ void Ui::UpdateLEDs() {
       switch (arp_->arpsettings.chord_slot_idx)
         {
         case 0:
-          SetChordColor(static_cast<int>(arp_->arpsettings.slotChordIdx[0] * 12.0f),DaisyHank::RGB_LED_1);
+          SetChordColor(static_cast<int>(arp_->arpsettings.slotChordIdx[0] * numChords),DaisyHank::RGB_LED_1);
           break;
         case 1:
-          SetChordColor(static_cast<int>(arp_->arpsettings.slotChordIdx[1] * 12.0f),DaisyHank::RGB_LED_2);
+          SetChordColor(static_cast<int>(arp_->arpsettings.slotChordIdx[1] * numChords),DaisyHank::RGB_LED_2);
           break;
         case 2:
-          SetChordColor(static_cast<int>(arp_->arpsettings.slotChordIdx[2] * 12.0f),DaisyHank::RGB_LED_3);
+          SetChordColor(static_cast<int>(arp_->arpsettings.slotChordIdx[2] * numChords),DaisyHank::RGB_LED_3);
           break;
         case 3:
-          SetChordColor(static_cast<int>(arp_->arpsettings.slotChordIdx[3] * 12.0f),DaisyHank::RGB_LED_4);
+          SetChordColor(static_cast<int>(arp_->arpsettings.slotChordIdx[3] * numChords),DaisyHank::RGB_LED_4);
           break;
         
         default:
@@ -154,13 +154,13 @@ void Ui::UpdateLEDs() {
     
     case UI_MODE_SLOT_CHORD:
       {
-          int chord1 = static_cast<int>(arp_->arpsettings.slotChordIdx[0] * 12.0f);
+          int chord1 = static_cast<int>(arp_->arpsettings.slotChordIdx[0] * numChords);
           SetChordColor(chord1,DaisyHank::RGB_LED_1);
-          int chord2 = static_cast<int>(arp_->arpsettings.slotChordIdx[1] * 12.0f);
+          int chord2 = static_cast<int>(arp_->arpsettings.slotChordIdx[1] * numChords);
           SetChordColor(chord2,DaisyHank::RGB_LED_2);
-          int chord3 = static_cast<int>(arp_->arpsettings.slotChordIdx[2] * 12.0f);
+          int chord3 = static_cast<int>(arp_->arpsettings.slotChordIdx[2] * numChords);
           SetChordColor(chord3,DaisyHank::RGB_LED_3);
-          int chord4 = static_cast<int>(arp_->arpsettings.slotChordIdx[3] * 12.0f);
+          int chord4 = static_cast<int>(arp_->arpsettings.slotChordIdx[3] * numChords);
           SetChordColor(chord4,DaisyHank::RGB_LED_4);
           
         
@@ -169,11 +169,11 @@ void Ui::UpdateLEDs() {
 
       case UI_MODE_CONFIG:
       {
-        int scaleidx = static_cast<int>(arp_->arpsettings.scaleIdx * 3.0f);
+        int scaleidx = static_cast<int>(arp_->arpsettings.scaleIdx * LAST_SCALE);
         SetConfigColor(scaleidx, DaisyHank::RGB_LED_1);
-        int directionidx = static_cast<int>(arp_->arpsettings.chordDirection * 5.0f);
+        int directionidx = static_cast<int>(arp_->arpsettings.chordDirection * LAST_DIR);
         SetConfigColor(directionidx, DaisyHank::RGB_LED_2);
-        int repeatsidx = static_cast<int>(arp_->arpsettings.chordRepeats * 8.0f);
+        int repeatsidx = static_cast<int>(arp_->arpsettings.chordRepeats * maxRepeats);
         SetConfigColor(repeatsidx, DaisyHank::RGB_LED_3);
         
       
