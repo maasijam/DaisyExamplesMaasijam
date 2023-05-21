@@ -54,7 +54,7 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
     //hw.ClearLeds();
 
     // Set MIDI Note for new Pluck notes.
-    nn = 24.0f + 0.5 * 60.0f;
+    nn = 24.0f + synthparams.freq * 60.0f;
     nn = static_cast<int32_t>(nn); // Quantize to semitones
 
     // Handle Triggering the Plucks
@@ -66,10 +66,10 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
         if(!hw.GateIn1())
         {
         
-            vasynth.NoteOn(static_cast<u_int8_t>(new_freq),127);
+            vasynth.NoteOn(static_cast<int32_t>(new_freq),127);
             //hw.SetRGBColor(DaisyHank::RGB_LED_1,DaisyHank::BLUE );
         } else {
-            vasynth.NoteOff(static_cast<u_int8_t>(new_freq));
+            vasynth.NoteOff(static_cast<int32_t>(new_freq));
             //hw.SetRGBColor(DaisyHank::RGB_LED_1,DaisyHank::OFF );
         }
     
@@ -88,8 +88,8 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
             
             vasynth.Process(&voice_left, &voice_right);
 			
-			out[n] = voice_left + in[n];;
-			out[n + 1] = voice_right + in[n + 1];;	
+			out[n] = voice_left;
+			out[n + 1] = voice_right;	
 		} 
 		else 
 		{
@@ -105,7 +105,7 @@ int main(void)
     // Init everything.
     float samplerate;
     hw.Init(true);
-    hw.SetAudioBlockSize(4);
+    //hw.SetAudioBlockSize(4);
     samplerate = hw.AudioSampleRate();
     sysSampleRate = hw.AudioSampleRate();
 	sysCallbackRate = hw.AudioCallbackRate();
