@@ -1,5 +1,5 @@
 # Project Name
-TARGET = pluckarp
+TARGET = agio
 
 #USE_FATFS = 1
 
@@ -9,7 +9,7 @@ TARGET = pluckarp
 #APP_TYPE = BOOT_QSPI
 
 # Sources
-CPP_SOURCES = pluckarp.cpp ../daisy_hank.cpp ../switch_hank.cpp arp.cpp vasynth.cpp dsp/moogladder.cpp
+CPP_SOURCES = agio.cpp ../daisy_hank.cpp ../switch_hank.cpp arp.cpp vasynth.cpp dsp/moogladder.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy
