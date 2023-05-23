@@ -53,7 +53,10 @@ void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Arp* arp, Se
   arp_ = arp;
 
   ui_task_ = 0;
+  
   mode_ = UI_MODE_NORMAL;
+  engineCounter_ = 0;
+  
  
 
   //size_engines_ = voice_->GetNumEngines();     
@@ -63,24 +66,8 @@ void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Arp* arp, Se
   LoadState();
 
   
-  // Bind pots to parameters.
-  /*pots_[DaisyHank::KNOB_1].Init(
-      &transposition_, &octave_, 2.0f, -1.0f);
-  pots_[DaisyHank::KNOB_2].Init(
-      &patch->harmonics, &patch->lpg_colour, 1.0f, 0.0f);
-  pots_[DaisyHank::KNOB_3].Init(
-      &patch->timbre, &patch->decay, 1.0f, 0.0f);
-  pots_[DaisyHank::KNOB_4].Init(
-      &patch->morph, &cv_ctrl_, 1.0f, 0.0f);*/
-
-  pots_[DaisyHank::KNOB_1].Init(
-      &transposition_, &arp_->arpsettings.slotChordIdx[0], &arp_->arpsettings.scaleIdx ,1.0f, 0.0f);
-  pots_[DaisyHank::KNOB_2].Init(
-      &patch->harmonics, &arp_->arpsettings.slotChordIdx[1], &arp_->arpsettings.chordDirection ,1.0f, 0.0f);
-  pots_[DaisyHank::KNOB_3].Init(
-      &patch->decay, &arp_->arpsettings.slotChordIdx[2], &arp_->arpsettings.chordRepeats ,1.0f, 0.0f);
-  pots_[DaisyHank::KNOB_4].Init(
-      &patch->timbre, &arp_->arpsettings.slotChordIdx[3], NULL, 1.0f, 0.0f);
+  // Engines 0,2,8,9
+  PotsInit(engineCounter_);  
   
   
   pwm_counter_ = 0;
@@ -93,9 +80,7 @@ void Ui::Init(Patch* patch, Modulations* modulations, Voice* voice, Arp* arp, Se
   pitch_lp_calibration_ = 0.0f;
   cblind_ = 0;
   octave_ = 1.0f;
-  patch_->engine = 0;
-  patch_->lpg_colour = static_cast<float>(0.5f) / 256.0f;
-  patch_->morph = 0.5f;
+
   
 }
 
@@ -141,6 +126,7 @@ void Ui::UpdateLEDs() {
   switch (mode_) {
     case UI_MODE_NORMAL:
       {
+        
       switch (arp_->arpsettings.chord_slot_idx)
         {
         case 0:
@@ -160,6 +146,7 @@ void Ui::UpdateLEDs() {
           
           break;
         }
+       
 
       }
       break;
@@ -209,6 +196,15 @@ void Ui::UpdateLEDs() {
         hw_->SetRGBColor(DaisyHank::RGB_LED_3,DaisyHank::TURQ);
         hw_->SetRGBColor(DaisyHank::RGB_LED_4,DaisyHank::TURQ);
       }
+      break;
+
+      case UI_MODE_ENGINE:
+      
+        hw_->SetRGBColor(DaisyHank::RGB_LED_1,patch_->engine == 0 ? DaisyHank::BLUE : DaisyHank::OFF);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_2,patch_->engine == 2 ? DaisyHank::BLUE : DaisyHank::OFF);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_3,patch_->engine == 8 ? DaisyHank::BLUE : DaisyHank::OFF);
+        hw_->SetRGBColor(DaisyHank::RGB_LED_4,patch_->engine == 9 ? DaisyHank::BLUE : DaisyHank::OFF);
+
       break;
     
     case UI_MODE_ERROR:
@@ -273,10 +269,14 @@ void Ui::ReadSwitches() {
           readyToSaveState = true;
         }
 
-        if (hw_->s1.TimeHeldMs() >= kLongCalPressTime) {
+        if ((hw_->s1.TimeHeldMs() >= kLongCalPressTime) && PotsCalCheck()) {
           press_time_  = 0;
           RealignPots();
           StartCalibration();
+        }
+
+        if ((hw_->s1.TimeHeldMs() >= kLongCalPressTime) && !PotsCalCheck()) {
+          mode_ = UI_MODE_ENGINE;
         }
         
       }
@@ -332,6 +332,18 @@ void Ui::ReadSwitches() {
           break;
         }
       
+      break;
+
+      case UI_MODE_ENGINE:
+        if (hw_->s1.FallingEdge()) {
+          engineCounter_ = (engineCounter_ + 1) % 4;
+          patch_->engine = enginesArr[engineCounter_];
+        }
+        if (hw_->s1.TimeHeldMs() >= kLongPressTime) {
+          press_time_ = 0;
+          ignore_release_ = true;
+          mode_ = UI_MODE_NORMAL;
+        }
       break;
 
     case UI_MODE_ERROR:
@@ -539,6 +551,43 @@ void Ui::SetConfigColor(int idx, DaisyHank::Rgbs rgb_idx)
     default:
       break;
     }
+}
+
+void Ui::PotsInit(int engine){
+
+  pots_[DaisyHank::KNOB_1].Init(
+      &transposition_, &arp_->arpsettings.slotChordIdx[0], &arp_->arpsettings.scaleIdx ,1.0f, 0.0f);
+  pots_[DaisyHank::KNOB_2].Init(
+      &patch_->harmonics, &arp_->arpsettings.slotChordIdx[1], &arp_->arpsettings.chordDirection ,1.0f, 0.0f);
+  if(engine == 0 || engine == 2)
+  {
+    pots_[DaisyHank::KNOB_3].Init(
+        &patch_->decay, &arp_->arpsettings.slotChordIdx[2], &arp_->arpsettings.chordRepeats ,1.0f, 0.0f);
+  } else if(engine == 8 || engine == 9) 
+  {
+    pots_[DaisyHank::KNOB_3].Init(
+        &patch_->morph, &arp_->arpsettings.slotChordIdx[2], &arp_->arpsettings.chordRepeats ,1.0f, 0.0f);
+  }
+  pots_[DaisyHank::KNOB_4].Init(
+      &patch_->timbre, &arp_->arpsettings.slotChordIdx[3], NULL, 1.0f, 0.0f);
+
+  patch_->engine = engine;
+  patch_->lpg_colour = static_cast<float>(0.5f) / 256.0f;
+  
+  if(engine == 2) 
+  {
+    patch_->morph = 0.75f;
+  } else{
+    patch_->morph = 0.5f;
+  }
+
+}
+
+bool Ui::PotsCalCheck(){
+    if(transposition_ < 0.01f && patch_->harmonics < 0.01f && patch_->timbre < 0.01f && (patch_->decay < 0.01 || patch_->morph < 0.01f)) {
+      return true;
+    } 
+    return false;
 }
 
 }  // namespace plaits

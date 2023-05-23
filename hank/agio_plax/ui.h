@@ -51,6 +51,7 @@ enum UiMode {
   UI_MODE_NORMAL,
   UI_MODE_SLOT_CHORD,
   UI_MODE_CONFIG,
+  UI_MODE_ENGINE,
   UI_MODE_CALIBRATION_C1,
   UI_MODE_CALIBRATION_C3,
   UI_MODE_ERROR,
@@ -86,6 +87,7 @@ class Ui {
   void StartCalibration();
   void CalibrateC1();
   void CalibrateC3();
+
   
 
   bool readyToSaveState = false;
@@ -119,6 +121,9 @@ class Ui {
   void SetLedsOctRange(int idx);
   void SetChordColor(int idx, DaisyHank::Rgbs rgb_idx);
   void SetConfigColor(int idx, DaisyHank::Rgbs rgb_idx);
+
+  void PotsInit(int engine);
+  bool PotsCalCheck();
     
   UiMode mode_;
   //CvCtrlState cv_ctrl_state_;
@@ -147,6 +152,8 @@ class Ui {
   bool ignore_release_;
   
   int active_engine_;
+  int engineCounter_;
+  int enginesArr[4] = {0,2,8,9};
   
   float cv_c1_;  // For calibration
   

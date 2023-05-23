@@ -68,6 +68,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
   hw.ProcessAnalogControls();
   ui.Poll();
 
+  
   modulations.level = 1;
 
   patch.frequency_modulation_amount = 1.f;
@@ -97,6 +98,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 		OUT_L[i] = outputPlaits[i].out / 32768.f;
 		OUT_R[i] = outputPlaits[i].aux / 32768.f;
 	}
+ 
   //ui.set_active_engine(voice.active_engine());
 
 }
@@ -111,15 +113,18 @@ void Init() {
 	hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
 
   hw.ClearLeds();
-	hw.UpdateLeds();
-
-  stmlib::BufferAllocator allocator(shared_buffer, sizeof(shared_buffer));
-	voice.Init(&allocator);
+  hw.UpdateLeds();
   
+  
+  stmlib::BufferAllocator allocator(shared_buffer, sizeof(shared_buffer));
+  voice.Init(&allocator);
+
   settings.Init(&hw);
   arpeggiator.Init();
-  
+
   ui.Init(&patch, &modulations, &voice, &arpeggiator, &settings, &hw);
+  
+	
 
   hw.StartAdc();
 	hw.StartAudio(AudioCallback);
@@ -130,6 +135,7 @@ int main(void) {
   Init();
 
   uint32_t last_save_time = System::GetNow(); 
+
 
   while (1) {
     
