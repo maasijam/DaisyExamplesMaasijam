@@ -8,7 +8,7 @@ RESOURCES      = plax/resources
 #DEBUG = 1
 #LDFLAGS += -u _printf_float
 
-#APP_TYPE = BOOT_SRAM
+APP_TYPE = BOOT_SRAM
 
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy
