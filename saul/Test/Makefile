@@ -5,7 +5,7 @@ DEBUG = 1
 USE_FATFS = 0
 
 # Sources
-CPP_SOURCES = Test.cpp ../daisy_saul.cpp
+CPP_SOURCES = Test.cpp LedMatrix.cpp sr_595.cpp ../daisy_saul.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libdaisy
